@@ -1,0 +1,1 @@
+SELECT user_id, password, created_at FROM user_account WHERE user_id='e2e_final_user' ORDER BY created_at DESC LIMIT 1;

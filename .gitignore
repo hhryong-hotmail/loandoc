@@ -1,0 +1,21 @@
+# Maven
+/target/
+/.mvn/
+
+# IDE
+.vscode/
+*.iml
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Tomcat
+/webapps/
+*.war
+
+# Secrets
+*.env
+*.keystore
+setenv.bat
