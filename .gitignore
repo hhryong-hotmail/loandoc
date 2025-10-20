@@ -19,3 +19,17 @@ Thumbs.db
 *.env
 *.keystore
 setenv.bat
+ 
+# Node / frontend
+node_modules/
+npm-debug.log*
+
+# Build output
+server/target/
+
+# Logs
+*.log
+
+# VSCode workspace
+.vscode/*
+.vscode/**
