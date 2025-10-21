@@ -11,6 +11,8 @@
         label{display:block;margin-bottom:6px;font-weight:600}
         input{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px}
         button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        .button-group{display:flex;gap:12px;align-items:center}
+        .signup-btn{background:#28a745;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
         .muted{color:#666;font-size:0.9em;margin-top:10px}
         nav{display:flex;gap:12px;justify-content:center;padding:12px 0;background:#fff}
         nav a{color:#2d6cdf;text-decoration:none;font-weight:600}
@@ -32,7 +34,10 @@
             <input id="loginId" type="text" placeholder="아이디 입력" />
             <label for="loginPwd">비밀번호</label>
             <input id="loginPwd" type="password" placeholder="비밀번호 입력" />
-            <button id="loginBtn">로그인</button>
+            <div class="button-group">
+                <button id="loginBtn">로그인</button>
+                <a href="signup.html" class="signup-btn">회원가입</a>
+            </div>
             <div id="loginMsg" class="muted">테스트: 회원가입을 통해 로컬에 생성된 계정으로 로그인합니다.</div>
         </div>
     </main>
@@ -54,6 +59,3 @@
             if(last){ document.getElementById('loginId').value = last; document.getElementById('loginMsg').textContent = '회원가입 완료 — 아이디가 자동 입력되었습니다.'; document.getElementById('loginMsg').style.color='green'; localStorage.removeItem('lastRegisteredId'); }
         })();
     </script>
-</body>
-</html>
-

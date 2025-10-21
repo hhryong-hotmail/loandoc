@@ -1,1 +1,2 @@
-SELECT user_id, password, created_at FROM user_account WHERE user_id='e2e_final_user' ORDER BY created_at DESC LIMIT 1;
+SELECT 'user_account' AS which, user_id, password, created_at FROM user_account WHERE user_id='hhryong3' ORDER BY created_at DESC LIMIT 1;
+SELECT 'foreign_worker_master' AS which, user_id, password FROM foreign_worker_master WHERE user_id='hhryong3' LIMIT 1;

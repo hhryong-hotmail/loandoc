@@ -193,8 +193,12 @@ public class RegisterServlet extends HttpServlet {
                         logger.warning("SQL State: " + sqlState + ", Error Code: " + e.getErrorCode() + ", Message: "
                                 + e.getMessage());
 
-                        if (sqlState != null && (sqlState.equals("23505") || sqlState.startsWith("23"))) {
-                            // unique violation / constraint error
+                        // Only treat PostgreSQL unique-violation (23505) as '409 Conflict'.
+                        // Other SQL state codes in the '23' class indicate other constraint
+                        // violations (e.g. NOT NULL = 23502). Those should not be reported
+                        // as "이미 존재하는 ID". Return 500 and surface a clear message so
+                        // the issue can be investigated.
+                        if ("23505".equals(sqlState)) {
                             logger.warning("Duplicate key violation detected for user='" + id + "'");
                             result.put("ok", false);
                             result.put("error", "이미 존재하는 ID입니다.");
@@ -203,6 +207,19 @@ public class RegisterServlet extends HttpServlet {
                             logger.info("=== REGISTER REQUEST END (409 - Duplicate ID) ===");
                             return;
                         }
+
+                        if (sqlState != null && sqlState.startsWith("23")) {
+                            // Other integrity constraint violation (not unique) — treat as server
+                            // side data/schema problem. Return 500 and include brief hint.
+                            logger.warning("Integrity constraint violation (non-unique) for user='" + id + "'");
+                            result.put("ok", false);
+                            result.put("error", "서버 내부 오류(데이터 무결성 위반): " + e.getMessage());
+                            resp.setStatus(500);
+                            resp.getWriter().print(mapper.writeValueAsString(result));
+                            logger.info("=== REGISTER REQUEST END (500 - Integrity constraint) ===");
+                            return;
+                        }
+
                         // other DB errors -> return 500
                         result.put("ok", false);
                         result.put("error", "서버 내부 오류(데이터베이스): " + e.getMessage());
