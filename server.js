@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const path = require('path');
 
 const app = express();
 
 // Middlewares
-// Serve static files (e.g., signup.html, index.html) from project root
-app.use(express.static(__dirname));
+// Serve static files (index.html, signup.html) from the webapp directory used for WAR packaging
+const staticDir = path.join(__dirname, 'server', 'src', 'main', 'webapp');
+console.log('[static] serving files from', staticDir);
+app.use(express.static(staticDir));
 
 // Set a permissive, explicit CSP so Chrome devtools and fetch can connect
 // Allows inline scripts/styles used by the current HTML files
@@ -18,7 +21,7 @@ app.use((req, res, next) => {
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data:",
-      "connect-src 'self' http://127.0.0.1:8081",
+      "connect-src 'self' http://127.0.0.1:8080",
       "frame-ancestors 'self'"
     ].join('; ')
   );
@@ -53,38 +56,63 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'loandoc-api' });
 });
 
-// Register endpoint
-app.post('/api/register', (req, res) => {
-  const payload = JSON.stringify(req.body || {});
-  const options = {
-    host: '127.0.0.1',
-    port: 8080,
-    path: '/server/api/register',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(payload)
-    },
-    timeout: 10000
-  };
+// Register endpoint - handle directly in Node (DB-backed)
+const { Client } = require('pg');
+const bcrypt = require('bcrypt');
 
-  const proxyReq = http.request(options, (proxyRes) => {
-    res.status(proxyRes.statusCode || 502);
-    // 그대로 스트림 파이프하여 Tomcat 응답을 전달
-    proxyRes.pipe(res);
-  });
+function getDbClient() {
+  // Accept DATABASE_URL or individual env vars
+  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://postgres@localhost:5432/loandoc';
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD;
+  if (user && password) {
+    return new Client({ connectionString: dbUrl, user, password });
+  }
+  return new Client({ connectionString: dbUrl });
+}
 
-  proxyReq.on('timeout', () => {
-    proxyReq.destroy(new Error('upstream timeout'));
-  });
+const ENABLE_FILE_FALLBACK = (process.env.ENABLE_FILE_FALLBACK || 'true').toLowerCase() === 'true';
 
-  proxyReq.on('error', (err) => {
-    console.error('[REGISTER PROXY] error:', err.message);
-    res.status(502).json({ ok: false, error: `upstream error: ${err.message}` });
-  });
+app.post('/api/register', async (req, res) => {
+  const { id, password } = req.body || {};
+  if (!id || !password) return res.status(400).json({ ok: false, error: 'id and password required' });
 
-  proxyReq.write(payload);
-  proxyReq.end();
+  // Try DB first
+  const client = getDbClient();
+  try {
+    await client.connect();
+    // simple table: user_account(id primary key, password_hash varchar, created_at timestamp)
+    const check = await client.query('SELECT id FROM user_account WHERE id = $1', [id]);
+    if (check.rowCount > 0) {
+      return res.status(409).json({ ok: false, error: 'already exists' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const insert = await client.query('INSERT INTO user_account(id,password_hash,created_at) VALUES($1,$2,NOW())', [id, hash]);
+    return res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('[REGISTER] db error:', err.code || err.message, err);
+    // If DB unavailable and file fallback enabled, save locally
+    if (ENABLE_FILE_FALLBACK) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const usersFile = path.resolve(__dirname, 'users.json');
+        const users = fs.existsSync(usersFile) ? JSON.parse(fs.readFileSync(usersFile, 'utf8')) : [];
+        if (users.find(u => u.id === id)) return res.status(409).json({ ok: false, error: 'already exists' });
+        const hash = await bcrypt.hash(password, 10);
+        users.push({ id, password_hash: hash, created_at: new Date().toISOString() });
+        fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), 'utf8');
+        return res.status(201).json({ ok: true, fallback: true });
+      } catch (fsErr) {
+        console.error('[REGISTER] file fallback failed:', fsErr.message);
+        return res.status(500).json({ ok: false, error: 'db error and fallback failed' });
+      }
+    }
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
 });
 
 // List users (diagnostic)
@@ -105,7 +133,7 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`LOANDOC API listening on http://127.0.0.1:${PORT}`);
 });

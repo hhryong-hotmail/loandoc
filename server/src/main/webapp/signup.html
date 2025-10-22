@@ -22,8 +22,9 @@
     /* visual inactive style for buttons (still clickable) */
     button.inactive { opacity:0.55; filter:grayscale(30%); cursor:default; }
     @media(max-width:720px){ .grid{grid-template-columns:1fr; } input, select, textarea{height:44px;} }
-        nav{display:flex;gap:12px;justify-content:center;padding:12px 0;background:#fff}
-        nav a{color:#2d6cdf;text-decoration:none;font-weight:600}
+        nav{display:flex;justify-content:center;gap:20px;padding:12px 0;background:#fff;align-items:center}
+        nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
+        .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
     </style>
 </head>
 <body>
@@ -32,8 +33,10 @@
         <p>회원가입</p>
     </header>
     <nav>
-        <a href="signup.html">회원가입</a>
-        <a href="index.html">로그인</a>
+        <a class="nav-button" href="index.html">로그인</a>
+        <a class="nav-button" href="signup.html">회원가입</a>
+        <a class="nav-button" href="workerInfo.html">정보조회</a>
+        <a class="nav-button" href="loanAppl.html">대출신청</a>
     </nav>
     <main>
         <h2>계정 생성</h2>
@@ -57,142 +60,11 @@
             <div id="idMsg" class="note"></div>
         </div>
 
-        <h2>개인 정보</h2>
-        <form id="profileForm">
-            <div class="grid">
-                <div>
-                    <label for="name">1. 이름 (name)</label>
-                    <input id="name" />
-                </div>
-                <div>
-                    <label for="nationality">2. 국가 (nationality)</label>
-                    <select id="nationality">
-                        <option value="">선택</option>
-                        <option>Vietnam</option>
-                        <option>Thailand</option>
-                        <option>Philippines</option>
-                        <option>Indonesia</option>
-                        <option>Malaysia</option>
-                        <option>Myanmar</option>
-                        <option>Cambodia</option>
-                        <option>Laos</option>
-                        <option>Singapore</option>
-                        <option>Timor-Leste</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="passport">3. 여권번호 (passport_number)</label>
-                    <input id="passport" />
-                </div>
-                <div>
-                    <label for="birth">4. 생년월일 (birth_date)</label>
-                    <input id="birth" type="date" />
-                </div>
-
-                <div>
-                    <label for="entry">5. 입국일자 (entry_date)</label>
-                    <input id="entry" type="date" />
-                </div>
-                <div>
-                    <label for="gender">6. 성별 (gender)</label>
-                    <select id="gender">
-                        <option value="">선택</option>
-                        <option value="M">M</option>
-                        <option value="F">F</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="employment">7. 입사구분</label>
-                    <select id="employment">
-                        <option value="">선택</option>
-                        <option>정규직</option>
-                        <option>비정규직</option>
-                        <option>무직</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="foreigner_grade">8. 외국인 등급 (foreigner_grade)</label>
-                    <select id="foreigner_grade">
-                        <option value="">선택</option>
-                        <option>A</option>
-                        <option>B</option>
-                        <option>C</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="visa_grade">9. 비자등급 (visa_grade)</label>
-                    <select id="visa_grade">
-                        <option value="">선택</option>
-                        <option>A</option>
-                        <option>B</option>
-                        <option>C</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="phone">10. 전화번호 (phone_number)</label>
-                    <input id="phone" />
-                </div>
-
-                <div>
-                    <label for="address">11. 국내주소 (address)</label>
-                    <input id="address" />
-                </div>
-                <div>
-                    <label for="home_address">12. 본국주소 (home_country_address)</label>
-                    <input id="home_address" />
-                </div>
-
-                <div>
-                    <label for="current_company">13. 현재 직장명 (current_company)</label>
-                    <input id="current_company" />
-                </div>
-                <div>
-                    <label for="company_entry_date">14. 입사일자 (company_entry_date)</label>
-                    <input id="company_entry_date" type="date" />
-                </div>
-
-                <div>
-                    <label for="annual_salary">15. 연봉 (annual_salary)</label>
-                    <input id="annual_salary" type="number" step="1" min="0" />
-                </div>
-                <div>
-                    <label for="commute_company">16. 출근 회사명 (commute_company)</label>
-                    <input id="commute_company" />
-                </div>
-
-                <div>
-                    <label for="has_health">17. 의료보험 여부 (has_health_insurance)</label>
-                    <select id="has_health">
-                        <option value="">선택</option>
-                        <option value="Y">Y</option>
-                        <option value="N">N</option>
-                    </select>
-                </div>
-                <!-- working_months field removed per request -->
-
-                <div>
-                    <label for="stay_expiry_date">18. 체재만료일자 (stay_expiry_date)</label>
-                    <input id="stay_expiry_date" type="date" />
-                </div>
-                <div>
-                    <label for="has_loan">19. 기존대출여부 (has_loan)</label>
-                    <select id="has_loan">
-                        <option value="">선택</option>
-                        <option value="Y">Y</option>
-                        <option value="N">N</option>
-                    </select>
-                </div>
-
-            </div>
-            <div style="margin-top:12px;">
-                <button type="button" id="saveBtn">저장</button>
-                <button type="button" id="resetBtn">초기화</button>
-                <div id="formMsg" class="note"></div>
-            </div>
-        </form>
+        <!-- <h2>개인 정보</h2> -->
+        <p class="note">개인정보 입력은 별도 페이지에서 작성합니다. 계정 생성 후 아래 버튼을 눌러 개인정보 입력 화면으로 이동하세요.</p>
+        <div style="margin-top:12px;">
+            <a href="workerInfo.html"><button type="button">개인정보 입력으로 이동</button></a>
+        </div>
     </main>
     <script>
         function loadUsers(){ return JSON.parse(localStorage.getItem('users')||'[]'); }
