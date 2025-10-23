@@ -176,7 +176,7 @@
                 console.log('서버에 계정 등록 요청 전송 중...');
                 // Use relative path to the deployed server context so the page at
                 // http://localhost:8080/signup.html posts to the correct servlet.
-                const res = await fetch('/server/api/register', {
+                const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',

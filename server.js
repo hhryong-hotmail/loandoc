@@ -61,17 +61,49 @@ const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 
 function getDbClient() {
-  // Accept DATABASE_URL or individual env vars
-  const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://postgres@localhost:5432/loandoc';
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-  if (user && password) {
-    return new Client({ connectionString: dbUrl, user, password });
+  try {
+    // Get connection parameters
+    const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/loandoc';
+    
+    // Parse connection string if it exists
+    let config = {};
+    
+    if (dbUrl) {
+      // If using connection string, make sure it's properly formatted
+      config.connectionString = dbUrl;
+    } else {
+      // Fallback to individual parameters
+      config = {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME || 'loandoc',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres', // Default password, should be changed in production
+      };
+    }
+    
+    // Ensure password is a string
+    if (config.password !== undefined) {
+      config.password = String(config.password);
+    }
+    
+    // Add SSL configuration (important for some PostgreSQL installations)
+    config.ssl = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+    
+    console.log('[DB] Creating new client with config:', {
+      ...config,
+      password: config.password ? '***' : 'not set'
+    });
+    
+    return new Client(config);
+  } catch (err) {
+    console.error('[DB] Error creating client:', err);
+    throw err;
   }
-  return new Client({ connectionString: dbUrl });
 }
 
-const ENABLE_FILE_FALLBACK = (process.env.ENABLE_FILE_FALLBACK || 'true').toLowerCase() === 'true';
+// By default do NOT use legacy file fallback unless explicitly enabled via env
+const ENABLE_FILE_FALLBACK = (process.env.ENABLE_FILE_FALLBACK || 'false').toLowerCase() === 'true';
 
 app.post('/api/register', async (req, res) => {
   const { id, password } = req.body || {};
@@ -81,14 +113,14 @@ app.post('/api/register', async (req, res) => {
   const client = getDbClient();
   try {
     await client.connect();
-    // simple table: user_account(id primary key, password_hash varchar, created_at timestamp)
-    const check = await client.query('SELECT id FROM user_account WHERE id = $1', [id]);
+  // simple table: user_account(user_id primary key, password varchar (hashed), created_at timestamp)
+  const check = await client.query('SELECT user_id FROM user_account WHERE user_id = $1', [id]);
     if (check.rowCount > 0) {
       return res.status(409).json({ ok: false, error: 'already exists' });
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const insert = await client.query('INSERT INTO user_account(id,password_hash,created_at) VALUES($1,$2,NOW())', [id, hash]);
+  const insert = await client.query('INSERT INTO user_account(user_id,password,created_at) VALUES($1,$2,NOW())', [id, hash]);
     return res.status(201).json({ ok: true });
   } catch (err) {
     console.error('[REGISTER] db error:', err.code || err.message, err);
@@ -112,6 +144,47 @@ app.post('/api/register', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'db error' });
   } finally {
     try { await client.end(); } catch(e){}
+  }
+});
+
+// Login endpoint - check DB (or file fallback) for id and bcrypt-hashed password
+app.post('/api/login', async (req, res) => {
+  const { id, password } = req.body || {};
+  if (!id || !password) return res.status(400).json({ ok: false, error: 'id and password required' });
+
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const q = await client.query('SELECT password FROM user_account WHERE user_id = $1', [id]);
+    if (q.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'no_user' });
+    }
+    const hash = q.rows[0].password;
+    const match = await bcrypt.compare(password, hash);
+    if (match) return res.json({ ok: true });
+    return res.status(401).json({ ok: false, error: 'invalid_credentials' });
+  } catch (err) {
+    console.error('[LOGIN] db error:', err && err.message ? err.message : err);
+    // try file fallback if enabled
+    if (ENABLE_FILE_FALLBACK) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const usersFile = path.resolve(__dirname, 'users.json');
+        const users = fs.existsSync(usersFile) ? JSON.parse(fs.readFileSync(usersFile, 'utf8')) : [];
+        const u = users.find(x => x.id === id);
+        if (!u) return res.status(404).json({ ok: false, error: 'no_user' });
+        const match = await bcrypt.compare(password, u.password_hash);
+        if (match) return res.json({ ok: true, fallback: true });
+        return res.status(401).json({ ok: false, error: 'invalid_credentials' });
+      } catch (fsErr) {
+        console.error('[LOGIN] fallback read failed:', fsErr && fsErr.message ? fsErr.message : fsErr);
+        return res.status(500).json({ ok: false, error: 'db error' });
+      }
+    }
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally {
+    try { await client.end(); } catch (e) {}
   }
 });
 

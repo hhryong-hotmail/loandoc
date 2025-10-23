@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>LOANDOC - 개인정보 입력</title>
     <style>
+        /* 기본 스타일 */
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
         header{background:#2d6cdf;color:#fff;padding:20px;text-align:center}
         main{max-width:820px;margin:24px auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
@@ -13,10 +14,17 @@
         .grid{display:grid;grid-template-columns:1fr 1fr; gap:18px 18px; align-items:start}
         .note{color:#666;font-size:0.95em; margin-top:8px}
         button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
-    @media(max-width:720px){ .grid{grid-template-columns:1fr;} input, select, textarea{height:44px;} }
-    nav{display:flex;justify-content:center;gap:20px;padding:12px 0;background:#fff;align-items:center}
-    nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
-    .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
+        
+        /* 네비게이션 스타일 */
+        nav{display:flex;justify-content:center;gap:20px;padding:12px 0;background:#fff;align-items:center}
+        nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
+        .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
+        
+        /* 미디어 쿼리 (반응형) */
+        @media(max-width:720px){ 
+            .grid{grid-template-columns:1fr;} 
+            input, select, textarea{height:44px;} 
+        }
     </style>
 </head>
 <body>
@@ -31,8 +39,16 @@
         <a class="nav-button" href="loanAppl.html">대출신청</a>
     </nav>
     <main>
-        <h2>개인 정보</h2>
+        <div style="position:relative;padding:28px 0;">
+            <h2 style="margin:0;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">개인 정보</h2>
+            <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:0.95em;color:#333;white-space:nowrap;display:flex;align-items:center;gap:8px;">
+                <strong style="margin:0">아이디:</strong>
+                <input id="displayUserIdInput" readonly aria-label="로그인 아이디" style="width:220px;padding:10px 12px;border-radius:6px;border:1px solid #ccc;background:#f5f9ff;color:#2d6cdf;font-weight:800;text-align:center;font-size:1.1rem;" value="-" />
+            </div>
+        </div>
         <form id="profileForm">
+            <input type="hidden" id="userId" name="userId" value="" /> 
+
             <div class="grid">
                 <div>
                     <label for="name">1. 이름 (name)</label>
@@ -158,29 +174,129 @@
                         <option value="N">N</option>
                     </select>
                 </div>
-
             </div>
             <div style="margin-top:12px;">
                 <button type="button" id="saveBtn">저장</button>
-                <button type="button" id="resetBtn">초기화</button>
+                <button type="reset" id="resetBtn">초기화</button> 
                 <div id="formMsg" class="note"></div>
             </div>
         </form>
     </main>
     <script>
-        // carry over some helper functions from signup.html for localStorage handling
+        // LocalStorage 헬퍼 함수
         function loadProfiles(){ return JSON.parse(localStorage.getItem('foreign_workers')||'[]'); }
         function saveProfiles(arr){ localStorage.setItem('foreign_workers', JSON.stringify(arr)); }
-
-        // Prefill userId from lastRegisteredId if present
+        
+        // DOM 콘텐츠 로드 후 실행
         document.addEventListener('DOMContentLoaded', function(){
-            try{ const last = localStorage.getItem('lastRegisteredId'); if(last) { const el = document.getElementById('userId'); if(el) el.value = last; } }catch(e){}
+            const formElements = [
+                'name', 'nationality', 'passport', 'birth', 'entry', 'gender', 'employment', 
+                'foreigner_grade', 'visa_grade', 'phone', 'address', 'home_address', 
+                'current_company', 'company_entry_date', 'annual_salary', 'commute_company', 
+                'has_health', 'stay_expiry_date', 'has_loan'
+            ];
+
+            try {
+                // 로그인된 사용자 ID 가져오기
+                const loggedInUser = localStorage.getItem('loggedInUser') || 
+                                     localStorage.getItem('lastRegisteredId') ||
+                                     'guest';
+                
+                // 로그인 ID 표시 업데이트
+                const displayInput = document.getElementById('displayUserIdInput');
+                if (displayInput) {
+                    displayInput.value = loggedInUser;
+                }
+                
+                // 폼 내의 숨겨진 userId 필드에 값 설정
+                const userIdInput = document.getElementById('userId');
+                if (userIdInput) {
+                    userIdInput.value = loggedInUser;
+                }
+
+                // 로그인 ID 알림 표시
+                if (loggedInUser !== 'guest') {
+                    //alert('로그인 아이디: ' + loggedInUser);
+                    
+                    // 기존 정보 로드 및 필드 채우기 (개선 반영)
+                    const profiles = loadProfiles();
+                    const userProfile = profiles.find(p => p.userId === loggedInUser);
+                    
+                    if (userProfile) {
+                        formElements.forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element && userProfile[id] !== undefined) {
+                                element.value = userProfile[id];
+                            }
+                        });
+                        console.log('기존 개인정보를 폼에 로드했습니다.');
+                    }
+                }
+                
+                console.log('Logged in user ID:', loggedInUser);
+                
+            } catch (error) {
+                console.error('Error setting user ID or loading profile:', error);
+            }
         });
 
+        // "저장" 버튼 클릭 이벤트 핸들러
         document.getElementById('saveBtn').addEventListener('click', ()=>{
-             const profile = {
-                 userId: (document.getElementById('userId').value||'').trim(),
-@@
-             setTimeout(()=>{ window.location.href = 'index.html'; }, 1200);
-             });
-*** End Patch
+            const userId = (document.getElementById('userId').value||'').trim();
+            if (userId === 'guest' || userId === '') {
+                 document.getElementById('formMsg').textContent = '❌ 로그인된 사용자 정보가 없습니다. 저장할 수 없습니다.';
+                 return;
+            }
+
+            // 모든 폼 필드 값 수집 (완성)
+            const profile = {
+                userId: userId,
+                name: document.getElementById('name').value,
+                nationality: document.getElementById('nationality').value,
+                passport: document.getElementById('passport').value,
+                birth: document.getElementById('birth').value,
+                entry: document.getElementById('entry').value,
+                gender: document.getElementById('gender').value,
+                employment: document.getElementById('employment').value,
+                foreigner_grade: document.getElementById('foreigner_grade').value,
+                visa_grade: document.getElementById('visa_grade').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                home_address: document.getElementById('home_address').value,
+                current_company: document.getElementById('current_company').value,
+                company_entry_date: document.getElementById('company_entry_date').value,
+                annual_salary: document.getElementById('annual_salary').value,
+                commute_company: document.getElementById('commute_company').value,
+                has_health: document.getElementById('has_health').value,
+                stay_expiry_date: document.getElementById('stay_expiry_date').value,
+                has_loan: document.getElementById('has_loan').value,
+            };
+
+            // 유효성 검사 (예시: 이름 필드 확인)
+            if (profile.name.trim() === '') {
+                 document.getElementById('formMsg').textContent = '⚠️ 이름을 입력해야 합니다.';
+                 return;
+            }
+
+            // 데이터 저장/업데이트 로직
+            const profiles = loadProfiles();
+            const existingIndex = profiles.findIndex(p => p.userId === profile.userId);
+
+            if (existingIndex > -1) {
+                // 기존 정보 업데이트
+                profiles[existingIndex] = profile;
+            } else {
+                // 새 정보 추가 (로그인된 사용자가 새 정보를 입력하는 경우)
+                profiles.push(profile);
+            }
+
+            saveProfiles(profiles);
+            document.getElementById('formMsg').textContent = '✅ 개인정보가 성공적으로 저장되었습니다. 잠시 후 메인 페이지로 이동합니다.';
+            
+            // 페이지 리디렉션
+            setTimeout(()=>{ window.location.href = 'index.html'; }, 1200);
+        });
+        // resetBtn은 type="reset"으로 변경되어 별도 JS 핸들러가 필요 없음.
+    </script>
+</body>
+</html>
