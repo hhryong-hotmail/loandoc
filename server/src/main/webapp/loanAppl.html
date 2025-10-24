@@ -5,16 +5,22 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>LOANDOC - 대출신청</title>
     <style>
-        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
-        header{background:#2d6cdf;color:#fff;padding:20px;text-align:center}
-        main{max-width:820px;margin:24px auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-    label{display:block;margin-bottom:6px;font-weight:600}
-    input, select, textarea { box-sizing: border-box; width:100%; height:40px; padding:10px 12px; border:1px solid #ccc; border-radius:6px; margin:0; }
-    .note{color:#666;font-size:0.95em; margin-top:8px}
-    button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
-    /* Nav centering and uniform button style */
-    nav{display:flex;justify-content:center;gap:20px;padding:12px 0;background:#fff;align-items:center}
-    .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
+        :root{--bg:#f6f6f6;--brand:#2d6cdf;--accent:#FFD400}
+        body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#222}
+        header{background:var(--brand);color:#fff;padding:20px;text-align:center}
+        main{max-width:820px;margin:24px auto;background:var(--bg);padding:18px;border-radius:8px}
+        .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        .title{font-size:1.4rem;font-weight:800;color:var(--brand)}
+        .note{color:#666;font-size:0.95em;margin-top:8px}
+        button{background:var(--brand);color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        /* Nav centering and uniform button style */
+    nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:var(--bg);align-items:center;flex-wrap:wrap}
+    .nav-button{background:var(--accent);color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
+    /* Push the last nav button to the far right */
+    nav .nav-button:last-child{margin-left:auto}
+        label{display:block;margin-top:10px}
+        input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;width:100%;max-width:320px}
+        .form-row{margin-top:12px}
     </style>
 </head>
 <body>
@@ -22,24 +28,36 @@
         <h1>외국인 근로자 대출 연계 포털</h1>
         <p>대출신청</p>
     </header>
+
     <nav>
-        <a class="nav-button" href="index.html">로그인</a>
+        <a class="nav-button" href="home.html">LOANDOC</a>
+        <a class="nav-button" href="introCo.html">회사소개</a>
+        <a class="nav-button" href="login.html">로그인</a>
         <a class="nav-button" href="signup.html">회원가입</a>
         <a class="nav-button" href="workerInfo.html">정보조회</a>
+        <a class="nav-button" href="intro.html">상품소개</a>
         <a class="nav-button" href="loanAppl.html">대출신청</a>
+        <a class="nav-button" href="loanResult.html">대출결과</a>
     </nav>
+
     <main>
-        <h2>대출 신청 (샘플)</h2>
-        <p class="note">이 페이지는 대출 신청 폼의 플레이스홀더입니다. 실제 동작을 위해서는 서버 엔드포인트 및 검증 로직을 구현해야 합니다.</p>
-        <div style="margin-top:12px;">
+        <div class="hero">
+            <div class="title">대출 신청 (샘플)</div>
+            <p class="note">이 페이지는 대출 신청 폼의 플레이스홀더입니다. 실제 동작을 위해서는 서버 엔드포인트 및 검증 로직을 구현해야 합니다.</p>
+        </div>
+
+        <div class="form-row">
             <label for="loan_amount">대출금액</label>
             <input id="loan_amount" type="number" min="0" />
             <label for="loan_term">상환기간(개월)</label>
             <input id="loan_term" type="number" min="1" />
-            <button id="applyBtn" style="margin-top:12px;">신청</button>
-            <div id="applyMsg" class="note"></div>
+            <div style="margin-top:12px">
+                <button id="applyBtn">신청</button>
+                <div id="applyMsg" class="note"></div>
+            </div>
         </div>
     </main>
+
     <script>
         document.getElementById('applyBtn').addEventListener('click', ()=>{
             const amt = document.getElementById('loan_amount').value;

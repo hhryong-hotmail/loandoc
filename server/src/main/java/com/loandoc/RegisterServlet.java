@@ -171,7 +171,7 @@ public class RegisterServlet extends HttpServlet {
                         long execStart = System.currentTimeMillis();
                         int updated = ips.executeUpdate();
                         long execElapsed = System.currentTimeMillis() - execStart;
-                        logger.info("DB insert executed, update count=" + updated + " for user='" + id + "' (ms=" + execElapsed + ")");
+                        logger.info("DB insert executed, count=" + updated + " for user='" + id + "' (ms=" + execElapsed + ")");
 
                         if (updated > 0) {
                             result.put("ok", true);

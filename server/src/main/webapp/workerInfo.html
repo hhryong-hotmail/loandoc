@@ -5,26 +5,26 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>LOANDOC - 개인정보 입력</title>
     <style>
-        /* 기본 스타일 */
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
         header{background:#2d6cdf;color:#fff;padding:20px;text-align:center}
-        main{max-width:820px;margin:24px auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+        main{max-width:820px;margin:24px auto;background:#f6f6f6;padding:18px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
         label{display:block;margin-bottom:6px;font-weight:600}
         input, select, textarea { box-sizing: border-box; width:100%; height:40px; padding:10px 12px; border:1px solid #ccc; border-radius:6px; margin:0; }
         .grid{display:grid;grid-template-columns:1fr 1fr; gap:18px 18px; align-items:start}
         .note{color:#666;font-size:0.95em; margin-top:8px}
         button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
-        
         /* 네비게이션 스타일 */
-        nav{display:flex;justify-content:center;gap:20px;padding:12px 0;background:#fff;align-items:center}
+        nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:#f6f6f6;align-items:center;flex-wrap:wrap}
         nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
         .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
-        
         /* 미디어 쿼리 (반응형) */
-        @media(max-width:720px){ 
-            .grid{grid-template-columns:1fr;} 
-            input, select, textarea{height:44px;} 
-        }
+        @media(max-width:720px){ .grid{grid-template-columns:1fr;} input, select, textarea{height:44px;} }
+        /* Push the last nav button to the far right */
+        nav .nav-button:last-child{margin-left:auto}
+        /* form message icon and bangs */
+        .form-msg { display:inline-flex; align-items:center; gap:8px; font-weight:700; }
+        .msg-icon { width:18px; height:18px; display:inline-block; vertical-align:middle; }
+        .msg-bangs { margin-left:8px; color:#b91c1c; font-weight:900; }
     </style>
 </head>
 <body>
@@ -33,10 +33,14 @@
         <p>개인정보 입력</p>
     </header>
     <nav>
-        <a class="nav-button" href="index.html">로그인</a>
+        <a class="nav-button" href="home.html">LOANDOC</a>
+        <a class="nav-button" href="introCo.html">회사소개</a>
+        <a class="nav-button" href="login.html">로그인</a>
         <a class="nav-button" href="signup.html">회원가입</a>
         <a class="nav-button" href="workerInfo.html">정보조회</a>
+        <a class="nav-button" href="intro.html">상품소개</a>
         <a class="nav-button" href="loanAppl.html">대출신청</a>
+        <a class="nav-button" href="loanResult.html">대출결과</a>
     </nav>
     <main>
         <div style="position:relative;padding:28px 0;">
@@ -94,7 +98,7 @@
                 </div>
 
                 <div>
-                    <label for="employment">7. 입사구분</label>
+                    <label for="employment">7. 입사구분(employment_type)</label>
                     <select id="employment">
                         <option value="">선택</option>
                         <option>정규직</option>
@@ -146,7 +150,12 @@
 
                 <div>
                     <label for="annual_salary">15. 연봉 (annual_salary)</label>
-                    <input id="annual_salary" type="number" step="1" min="0" />
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <!-- display input (formatted) and hidden raw value for submission -->
+                        <input id="annual_salary" type="text" inputmode="numeric" pattern="[0-9,]*" style="flex:1;min-width:0;" />
+                        <input id="annual_salary_raw" type="hidden" />
+                        <span style="white-space:nowrap;color:#333;font-weight:600;">만원</span>
+                    </div>
                 </div>
                 <div>
                     <label for="commute_company">16. 출근 회사명 (commute_company)</label>
@@ -186,6 +195,26 @@
         // LocalStorage 헬퍼 함수
         function loadProfiles(){ return JSON.parse(localStorage.getItem('foreign_workers')||'[]'); }
         function saveProfiles(arr){ localStorage.setItem('foreign_workers', JSON.stringify(arr)); }
+
+        // 숫자 포맷(화면 표시용) 및 raw 값 유지
+        function formatNumberWithCommas(num) {
+            if (num === null || num === undefined) return '';
+            const s = String(num).replace(/[^0-9]/g, '');
+            if (s === '') return '';
+            return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        function unformatNumber(str) {
+            if (!str) return '';
+            return String(str).replace(/[^0-9]/g, '');
+        }
+
+        // annual_salary 입력이 있을 때 텍스트를 오른쪽 정렬, 비어있으면 왼쪽 정렬
+        function updateAnnualSalaryAlign() {
+            const el = document.getElementById('annual_salary');
+            if (!el) return;
+            const v = (el.value || '').toString().trim();
+            el.style.textAlign = v === '' ? 'left' : 'right';
+        }
         
         // DOM 콘텐츠 로드 후 실행
         document.addEventListener('DOMContentLoaded', function(){
@@ -222,31 +251,175 @@
                     const profiles = loadProfiles();
                     const userProfile = profiles.find(p => p.userId === loggedInUser);
                     
-                    if (userProfile) {
-                        formElements.forEach(id => {
-                            const element = document.getElementById(id);
-                            if (element && userProfile[id] !== undefined) {
-                                element.value = userProfile[id];
+                        if (userProfile) {
+                            formElements.forEach(id => {
+                                const element = document.getElementById(id);
+                                if (element && userProfile[id] !== undefined) {
+                                    element.value = userProfile[id];
+                                }
+                            });
+                            // 연봉: raw와 포맷된 표시값 설정
+                            try {
+                                const raw = userProfile.annual_salary || '';
+                                const rawEl = document.getElementById('annual_salary_raw');
+                                const dispEl = document.getElementById('annual_salary');
+                                if (rawEl) rawEl.value = raw;
+                                if (dispEl) dispEl.value = formatNumberWithCommas(raw);
+                            } catch(e){}
+                            console.log('기존 개인정보를 폼에 로드했습니다.');
+                        }
+                        // 연봉 필드 정렬 초기화
+                        try { updateAnnualSalaryAlign(); } catch(e){}
+                        // 기존에 누적된 update bangs가 있으면 폼 메시지에 표시
+                        try {
+                            const bangKey = 'update_bangs_' + String(loggedInUser);
+                            const existingCount = Number(localStorage.getItem(bangKey) || '0');
+                            if (existingCount > 0) {
+                                const msgEl = document.getElementById('formMsg');
+                                msgEl.innerHTML = '';
+                                msgEl.style.color = '#064e3b';
+                                const container = document.createElement('span');
+                                container.className = 'form-msg';
+                                const icon = document.createElement('span');
+                                icon.className = 'msg-icon';
+                                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                                const text = document.createElement('span');
+                                text.textContent = '수정되었습니다';
+                                const bangs = document.createElement('span');
+                                bangs.className = 'msg-bangs';
+                                bangs.textContent = '!'.repeat(existingCount);
+                                container.appendChild(icon);
+                                container.appendChild(text);
+                                container.appendChild(bangs);
+                                msgEl.appendChild(container);
                             }
-                        });
-                        console.log('기존 개인정보를 폼에 로드했습니다.');
-                    }
+                        } catch(e) { /* ignore */ }
                 }
                 
                 console.log('Logged in user ID:', loggedInUser);
+
+                // 연봉 입력에 대한 즉시 정렬 처리 및 이벤트 핸들러 등록
+                try {
+                    const salaryEl = document.getElementById('annual_salary');
+                    if (salaryEl) {
+                        // 입력 시 포맷(표시용) 및 raw 저장
+                        salaryEl.addEventListener('input', (ev)=>{
+                            const el = ev.target;
+                            const raw = unformatNumber(el.value);
+                            const rawEl = document.getElementById('annual_salary_raw');
+                            if (rawEl) rawEl.value = raw;
+                            // 재포맷하여 표시(간단한 동작으로 캐럿 위치가 이동할 수 있음)
+                            el.value = formatNumberWithCommas(raw);
+                            updateAnnualSalaryAlign();
+                        });
+                        updateAnnualSalaryAlign();
+                    }
+                } catch(e) { console.error(e); }
                 
             } catch (error) {
                 console.error('Error setting user ID or loading profile:', error);
             }
         });
 
-        // "저장" 버튼 클릭 이벤트 핸들러
-        document.getElementById('saveBtn').addEventListener('click', ()=>{
+       // "저장" 버튼 클릭 이벤트 핸들러
+       // validate form before sending to server
+       function validateForm() {
+            const msgEl = document.getElementById('formMsg');
+            msgEl.style.color = '#9b1c1c';
+            // required text fields
+            const nameEl = document.getElementById('name');
+            if (!nameEl || nameEl.value.trim() === '') {
+                msgEl.textContent = '⚠️ 이름을 입력하세요.';
+                if (nameEl) nameEl.focus();
+                return { ok: false };
+            }
+            const passportEl = document.getElementById('passport');
+            if (!passportEl || passportEl.value.trim() === '') {
+                msgEl.textContent = '⚠️ 여권번호를 입력하세요.';
+                if (passportEl) passportEl.focus();
+                return { ok: false };
+            }
+
+            // 날짜 형식 검증은 하지 않음 (요청에 따라 생년월일/입국일자/입사일자/체재만료일자 검증 제외)
+
+            // NOT NULL checks for specific fields
+            const notNullIds = ['phone','address','home_address','current_company'];
+            for (const id of notNullIds) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const v = (el.value || '').toString().trim();
+                if (v === '') {
+                    msgEl.textContent = `⚠️ '${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id}' 항목은 필수입니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+            }
+
+            // 날짜 필드들: 필수(빈값 불가)이며 YYYY-MM-DD 형식 및 유효한 날짜인지 검사
+            const dateFieldsToValidate = ['birth','entry','company_entry_date','stay_expiry_date'];
+            for (const id of dateFieldsToValidate) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const v = (el.value || '').toString().trim();
+                // now required
+                if (v === '') {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 항목은 필수입니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+                // format check
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 날짜 형식이 올바르지 않습니다 (YYYY-MM-DD).`;
+                    el.focus();
+                    return { ok: false };
+                }
+                // semantic validity
+                const parts = v.split('-').map(x => Number(x));
+                const year = parts[0], month = parts[1], day = parts[2];
+                const d = new Date(v);
+                if (isNaN(d.getTime()) || d.getFullYear() !== year || (d.getMonth()+1) !== month || d.getDate() !== day) {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 유효한 날짜가 아닙니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+            }
+
+            // Ensure selections / data presence: annual_salary, has_health, has_loan
+            const rawSalary = (document.getElementById('annual_salary_raw')||{value:''}).value.toString().trim();
+            if (rawSalary === '') {
+                const el = document.getElementById('annual_salary');
+                msgEl.textContent = '⚠️ 연봉(만원)을 입력하세요.';
+                if (el) el.focus();
+                return { ok: false };
+            }
+            const selHealth = document.getElementById('has_health');
+            if (!selHealth || (selHealth.value||'').toString().trim() === '') {
+                msgEl.textContent = '⚠️ 의료보험 여부를 선택하세요.';
+                if (selHealth) selHealth.focus();
+                return { ok: false };
+            }
+            const selLoan = document.getElementById('has_loan');
+            if (!selLoan || (selLoan.value||'').toString().trim() === '') {
+                msgEl.textContent = '⚠️ 기존대출 여부를 선택하세요.';
+                if (selLoan) selLoan.focus();
+                return { ok: false };
+            }
+
+            // clear message when valid
+            msgEl.textContent = '';
+            return { ok: true };
+       }
+
+       document.getElementById('saveBtn').addEventListener('click', async ()=>{
             const userId = (document.getElementById('userId').value||'').trim();
             if (userId === 'guest' || userId === '') {
                  document.getElementById('formMsg').textContent = '❌ 로그인된 사용자 정보가 없습니다. 저장할 수 없습니다.';
                  return;
             }
+
+            // run validations first
+            const v = validateForm();
+            if (!v.ok) return;
 
             // 모든 폼 필드 값 수집 (완성)
             const profile = {
@@ -278,25 +451,168 @@
                  return;
             }
 
-            // 데이터 저장/업데이트 로직
-            const profiles = loadProfiles();
-            const existingIndex = profiles.findIndex(p => p.userId === profile.userId);
+            // 서버로 전송할 페이로드: 화면 레이블의 괄호 안 영문명을 키로 사용
+            const payload = {
+                user_id: profile.userId,
+                name: profile.name,
+                nationality: profile.nationality,
+                passport_number: profile.passport,
+                birth_date: profile.birth,
+                entry_date: profile.entry,
+                gender: profile.gender,
+                employment_type: profile.employment,
+                foreigner_grade: profile.foreigner_grade,
+                visa_grade: profile.visa_grade,
+                phone_number: profile.phone,
+                address: profile.address,
+                home_country_address: profile.home_address,
+                current_company: profile.current_company,
+                company_entry_date: profile.company_entry_date,
+                annual_salary: (document.getElementById('annual_salary_raw')||{value:''}).value || profile.annual_salary,
+                commute_company: profile.commute_company,
+                has_health_insurance: profile.has_health,
+                stay_expiry_date: profile.stay_expiry_date,
+                has_loan: profile.has_loan
+            };
 
-            if (existingIndex > -1) {
-                // 기존 정보 업데이트
-                profiles[existingIndex] = profile;
-            } else {
-                // 새 정보 추가 (로그인된 사용자가 새 정보를 입력하는 경우)
-                profiles.push(profile);
+            // 서버에 POST 시도
+            try {
+                const res = await fetch('/api/foreign_worker_master', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const body = await res.json().catch(()=>null);
+                if (res.ok && body) {
+                    // 서버가 반환한 메시지를 화면에 표시
+                    const msgEl = document.getElementById('formMsg');
+                    // clear
+                    msgEl.innerHTML = '';
+                    msgEl.style.color = body.ok ? '#064e3b' : '#9b1c1c';
+
+                    // create message container
+                    const container = document.createElement('span');
+                    container.className = 'form-msg';
+
+                    // add icon before message
+                    const icon = document.createElement('span');
+                    icon.className = 'msg-icon';
+                    // simple inline SVG check/edit icon
+                    icon.innerHTML = body.action === 'update' ?
+                        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' :
+                        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#064e3b" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+                    const text = document.createElement('span');
+                    text.textContent = body.message || (body.ok ? '✅ 저장 완료' : '서버 응답');
+
+                    container.appendChild(icon);
+                    container.appendChild(text);
+
+                    // if action is update, add bang counter per user_id
+                    if (body.ok && body.action === 'update') {
+                        try {
+                            const uid = payload.user_id || payload.userId || document.getElementById('userId').value;
+                            const key = 'update_bangs_' + String(uid);
+                            let cnt = Number(localStorage.getItem(key) || '0');
+                            cnt = cnt + 1;
+                            localStorage.setItem(key, String(cnt));
+                            const bangs = document.createElement('span');
+                            bangs.className = 'msg-bangs';
+                            bangs.textContent = '!'.repeat(cnt);
+                            container.appendChild(bangs);
+                        } catch (e) { /* ignore */ }
+                    }
+
+                    msgEl.appendChild(container);
+
+                    // 서버가 반환한 데이터가 있으면 폼에 반영 (필드 이름이 영어 키로 온다고 가정)
+                    if (body.data && typeof body.data === 'object') {
+                        Object.keys(body.data).forEach(k => {
+                            try {
+                                // 맵핑: 서버 필드명 -> 폼 요소 id
+                                const idMap = {
+                                    user_id: 'userId',
+                                    passport_number: 'passport',
+                                    annual_salary: 'annual_salary',
+                                    name: 'name',
+                                    nationality: 'nationality',
+                                    birth_date: 'birth',
+                                    entry_date: 'entry',
+                                    gender: 'gender',
+                                    employment_type: 'employment',
+                                    foreigner_grade: 'foreigner_grade',
+                                    visa_grade: 'visa_grade',
+                                    phone_number: 'phone',
+                                    address: 'address',
+                                    home_country_address: 'home_address',
+                                    current_company: 'current_company',
+                                    company_entry_date: 'company_entry_date',
+                                    commute_company: 'commute_company',
+                                    has_health_insurance: 'has_health',
+                                    stay_expiry_date: 'stay_expiry_date',
+                                    has_loan: 'has_loan'
+                                };
+                                const targetId = idMap[k];
+                                if (!targetId) return;
+                                const el = document.getElementById(targetId);
+                                if (!el) return;
+                                let val = body.data[k];
+                                if (k === 'annual_salary') {
+                                    // 서버는 숫자 또는 문자열로 보내올 수 있음
+                                    const raw = String(val || '').replace(/[^0-9]/g, '');
+                                    document.getElementById('annual_salary_raw').value = raw;
+                                    document.getElementById('annual_salary').value = formatNumberWithCommas(raw);
+                                    updateAnnualSalaryAlign();
+                                } else if (targetId === 'userId') {
+                                    el.value = val;
+                                    // display ID도 업데이트
+                                    const displayInput = document.getElementById('displayUserIdInput');
+                                    if (displayInput) displayInput.value = val;
+                                } else {
+                                    el.value = val;
+                                }
+                            } catch (e) { /* ignore per-field errors */ }
+                        });
+                    }
+                    return;
+                }
+                // 서버가 OK가 아니거나 JSON 파싱 실패 -> 로컬 폴백
+                console.warn('Server save failed, falling back to local storage', res.status, body);
+            } catch (err) {
+                console.error('Server save failed:', err);
             }
 
+            // DB 저장 실패 시 로컬스토리지에 저장(폴백)
+            const profiles = loadProfiles();
+            const existingIndex = profiles.findIndex(p => p.userId === profile.userId);
+            if (existingIndex > -1) profiles[existingIndex] = profile; else profiles.push(profile);
             saveProfiles(profiles);
-            document.getElementById('formMsg').textContent = '✅ 개인정보가 성공적으로 저장되었습니다. 잠시 후 메인 페이지로 이동합니다.';
-            
-            // 페이지 리디렉션
-            setTimeout(()=>{ window.location.href = 'index.html'; }, 1200);
+            document.getElementById('formMsg').textContent = '⚠️ 서버 저장 실패 — 고객센터로 연락주십시오.';
         });
-        // resetBtn은 type="reset"으로 변경되어 별도 JS 핸들러가 필요 없음.
+        // resetBtn은 type="reset"으로 동작하지만, 클릭 시 화면에 보이는
+        // 알림 메시지(formMsg)와 연봉 raw 값을 즉시 지우도록 핸들러를 추가합니다.
+        (function(){
+            const form = document.getElementById('profileForm');
+            const msgEl = document.getElementById('formMsg');
+            const rawSalaryEl = document.getElementById('annual_salary_raw');
+            // form의 reset 이벤트를 이용하면 브라우저가 필드를 초기화한 직후에 처리할 수 있습니다.
+            if (form) {
+                form.addEventListener('reset', () => {
+                    try {
+                        if (msgEl) {
+                            msgEl.innerHTML = '';
+                            msgEl.textContent = '';
+                            // 스타일도 원래대로 되돌립니다.
+                            msgEl.style.color = '';
+                        }
+                        if (rawSalaryEl) rawSalaryEl.value = '';
+                        // 화면에 보이는 연봉 필드의 정렬을 재설정
+                        try { updateAnnualSalaryAlign(); } catch(e){}
+                    } catch (e) {
+                        console.error('reset handler error', e);
+                    }
+                });
+            }
+        })();
     </script>
 </body>
 </html>

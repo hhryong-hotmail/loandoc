@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>LOANDOC - 로그인</title>
-    <meta http-equiv="refresh" content="0;url=home.html" />
     <style>
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
         header{background:#2d6cdf;color:#fff;padding:20px;text-align:center}
@@ -54,8 +53,6 @@
         </div>
     </main>
     <script>
-        // redirect fallback for browsers where meta refresh may be ignored
-        try{ window.location.replace('home.html'); }catch(e){}
         function loadUsers(){ return JSON.parse(localStorage.getItem('users')||'[]'); }
         // TEST MODE: bypass server auth and always redirect to workerInfo for testing
         document.getElementById('loginBtn').addEventListener('click', ()=>{
@@ -72,3 +69,5 @@
             if(last){ document.getElementById('loginId').value = last; document.getElementById('loginMsg').textContent = '회원가입 완료 — 아이디가 자동 입력되었습니다.'; document.getElementById('loginMsg').style.color='green'; localStorage.removeItem('lastRegisteredId'); }
         })();
     </script>
+</body>
+</html>
