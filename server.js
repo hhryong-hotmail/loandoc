@@ -353,6 +353,195 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
+// ==================== DASHBOARD API ENDPOINTS ====================
+// In-memory storage for dashboard posts (fallback when DB is unavailable)
+let dashboardPosts = [
+  {
+    id: 1,
+    title: '환영합니다!',
+    content: '외국인 근로자 대출 중개 포털 게시판입니다. 궁금한 사항이 있으시면 자유롭게 글을 작성해주세요.',
+    author: 'LOANDOC 관리자',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+let nextPostId = 2;
+
+// GET all dashboard posts
+app.get('/api/dashboard', async (req, res) => {
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'SELECT * FROM dashboard ORDER BY created_at DESC'
+    );
+    return res.json({ ok: true, posts: result.rows });
+  } catch (err) {
+    console.error('[DASHBOARD GET] db error, using in-memory fallback:', err.message);
+    // Fallback to in-memory storage
+    const sortedPosts = [...dashboardPosts].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    return res.json({ ok: true, posts: sortedPosts, fallback: true });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// GET single dashboard post by ID
+app.get('/api/dashboard/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'SELECT * FROM dashboard WHERE id = $1',
+      [id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    return res.json({ ok: true, post: result.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD GET ONE] db error, using in-memory fallback:', err.message);
+    // Fallback to in-memory storage
+    const post = dashboardPosts.find(p => p.id === parseInt(id));
+    if (!post) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    return res.json({ ok: true, post, fallback: true });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// POST create new dashboard post
+app.post('/api/dashboard', async (req, res) => {
+  const { title, content, author } = req.body || {};
+  if (!title || !content) {
+    return res.status(400).json({ ok: false, error: 'title and content required' });
+  }
+  
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'INSERT INTO dashboard(title, content, author, created_at, updated_at) VALUES($1, $2, $3, NOW(), NOW()) RETURNING *',
+      [title, content, author || 'Anonymous']
+    );
+    return res.status(201).json({ ok: true, post: result.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD POST] db error, using in-memory fallback:', err.message);
+    // Fallback to in-memory storage
+    const newPost = {
+      id: nextPostId++,
+      title,
+      content,
+      author: author || 'Anonymous',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    dashboardPosts.push(newPost);
+    return res.status(201).json({ ok: true, post: newPost, fallback: true });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// PUT update dashboard post
+app.put('/api/dashboard/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, content } = req.body || {};
+  
+  if (!title && !content) {
+    return res.status(400).json({ ok: false, error: 'title or content required' });
+  }
+  
+  const client = getDbClient();
+  try {
+    await client.connect();
+    
+    // Check if post exists
+    const check = await client.query('SELECT id FROM dashboard WHERE id = $1', [id]);
+    if (check.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (title) {
+      updates.push(`title = $${paramCount}`);
+      values.push(title);
+      paramCount++;
+    }
+    if (content) {
+      updates.push(`content = $${paramCount}`);
+      values.push(content);
+      paramCount++;
+    }
+    
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+    
+    const query = `UPDATE dashboard SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+    const result = await client.query(query, values);
+    
+    return res.json({ ok: true, post: result.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD PUT] db error, using in-memory fallback:', err.message);
+    // Fallback to in-memory storage
+    const postIndex = dashboardPosts.findIndex(p => p.id === parseInt(id));
+    if (postIndex === -1) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    
+    if (title) dashboardPosts[postIndex].title = title;
+    if (content) dashboardPosts[postIndex].content = content;
+    dashboardPosts[postIndex].updated_at = new Date().toISOString();
+    
+    return res.json({ ok: true, post: dashboardPosts[postIndex], fallback: true });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// DELETE dashboard post
+app.delete('/api/dashboard/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const result = await client.query(
+      'DELETE FROM dashboard WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    
+    return res.json({ ok: true, deleted: true });
+  } catch (err) {
+    console.error('[DASHBOARD DELETE] db error, using in-memory fallback:', err.message);
+    // Fallback to in-memory storage
+    const postIndex = dashboardPosts.findIndex(p => p.id === parseInt(id));
+    if (postIndex === -1) {
+      return res.status(404).json({ ok: false, error: 'post not found' });
+    }
+    
+    dashboardPosts.splice(postIndex, 1);
+    return res.json({ ok: true, deleted: true, fallback: true });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// ==================== END DASHBOARD API ====================
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`LOANDOC API listening on http://127.0.0.1:${PORT}`);
