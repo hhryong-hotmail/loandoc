@@ -16,8 +16,7 @@
         /* Nav centering and uniform button style */
     nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:var(--bg);align-items:center;flex-wrap:wrap}
     .nav-button{background:var(--accent);color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
-    /* Push the last nav button to the far right */
-    nav .nav-button:last-child{margin-left:auto}
+    /* (removed right-align rule so buttons stay adjacent) */
         label{display:block;margin-top:10px}
         input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;width:100%;max-width:320px}
         .form-row{margin-top:12px}
@@ -25,7 +24,7 @@
 </head>
 <body>
     <header>
-        <h1>외국인 근로자 대출 연계 포털</h1>
+        <h1>외국인 근로자 대출 중개 포털</h1>
         <p>대출신청</p>
     </header>
 
@@ -36,8 +35,10 @@
         <a class="nav-button" href="signup.html">회원가입</a>
         <a class="nav-button" href="workerInfo.html">정보조회</a>
         <a class="nav-button" href="intro.html">상품소개</a>
-        <a class="nav-button" href="loanAppl.html">대출신청</a>
-        <a class="nav-button" href="loanResult.html">대출결과</a>
+    <a class="nav-button" href="loanAppl.html">대출신청</a>
+    <a class="nav-button" href="loanResult.html">대출결과</a>
+    <a class="nav-button" href="dashboard.html">게시판</a>
+    <a class="nav-button" href="customer.html">고객센터</a>
     </nav>
 
     <main>

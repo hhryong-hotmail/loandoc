@@ -22,16 +22,16 @@
     /* visual inactive style for buttons (still clickable) */
     button.inactive { opacity:0.55; filter:grayscale(30%); cursor:default; }
     @media(max-width:720px){ .grid{grid-template-columns:1fr; } input, select, textarea{height:44px;} }
-        nav{display:flex;justify-content:flex-start;gap:12px;padding:12px 0;background:#f6f6f6;align-items:center;flex-wrap:wrap}
+    nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:#f6f6f6;align-items:center;flex-wrap:wrap}
         nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
             .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
-        /* Push the last nav button to the far right */
-        nav .nav-button:last-child{margin-left:auto}
+    .mt12{margin-top:12px}
+    .mb14{margin-bottom:14px}
     </style>
 </head>
 <body>
     <header>
-        <h1>외국인 근로자 대출 연계 포털</h1>
+        <h1>외국인 근로자 대출 중개 포털</h1>
         <p>회원가입</p>
     </header>
     <nav>
@@ -42,11 +42,13 @@
         <a class="nav-button" href="workerInfo.html">정보조회</a>
         <a class="nav-button" href="intro.html">상품소개</a>
         <a class="nav-button" href="loanAppl.html">대출신청</a>
-        <a class="nav-button" href="loanResult.html">대출결과</a>
+    <a class="nav-button" href="loanResult.html">대출결과</a>
+    <a class="nav-button" href="dashboard.html">게시판</a>
+    <a class="nav-button" href="customer.html">고객센터</a>
     </nav>
     <main>
         <h2>계정 생성</h2>
-        <div style="margin-bottom:14px;">
+    <div class="mb14">
             <label for="userId">아이디</label>
             <input id="userId" type="text" placeholder="아이디 입력" />
             <label for="password">비밀번호</label>
@@ -68,7 +70,7 @@
 
         <!-- <h2>개인 정보</h2> -->
         <p class="note">개인정보 입력은 별도 페이지에서 작성합니다. 계정 생성 후 아래 버튼을 눌러 개인정보 입력 화면으로 이동하세요.</p>
-        <div style="margin-top:12px;">
+        <div class="mt12">
             <a href="workerInfo.html"><button type="button">개인정보 입력으로 이동</button></a>
         </div>
     </main>
