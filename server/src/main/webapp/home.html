@@ -3,30 +3,41 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LOANDOC - Home</title>
+    <title>LOANDOC - 회사소개</title>
     <style>
+        /* Base layout */
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
-        header{background:#2d6cdf;color:#fff;padding:20px;text-align:center}
-        main{display:flex;align-items:center;justify-content:center;flex-direction:column;height:70vh}
-        h1.site-title{margin:0}
-    .hero{background:#f6f6f6;padding:36px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08);text-align:center}
-        .hero .korean{font-size:1.6rem;font-weight:700;color:#111;margin-bottom:8px}
-        .hero .brand{font-size:3rem;font-weight:900;color:#2d6cdf;letter-spacing:4px}
-    nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:#f6f6f6;align-items:center;flex-wrap:wrap}
-    nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
-    .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-weight:700}
-    /* (removed right-align rule so buttons stay adjacent) */
-        @media(max-width:720px){
-            .hero .korean{font-size:1.2rem}
+        /* increase vertical space so header height matches other pages even if subtitle is visually hidden */
+        header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
+        .header-subtitle{margin:8px 0 0 0;color:#2d6cdf;font-weight:600}
+
+        main{max-width:none;width:100%;margin:24px 0;background:transparent;padding:18px 24px;box-sizing:border-box}
+        nav{display:flex;justify-content:center;gap:12px;padding:12px 0;background:#f6f6f6;align-items:center;flex-wrap:wrap}
+        .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+    nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+
+        /* Hero (company home page) - large, bold, responsive */
+        .hero{background:#fff;max-width:1100px;margin:40px auto;padding:48px 36px;border-radius:12px;text-align:center;box-shadow:0 8px 30px rgba(15,30,60,0.08)}
+        .hero .korean{font-size:2.6rem;line-height:1.05;font-weight:800;color:#0b1220;margin-bottom:10px}
+        .hero .brand{font-size:5rem;line-height:1;margin:0;font-weight:900;color:#2d6cdf;letter-spacing:6px}
+
+        /* Small screens: scale down the hero to fit nicely */
+        @media (max-width:900px){
+            .hero{padding:34px 22px;margin:28px 16px}
+            .hero .korean{font-size:1.9rem}
+            .hero .brand{font-size:3.2rem;letter-spacing:3px}
+        }
+        @media (max-width:420px){
+            .hero{padding:24px 14px;margin:20px 12px}
+            .hero .korean{font-size:1.5rem}
             .hero .brand{font-size:2.4rem}
         }
     </style>
 </head>
 <body>
     <header>
-        <br><br>
-        <h1 class="site-title">외국인 근로자 대출 중개 포털</h1>
-        <br>        <br>        <br>        
+        <h1>외국인 근로자 대출 연계 포털</h1>
+    <p class="header-subtitle">MKF 파트너스</p>
     </header>
     <nav>
         <a class="nav-button" href="home.html">LOANDOC</a>
@@ -36,11 +47,11 @@
         <a class="nav-button" href="workerInfo.html">정보조회</a>
         <a class="nav-button" href="intro.html">상품소개</a>
         <a class="nav-button" href="loanAppl.html">대출신청</a>
-        <a class="nav-button" href="loanResult.html">대출결과</a>
-        <a class="nav-button" href="dashboard.html">게시판</a>
-        <a class="nav-button" href="customer.html">고객센터</a>
+    <a class="nav-button" href="loanResult.html">대출결과</a>
+    <a class="nav-button" href="dashboard.html">게시판</a>
+    <a class="nav-button" href="customer.html">고객센터</a>
     </nav>
-    <main>
+     <main>
         <div class="hero">
             <div class="korean">외국인 근로자 대출의 절대 강자</div>
             <div class="brand">LOANDOC</div>

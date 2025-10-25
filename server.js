@@ -353,9 +353,137 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
+// -----------------------------
+// Dashboard CRUD API
+// -----------------------------
+const ALLOWED_MSG_TYPES = ['공지','필독','추천','질문','일반'];
+
+// List / search posts
+app.get('/api/dashboard', async (req, res) => {
+  const q = req.query.q ? String(req.query.q).trim() : null;
+  const msg_type = req.query.msg_type ? String(req.query.msg_type).trim() : null;
+  const page = Math.max(0, parseInt(req.query.page || '0', 10));
+  const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize || '20', 10)));
+
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const whereClauses = [];
+    const params = [];
+    let idx = 1;
+    if (q) {
+      whereClauses.push(`(title ILIKE $${idx} OR content ILIKE $${idx} OR author ILIKE $${idx})`);
+      params.push(`%${q}%`);
+      idx++;
+    }
+    if (msg_type && ALLOWED_MSG_TYPES.includes(msg_type)) {
+      whereClauses.push(`msg_type = $${idx}`);
+      params.push(msg_type);
+      idx++;
+    }
+    const where = whereClauses.length ? ('WHERE ' + whereClauses.join(' AND ')) : '';
+    params.push(pageSize);
+    params.push(page * pageSize);
+    const sql = `SELECT msg_id, created_date, author, title, msg_type, views FROM dashboard_messages ${where} ORDER BY created_date DESC LIMIT $${idx} OFFSET $${idx+1}`;
+    const qres = await client.query(sql, params);
+    return res.json({ ok: true, rows: qres.rows });
+  } catch (err) {
+    console.error('[DASHBOARD][LIST] db error:', err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally {
+    try { await client.end(); } catch(e){}
+  }
+});
+
+// Get single post and increment views
+app.get('/api/dashboard/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'invalid id' });
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const u = await client.query('UPDATE dashboard_messages SET views = views + 1 WHERE msg_id = $1 RETURNING *', [id]);
+    if (u.rowCount === 0) return res.status(404).json({ ok: false, error: 'not_found' });
+    return res.json({ ok: true, row: u.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD][GET] db error:', err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally { try { await client.end(); } catch(e){} }
+});
+
+// Create post
+app.post('/api/dashboard', async (req, res) => {
+  const payload = req.body || {};
+  const author = sanitizeDbValue('author', payload.author) || '';
+  const password = sanitizeDbValue('password', payload.password);
+  const title = sanitizeDbValue('title', payload.title) || '';
+  const msg_type = sanitizeDbValue('msg_type', payload.msg_type) || '일반';
+  const content = sanitizeDbValue('content', payload.content) || '';
+
+  if (!title) return res.status(400).json({ ok: false, error: 'title required' });
+  if (!ALLOWED_MSG_TYPES.includes(msg_type)) return res.status(400).json({ ok: false, error: 'invalid msg_type' });
+
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const sql = `INSERT INTO dashboard_messages(author,password,title,msg_type,content) VALUES($1,$2,$3,$4,$5) RETURNING msg_id, created_date, author, title, msg_type, views`;
+    const qres = await client.query(sql, [author, password, title, msg_type, content]);
+    return res.status(201).json({ ok: true, row: qres.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD][CREATE] db error:', err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally { try { await client.end(); } catch(e){} }
+});
+
+// Update post
+app.put('/api/dashboard/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'invalid id' });
+  const payload = req.body || {};
+  const allowed = ['author','password','title','msg_type','content'];
+  const keys = Object.keys(payload).filter(k => allowed.includes(k));
+  if (keys.length === 0) return res.status(400).json({ ok: false, error: 'nothing to update' });
+  if (payload.msg_type && !ALLOWED_MSG_TYPES.includes(payload.msg_type)) return res.status(400).json({ ok: false, error: 'invalid msg_type' });
+
+  const setParts = [];
+  const params = [];
+  let idx = 1;
+  for (const k of keys) {
+    setParts.push(`${k} = $${idx}`);
+    params.push(sanitizeDbValue(k, payload[k]));
+    idx++;
+  }
+  params.push(id);
+  const sql = `UPDATE dashboard_messages SET ${setParts.join(',')} WHERE msg_id = $${idx} RETURNING msg_id, created_date, author, title, msg_type, views`;
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const qres = await client.query(sql, params);
+    if (qres.rowCount === 0) return res.status(404).json({ ok: false, error: 'not_found' });
+    return res.json({ ok: true, row: qres.rows[0] });
+  } catch (err) {
+    console.error('[DASHBOARD][UPDATE] db error:', err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally { try { await client.end(); } catch(e){} }
+});
+
+// Delete post
+app.delete('/api/dashboard/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'invalid id' });
+  const client = getDbClient();
+  try {
+    await client.connect();
+    const q = await client.query('DELETE FROM dashboard_messages WHERE msg_id = $1', [id]);
+    if (q.rowCount === 0) return res.status(404).json({ ok: false, error: 'not_found' });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD][DELETE] db error:', err && err.message ? err.message : err);
+    return res.status(500).json({ ok: false, error: 'db error' });
+  } finally { try { await client.end(); } catch(e){} }
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`LOANDOC API listening on http://127.0.0.1:${PORT}`);
 });
-
-
