@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>LOANDOC - 대출신청</title>
     <style>
+        :root{--bg:#f6f6f6;--brand:#2d6cdf;--accent:#FFD400;--nav-pad:8px}
+        body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#222}
+    header{background:var(--brand);color:#fff;padding:28px 20px;text-align:center}
+    main{max-width:none;width:100%;margin:24px 0;background:var(--bg);padding:18px 24px;border-radius:8px;box-sizing:border-box}
+        .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        .title{font-size:1.4rem;font-weight:800;color:var(--brand)}
+        .note{color:#666;font-size:0.95em;margin-top:8px}
+        button{background:var(--brand);color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        /* Nav centering and uniform button style */
+    nav{display:flex;justify-content:space-between;gap:10px;padding:12px 8px;background:var(--bg);align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+    .nav-left{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+    .nav-center{display:flex;gap:10px;align-items:center}
+    .nav-button{background:var(--accent);color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+    .action-buttons-nav{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+    /* Action buttons (stacked, white background, navy text) */
+    .action-buttons{display:flex;flex-direction:column;gap:12px;align-items:center}
+    .action-button{background:#FFFFFF;color:#000080;border:1px solid #000080;padding:8px 12px;min-width:200px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px}
+    /* (removed right-align rule so buttons stay adjacent) */
+        label{display:block;margin-top:10px}
+        input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;width:100%;max-width:320px}
+        .form-row{margin-top:12px}
+    </style>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - 대출신청</title>
+    <style>
         :root{--bg:#f6f6f6;--brand:#2d6cdf;--accent:#FFD400}
         body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#222}
     header{background:var(--brand);color:#fff;padding:28px 20px;text-align:center}
@@ -14,8 +43,13 @@
         .note{color:#666;font-size:0.95em;margin-top:8px}
         button{background:var(--brand);color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
         /* Nav centering and uniform button style */
-    nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:var(--bg);align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+    nav{display:flex;justify-content:center;gap:10px;padding:12px var(--nav-pad);background:var(--bg);align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
     .nav-button{background:var(--accent);color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+    /* Action area: left-offset, vertical stacked buttons */
+    /* Move the button panel 15% to the right from the left edge */
+    .button-panel{margin-left:15%;display:flex;flex-direction:column;gap:12px;padding-top:18px}
+    /* Restore original nav button sizing but keep white/navy styling */
+    .action-btn{background:#FFFFFF;color:#000080;border:1px solid #000080;padding:8px 12px;border-radius:8px;height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:700;font-size:14px;box-sizing:border-box;width:calc(100% / 6)}
     /* (removed right-align rule so buttons stay adjacent) */
         label{display:block;margin-top:10px}
         input[type=number]{padding:8px;border-radius:6px;border:1px solid #ddd;width:100%;max-width:320px}
@@ -42,20 +76,12 @@
     </nav>
 
     <main>
-        <div class="hero">
-            <div class="title">대출 신청 (샘플)</div>
-            <p class="note">이 페이지는 대출 신청 폼의 플레이스홀더입니다. 실제 동작을 위해서는 서버 엔드포인트 및 검증 로직을 구현해야 합니다.</p>
-        </div>
-
-        <div class="form-row">
-            <label for="loan_amount">대출금액</label>
-            <input id="loan_amount" type="number" min="0" />
-            <label for="loan_term">상환기간(개월)</label>
-            <input id="loan_term" type="number" min="1" />
-            <div style="margin-top:12px">
-                <button id="applyBtn">신청</button>
-                <div id="applyMsg" class="note"></div>
-            </div>
+        <!-- Removed previous hero and form; replaced with left-offset vertical action buttons -->
+        <div class="button-panel">
+            <a class="action-btn" href="login.html">로그인</a>
+            <a class="action-btn" href="signup.html">회원정보</a>
+            <a class="action-btn" href="loanAppl.html">대출신청</a>
+            <a class="action-btn" href="signup.html#terms">약관동의</a>
         </div>
     </main>
 
