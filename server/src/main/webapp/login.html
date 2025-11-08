@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - 로그인</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
+    header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
+    /* main top margin reduced by 50% to shorten space between hr and login controls */
+    /* also reduce top padding so content inside main sits closer to the hr */
+    main{max-width:420px;margin:30px auto;background:#f6f6f6;padding:14px 28px 28px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+        label{display:block;margin-bottom:6px;font-weight:600}
+        input{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px}
+        button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        .button-group{display:flex;gap:12px;align-items:center;justify-content:center}
+        .signup-btn{background:#28a745;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+        .muted{color:#666;font-size:0.9em;margin-top:10px}
+
+    /* visual divider under header */
+    /* margin reduced by 50% to bring the content below closer */
+    .header-divider{border:0;height:1px;background:#e6e6e6;margin:9px 0}
+
+    /* center the inner login form area and constrain its width so it appears centered under the divider */
+    .login-form{max-width:360px;margin:0 auto}
+
+    /* reduce h2 default margins so the heading doesn't add extra vertical gap */
+    main h2{margin:6px 0 8px;text-align:center}
+
+    /* Nav: column-based groups (4 columns). Each column stacks buttons vertically. */
+    nav.nav-columns{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:10px;background:#f6f6f6;border-radius:10px;align-items:start}
+    nav.nav-columns .nav-column{display:flex;flex-direction:column;gap:12px}
+    nav.nav-columns .nav-button{background:#FFD400;color:#000;border:none;padding:10px 12px;height:auto;display:block;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;width:100%;box-sizing:border-box;text-align:center}
+
+    /* Column separators and paddings to emphasize grouping */
+    nav.nav-columns .nav-column:nth-child(1){padding-right:12px}
+    nav.nav-columns .nav-column:nth-child(2){padding:0 12px}
+    nav.nav-columns .nav-column:nth-child(3){padding-left:12px}
+    nav.nav-columns .nav-column:nth-child(4){padding-left:12px}
+
+    /* Responsive: collapse to 2 columns on small screens */
+    @media (max-width:600px){
+        nav.nav-columns{grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}
+        nav.nav-columns .nav-button{font-size:13px;padding:8px}
+    }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>외국인 근로자 대출 연계 포털</h1>
+        <p>로그인 (Login)</p>
+    </header>
+    <nav class="nav-columns" aria-label="주요 네비게이션">
+        <div class="nav-column">
+            <a class="nav-button" href="home.html">LOANDOC</a>
+            <a class="nav-button" href="introCo.html">회사소개</a>
+            <a class="nav-button" href="intro.html">상품소개</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="login.html">로그인</a>
+            <a class="nav-button" href="signup.html">회원가입</a>
+            <a class="nav-button" href="workerInfo.html">정보조회</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="loanAppl.html">대출신청</a>
+            <a class="nav-button" href="loanResult.html">대출결과</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
+        </div>
+    </nav>
+    <hr class="header-divider" aria-hidden="true">
+    <main>
+        <h2>로그인</h2>
+        <div class="login-form">
+            <label for="loginId">아이디</label>
+            <input id="loginId" type="text" placeholder="아이디 입력" />
+            <label for="loginPwd">비밀번호</label>
+            <input id="loginPwd" type="password" placeholder="비밀번호 입력" />
+            <div class="button-group">
+                <button id="loginBtn">로그인</button>
+                <a href="signup.html" class="signup-btn">회원가입</a>
+            </div>
+            <div id="loginMsg" class="muted">아이디가 없으면 회원가입을 통해 계정을 생성하십시오.</div>
+        </div>
+    </main>
+    <script>
+        function loadUsers(){ return JSON.parse(localStorage.getItem('users')||'[]'); }
+        // TEST MODE: bypass server auth and always redirect to workerInfo for testing
+        document.getElementById('loginBtn').addEventListener('click', ()=>{
+            const id = (document.getElementById('loginId').value||'').trim();
+            try { localStorage.setItem('loggedInUser', id); localStorage.setItem('lastRegisteredId', id); } catch(e){}
+            document.getElementById('loginMsg').textContent = '로그인 정상 — 개인정보 화면으로 이동합니다.';
+            document.getElementById('loginMsg').style.color = 'green';
+            setTimeout(()=>{ window.location.href = 'workerInfo.html'; }, 400);
+        });
+
+        // If user just registered, prefill loginId
+        (function prefill(){
+            const last = localStorage.getItem('lastRegisteredId');
+            if(last){ document.getElementById('loginId').value = last; document.getElementById('loginMsg').textContent = '회원가입 완료 — 아이디가 자동 입력되었습니다.'; document.getElementById('loginMsg').style.color='green'; localStorage.removeItem('lastRegisteredId'); }
+        })();
+    </script>
+</body>
+</html>

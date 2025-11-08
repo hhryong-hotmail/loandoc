@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - 로그인</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0;display:flex;flex-direction:column;min-height:100vh}
+    header{background:#2d6cdf;color:#fff;padding:20px 20px;text-align:center}
+    header h1{margin:0 0 8px 0;font-size:1.5rem}
+    header p{margin:0;font-size:1rem}
+    main{max-width:500px;width:100%;margin:20px auto;background:#fff;padding:24px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);box-sizing:border-box}
+    main h2{margin-top:0;margin-bottom:16px;font-size:1.3rem;text-align:center}
+    label{display:block;margin-bottom:4px;font-weight:600;font-size:0.9rem}
+    /* Uniform input styles */
+    input, select, textarea { box-sizing: border-box; width:100%; height:38px; padding:8px 10px; border:1px solid #ccc; border-radius:6px; margin:0 0 10px 0; font-size:0.95rem; }
+    /* Ensure labels and controls have consistent spacing */
+    .form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .grid{display:grid;grid-template-columns:1fr 1fr; gap:14px 14px; align-items:start}
+    .full{grid-column:1 / -1}
+    .note{color:#666;font-size:0.85em; margin-top:6px; margin-bottom:8px}
+    button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;width:100%;font-size:1rem}
+    /* Make form controls visually separated: each control gets its own block with label above */
+    .grid > div { display:flex; flex-direction:column; }
+    /* visual inactive style for buttons (still clickable) */
+    button.inactive { opacity:0.55; filter:grayscale(30%); cursor:default; }
+    @media(max-width:720px){ .grid{grid-template-columns:1fr; } input, select, textarea{height:40px;} main{margin:16px; padding:20px;} }
+    nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
+    .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+    nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+    .mt12{margin-top:10px}
+    .mb14{margin-bottom:12px}
+    </style>
+    <style>
+    /* Column based nav (shared) */
+    nav.nav-columns{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:10px;background:#f6f6f6;border-radius:10px;align-items:start}
+    nav.nav-columns .nav-column{display:flex;flex-direction:column;gap:12px}
+    nav.nav-columns .nav-button{background:#FFD400;color:#000;border:none;padding:10px 12px;height:auto;display:block;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;width:100%;box-sizing:border-box;text-align:center}
+    nav.nav-columns .nav-column:nth-child(1){padding-right:12px}
+    nav.nav-columns .nav-column:nth-child(2){padding:0 12px}
+    nav.nav-columns .nav-column:nth-child(3){padding-left:12px}
+    nav.nav-columns .nav-column:nth-child(4){padding-left:12px}
+    @media (max-width:600px){nav.nav-columns{grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}nav.nav-columns .nav-button{font-size:13px;padding:8px}}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>외국인 근로자 대출 연계 포털</h1>
+        <p>회원가입</p>
+    </header>
+    <nav class="nav-columns" aria-label="주요 네비게이션">
+        <div class="nav-column">
+            <a class="nav-button" href="home.html">LOANDOC</a>
+            <a class="nav-button" href="introCo.html">회사소개</a>
+            <a class="nav-button" href="intro.html">상품소개</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="login.html">로그인</a>
+            <a class="nav-button" href="signup.html">회원가입</a>
+            <a class="nav-button" href="workerInfo.html">정보조회</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="loanAppl.html">대출신청</a>
+            <a class="nav-button" href="loanResult.html">대출결과</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
+        </div>
+    </nav>
+    <hr />
+    <main>
+        <h2>회원 가입</h2>
+        <div class="mb14">
+            <label for="userId">아이디</label>
+            <input id="userId" type="text" placeholder="아이디 입력" />
+            
+            <label for="password">비밀번호</label>
+            <input id="password" type="password" placeholder="비밀번호" />
+            
+            <label for="passwordConfirm">비밀번호 확인</label>
+            <input id="passwordConfirm" type="password" placeholder="비밀번호 재입력" />
+            
+            <div id="passPolicy" class="note" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;line-height:1.4;">
+                <div id="p_len">◻ 최소 8자</div>
+                <div id="p_digit">◻ 숫자 포함</div>
+                <div id="p_upper">◻ 대문자 포함</div>
+                <div id="p_special">◻ 특수문자 포함</div>
+                <div id="p_lower">◻ 소문자 포함</div>
+                <div id="p_match">◻ 비밀번호 일치</div>
+            </div>
+            <div id="passMsg" class="note"></div>
+            <div id="idMsg" class="note"></div>
+            
+            <button id="createAccountBtn">회원 가입</button>
+        </div>
+
+        <p class="note" style="text-align:center;">회원 가입 후 개인정보를 입력하세요.</p>
+        <div class="mt12">
+            <a href="workerInfo.html" style="text-decoration:none;"><button type="button">개인정보 입력 페이지로 이동</button></a>
+        </div>
+    </main>
+    <script>
+        function loadUsers(){ return JSON.parse(localStorage.getItem('users')||'[]'); }
+        function saveUsers(u){ localStorage.setItem('users', JSON.stringify(u)); }
+        function loadProfiles(){ return JSON.parse(localStorage.getItem('foreign_workers')||'[]'); }
+        function saveProfiles(arr){ localStorage.setItem('foreign_workers', JSON.stringify(arr)); }
+
+        // DOM이 완전히 로드된 후 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing event listeners...');
+            
+            // password policy checks
+            const pwdInput = document.getElementById('password');
+            const pwdConfirmInput = document.getElementById('passwordConfirm');
+            const policy = {
+                len: document.getElementById('p_len'),
+                upper: document.getElementById('p_upper'),
+                lower: document.getElementById('p_lower'),
+                digit: document.getElementById('p_digit'),
+                special: document.getElementById('p_special'),
+                match: document.getElementById('p_match')
+            };
+            const createBtn = document.getElementById('createAccountBtn');
+            
+            console.log('Create button found:', createBtn);
+            
+            function checkPolicy(){
+                const v = pwdInput.value || '';
+                const c = pwdConfirmInput.value || '';
+                const ok_len = v.length >= 8;
+                const ok_upper = /[A-Z]/.test(v);
+                const ok_lower = /[a-z]/.test(v);
+                const ok_digit = /[0-9]/.test(v);
+                const ok_special = /[^A-Za-z0-9]/.test(v);
+                const ok_match = v !== '' && v === c;
+                policy.len.textContent = (ok_len? '✓ ':'◻ ') + '최소 8자'; policy.len.style.color = ok_len ? 'green' : '#666';
+                policy.upper.textContent = (ok_upper? '✓ ':'◻ ') + '대문자 포함'; policy.upper.style.color = ok_upper ? 'green' : '#666';
+                policy.lower.textContent = (ok_lower? '✓ ':'◻ ') + '소문자 포함'; policy.lower.style.color = ok_lower ? 'green' : '#666';
+                policy.digit.textContent = (ok_digit? '✓ ':'◻ ') + '숫자 포함'; policy.digit.style.color = ok_digit ? 'green' : '#666';
+                policy.special.textContent = (ok_special? '✓ ':'◻ ') + '특수문자 포함'; policy.special.style.color = ok_special ? 'green' : '#666';
+                policy.match.textContent = (ok_match? '✓ ':'◻ ') + '비밀번호와 확인이 일치'; policy.match.style.color = ok_match ? 'green' : '#666';
+                // enable create button only when all policy items true and userId matches policy
+                const idVal = (document.getElementById('userId').value||'').trim();
+                const idRegex = /^[A-Za-z][A-Za-z0-9._-]{3,49}$/; // starts with letter, 4-50 chars, allowed . _ -
+                const idOk = idRegex.test(idVal);
+                // visually mark as inactive when policy not met, but keep button clickable so handler can show messages
+                if(ok_len && ok_upper && ok_lower && ok_digit && ok_special && ok_match && idOk){
+                    createBtn.classList.remove('inactive');
+                } else {
+                    createBtn.classList.add('inactive');
+                }
+            }
+            
+            // 이벤트 리스너 등록
+            pwdInput.addEventListener('input', checkPolicy);
+            pwdConfirmInput.addEventListener('input', checkPolicy);
+            document.getElementById('userId').addEventListener('input', checkPolicy);
+
+            // 계정생성 버튼 클릭 이벤트
+            createBtn.addEventListener('click', async ()=>{
+                console.log('Create account button clicked!');
+            // client-side validation first
+            const id = (document.getElementById('userId').value||'').trim();
+            const pwd = (pwdInput.value||'').trim();
+            const pwdConfirm = (pwdConfirmInput.value||'').trim();
+            const msg = document.getElementById('idMsg');
+            const passMsg = document.getElementById('passMsg');
+            passMsg.textContent = '';
+            msg.textContent = '';
+
+            // If either field is empty, show explicit errors and stop
+            let emptyError = false;
+            if(!id){ msg.textContent = '아이디를 입력하세요.'; msg.style.color = 'red'; emptyError = true; }
+            if(!pwd){ passMsg.textContent = '비밀번호를 입력하세요.'; passMsg.style.color = 'red'; emptyError = true; }
+            if(emptyError) return;
+
+            // Explicitly validate all password policy items on click as well
+            const ok_len = pwd.length >= 8;
+            const ok_upper = /[A-Z]/.test(pwd);
+            const ok_lower = /[a-z]/.test(pwd);
+            const ok_digit = /[0-9]/.test(pwd);
+            const ok_special = /[^A-Za-z0-9]/.test(pwd);
+            const ok_match = pwd !== '' && pwd === pwdConfirm;
+
+            const missing = [];
+            if(!ok_len) missing.push('최소 8자');
+            if(!ok_upper) missing.push('대문자 포함');
+            if(!ok_lower) missing.push('소문자 포함');
+            if(!ok_digit) missing.push('숫자 포함');
+            if(!ok_special) missing.push('특수문자 포함');
+            if(!ok_match) missing.push('비밀번호와 확인 불일치');
+
+            if(missing.length > 0){
+                passMsg.textContent = '비밀번호 요구사항 미충족: ' + missing.join(', ');
+                passMsg.style.color = 'red';
+                return;
+            }
+
+            // Validate ID policy: starts with English letter, 4-50 chars, allowed characters: letters, digits, ., _, -
+            const idPolicyRegex = /^[A-Za-z][A-Za-z0-9._-]{3,49}$/;
+            if(!idPolicyRegex.test(id)){
+                msg.textContent = '아이디 규칙 위반: 영문자로 시작하고 영문/숫자/._- 만 허용, 길이 4~50자';
+                msg.style.color = 'red';
+                return;
+            }
+
+            // send credentials to server
+                try{
+                console.log('서버에 계정 등록 요청 전송 중...');
+                // Use relative path to the deployed server context so the page at
+                // http://localhost:8080/signup.html posts to the correct servlet.
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ id: id, password: pwd })
+                });
+                console.log('서버 응답 상태:', res.status, res.statusText);
+                if(!res.ok){
+                    // Try to parse JSON error first, fallback to text
+                    let errMsg = '';
+                    try {
+                        const ct = res.headers.get('content-type') || '';
+                        if (ct.includes('application/json')) {
+                            const j = await res.json();
+                            errMsg = (j && (j.error || j.message)) ? (j.error || j.message) : '';
+                        } else {
+                            errMsg = await res.text();
+                        }
+                    } catch(e) {}
+                    msg.textContent = errMsg || ('서버 오류: ' + res.status + ' ' + (res.statusText||''));
+                    msg.style.color = 'red';
+                    return;
+                }
+                // try parse json response
+                let data = {};
+                try{ data = await res.json(); }catch(e){}
+                if(data && data.ok === false){ msg.textContent = data.error || '등록 실패'; msg.style.color='red'; return; }
+
+                // success: save locally and lock inputs
+                const users = loadUsers();
+                if(users.some(u=>u.id===id)){ msg.textContent='이미 존재하는 ID입니다.'; msg.style.color='red'; return; }
+                users.push({id: id, password: pwd}); saveUsers(users);
+                msg.textContent = '계정 생성 완료. 개인정보를 입력 후 저장하세요.'; msg.style.color = 'green';
+                // lock inputs
+                document.getElementById('userId').disabled = true;
+                pwdInput.disabled = true;
+                pwdConfirmInput.disabled = true;
+                createBtn.classList.add('inactive');
+            }catch(err){
+                console.log('서버 연결 실패, 오프라인 모드로 계정 생성:', err.message);
+                
+                // 오프라인 모드: 로컬 스토리지에만 저장
+                const users = loadUsers();
+                if(users.some(u=>u.id===id)){ 
+                    msg.textContent='이미 존재하는 ID입니다.'; 
+                    msg.style.color='red'; 
+                    return; 
+                }
+                users.push({id: id, password: pwd}); 
+                saveUsers(users);
+                msg.textContent = '계정 생성 완료 (오프라인 모드). 개인정보를 입력 후 저장하세요.'; 
+                msg.style.color = 'green';
+                // lock inputs
+                document.getElementById('userId').disabled = true;
+                pwdInput.disabled = true;
+                pwdConfirmInput.disabled = true;
+                createBtn.classList.add('inactive');
+            }
+            });
+
+            // monthsBetween and working_months auto-calculation removed (field deleted)
+
+            document.getElementById('saveBtn').addEventListener('click', ()=>{
+            const profile = {
+                userId: (document.getElementById('userId').value||'').trim(),
+                name: (document.getElementById('name').value||'').trim(),
+                nationality: document.getElementById('nationality').value,
+                passport_number: (document.getElementById('passport').value||'').trim(),
+                birth_date: document.getElementById('birth').value,
+                entry_date: document.getElementById('entry').value,
+                gender: document.getElementById('gender').value,
+                employment_type: document.getElementById('employment').value,
+                foreigner_grade: document.getElementById('foreigner_grade').value,
+                visa_grade: document.getElementById('visa_grade').value,
+                phone_number: (document.getElementById('phone').value||'').trim(),
+                address: (document.getElementById('address').value||'').trim(),
+                home_country_address: (document.getElementById('home_address').value||'').trim(),
+                current_company: (document.getElementById('current_company').value||'').trim(),
+                company_entry_date: document.getElementById('company_entry_date').value,
+                annual_salary: parseInt(document.getElementById('annual_salary').value||0, 10),
+                commute_company: (document.getElementById('commute_company').value||'').trim(),
+                has_health_insurance: document.getElementById('has_health').value,
+                stay_expiry_date: document.getElementById('stay_expiry_date').value,
+                has_loan: document.getElementById('has_loan').value
+            };
+            const msg = document.getElementById('formMsg');
+            if(!profile.userId){ msg.textContent='먼저 계정을 생성하세요.'; msg.style.color='red'; return; }
+            if(!profile.name || !profile.passport_number){ msg.textContent='필수 항목(이름, 여권번호)을 입력하세요.'; msg.style.color='red'; return; }
+            // working_months removed; no recomputation needed
+
+            const arr = loadProfiles();
+            if(arr.some(a=>a.passport_number === profile.passport_number)){ msg.textContent='이미 등록된 여권번호입니다.'; msg.style.color='red'; return; }
+            arr.push(profile); saveProfiles(arr);
+            try{ localStorage.setItem('lastRegisteredId', profile.userId); }catch(e){}
+            msg.textContent='저장 완료. 로그인 페이지로 이동합니다.'; msg.style.color='green';
+            setTimeout(()=>{ window.location.href = 'login.html'; }, 1200);
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', ()=>{ document.getElementById('profileForm').reset(); document.getElementById('formMsg').textContent=''; });
+            
+            console.log('All event listeners registered successfully');
+        }); // DOMContentLoaded 끝
+    </script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - 개인정보 입력</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
+    header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
+    main{max-width:none;width:100%;margin:24px 0;background:#f6f6f6;padding:18px 24px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06);box-sizing:border-box}
+        label{display:block;margin-bottom:6px;font-weight:600}
+        input, select, textarea { box-sizing: border-box; width:100%; height:40px; padding:10px 12px; border:1px solid #ccc; border-radius:6px; margin:0; }
+        .grid{display:grid;grid-template-columns:1fr 1fr; gap:18px 18px; align-items:start}
+        .note{color:#666;font-size:0.95em; margin-top:8px}
+        button{background:#2d6cdf;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        /* 네비게이션 스타일 */
+        nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+            nav a{color:#2d6cdf;text-decoration:none;font-weight:600;padding:6px 8px}
+            .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+        /* 미디어 쿼리 (반응형) */
+        @media(max-width:720px){ .grid{grid-template-columns:1fr;} input, select, textarea{height:44px;} }
+    /* (removed right-align rule so buttons stay adjacent) */
+        /* form message icon and bangs */
+        .form-msg { display:inline-flex; align-items:center; gap:8px; font-weight:700; }
+        .msg-icon { width:18px; height:18px; display:inline-block; vertical-align:middle; }
+        .msg-bangs { margin-left:8px; color:#b91c1c; font-weight:900; }
+    </style>
+    <style>
+    /* Column based nav (shared) */
+    nav.nav-columns{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:10px;background:#f6f6f6;border-radius:10px;align-items:start}
+    nav.nav-columns .nav-column{display:flex;flex-direction:column;gap:12px}
+    nav.nav-columns .nav-button{background:#FFD400;color:#000;border:none;padding:10px 12px;height:auto;display:block;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;width:100%;box-sizing:border-box;text-align:center}
+    nav.nav-columns .nav-column:nth-child(1){padding-right:12px}
+    nav.nav-columns .nav-column:nth-child(2){padding:0 12px}
+    nav.nav-columns .nav-column:nth-child(3){padding-left:12px}
+    nav.nav-columns .nav-column:nth-child(4){padding-left:12px}
+    @media (max-width:600px){nav.nav-columns{grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}nav.nav-columns .nav-button{font-size:13px;padding:8px}}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>외국인 근로자 대출 연계 포털</h1>
+        <p>개인정보 입력</p>
+    </header>
+    <nav class="nav-columns" aria-label="주요 네비게이션">
+        <div class="nav-column">
+            <a class="nav-button" href="home.html">LOANDOC</a>
+            <a class="nav-button" href="introCo.html">회사소개</a>
+            <a class="nav-button" href="intro.html">상품소개</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="login.html">로그인</a>
+            <a class="nav-button" href="signup.html">회원가입</a>
+            <a class="nav-button" href="workerInfo.html">정보조회</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="loanAppl.html">대출신청</a>
+            <a class="nav-button" href="loanResult.html">대출결과</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
+        </div>
+    </nav>
+    <hr />
+    <main>
+        <div style="position:relative;padding:28px 0;">
+            <h2 style="margin:0;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">개인 정보</h2>
+            <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:0.95em;color:#333;white-space:nowrap;display:flex;align-items:center;gap:8px;">
+                <strong style="margin:0">아이디:</strong>
+                <input id="displayUserIdInput" readonly aria-label="로그인 아이디" style="width:220px;padding:10px 12px;border-radius:6px;border:1px solid #ccc;background:#f5f9ff;color:#2d6cdf;font-weight:800;text-align:center;font-size:1.1rem;" value="-" />
+            </div>
+        </div>
+        <form id="profileForm">
+            <input type="hidden" id="userId" name="userId" value="" /> 
+
+            <div class="grid">
+                <div>
+                    <label for="name">1. 이름 (name)</label>
+                    <input id="name" />
+                </div>
+                <div>
+                    <label for="nationality">2. 국가 (nationality)</label>
+                    <select id="nationality">
+                        <option value="">선택</option>
+                        <option>Vietnam</option>
+                        <option>Thailand</option>
+                        <option>Philippines</option>
+                        <option>Indonesia</option>
+                        <option>Malaysia</option>
+                        <option>Myanmar</option>
+                        <option>Cambodia</option>
+                        <option>Laos</option>
+                        <option>Singapore</option>
+                        <option>Timor-Leste</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="passport">3. 여권번호 (passport_number)</label>
+                    <input id="passport" />
+                </div>
+                <div>
+                    <label for="birth">4. 생년월일 (birth_date)</label>
+                    <input id="birth" type="date" />
+                </div>
+
+                <div>
+                    <label for="entry">5. 입국일자 (entry_date)</label>
+                    <input id="entry" type="date" />
+                </div>
+
+                <div>
+                    <label for="phone">6. 전화번호 (phone_number)</label>
+                    <input id="phone" />
+                </div>
+
+                <div>
+                    <label for="current_company">7. 현재 직장명 (current_company)</label>
+                    <input id="current_company" />
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <button type="button" id="saveBtn">저장</button>
+                <button type="reset" id="resetBtn">초기화</button> 
+                <div id="formMsg" class="note"></div>
+            </div>
+        </form>
+    </main>
+    <script>
+        // LocalStorage 헬퍼 함수
+        function loadProfiles(){ return JSON.parse(localStorage.getItem('foreign_workers')||'[]'); }
+        function saveProfiles(arr){ localStorage.setItem('foreign_workers', JSON.stringify(arr)); }
+        
+        // DOM 콘텐츠 로드 후 실행
+        document.addEventListener('DOMContentLoaded', function(){
+            const formElements = [
+                'name', 'nationality', 'passport', 'birth', 'entry', 'phone', 'current_company'
+            ];
+
+            try {
+                // 로그인된 사용자 ID 가져오기
+                const loggedInUser = localStorage.getItem('loggedInUser') || 
+                                     localStorage.getItem('lastRegisteredId') ||
+                                     'guest';
+                
+                // 로그인 ID 표시 업데이트
+                const displayInput = document.getElementById('displayUserIdInput');
+                if (displayInput) {
+                    displayInput.value = loggedInUser;
+                }
+                
+                // 폼 내의 숨겨진 userId 필드에 값 설정
+                const userIdInput = document.getElementById('userId');
+                if (userIdInput) {
+                    userIdInput.value = loggedInUser;
+                }
+
+                // 로그인 ID 알림 표시
+                if (loggedInUser !== 'guest') {
+                    //alert('로그인 아이디: ' + loggedInUser);
+                    
+                    // 기존 정보 로드 및 필드 채우기 (개선 반영)
+                    const profiles = loadProfiles();
+                    const userProfile = profiles.find(p => p.userId === loggedInUser);
+                    
+                        if (userProfile) {
+                            formElements.forEach(id => {
+                                const element = document.getElementById(id);
+                                if (element && userProfile[id] !== undefined) {
+                                    element.value = userProfile[id];
+                                }
+                            });
+                            console.log('기존 개인정보를 폼에 로드했습니다.');
+                        }
+                        // 기존에 누적된 update bangs가 있으면 폼 메시지에 표시
+                        try {
+                            const bangKey = 'update_bangs_' + String(loggedInUser);
+                            const existingCount = Number(localStorage.getItem(bangKey) || '0');
+                            if (existingCount > 0) {
+                                const msgEl = document.getElementById('formMsg');
+                                msgEl.innerHTML = '';
+                                msgEl.style.color = '#064e3b';
+                                const container = document.createElement('span');
+                                container.className = 'form-msg';
+                                const icon = document.createElement('span');
+                                icon.className = 'msg-icon';
+                                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                                const text = document.createElement('span');
+                                text.textContent = '수정되었습니다';
+                                const bangs = document.createElement('span');
+                                bangs.className = 'msg-bangs';
+                                bangs.textContent = '!'.repeat(existingCount);
+                                container.appendChild(icon);
+                                container.appendChild(text);
+                                container.appendChild(bangs);
+                                msgEl.appendChild(container);
+                            }
+                        } catch(e) { /* ignore */ }
+                }
+                
+                console.log('Logged in user ID:', loggedInUser);
+                
+            } catch (error) {
+                console.error('Error setting user ID or loading profile:', error);
+            }
+        });
+
+       // "저장" 버튼 클릭 이벤트 핸들러
+       // validate form before sending to server
+       function validateForm() {
+            const msgEl = document.getElementById('formMsg');
+            msgEl.style.color = '#9b1c1c';
+            // required text fields
+            const nameEl = document.getElementById('name');
+            if (!nameEl || nameEl.value.trim() === '') {
+                msgEl.textContent = '⚠️ 이름을 입력하세요.';
+                if (nameEl) nameEl.focus();
+                return { ok: false };
+            }
+            const passportEl = document.getElementById('passport');
+            if (!passportEl || passportEl.value.trim() === '') {
+                msgEl.textContent = '⚠️ 여권번호를 입력하세요.';
+                if (passportEl) passportEl.focus();
+                return { ok: false };
+            }
+
+            // 날짜 형식 검증은 하지 않음 (요청에 따라 생년월일/입국일자/입사일자/체재만료일자 검증 제외)
+
+            // NOT NULL checks for specific fields
+            const notNullIds = ['phone','address','home_address','current_company'];
+            for (const id of notNullIds) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const v = (el.value || '').toString().trim();
+                if (v === '') {
+                    msgEl.textContent = `⚠️ '${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id}' 항목은 필수입니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+            }
+
+            // 날짜 필드들: 필수(빈값 불가)이며 YYYY-MM-DD 형식 및 유효한 날짜인지 검사
+            const dateFieldsToValidate = ['birth','entry'];
+            for (const id of dateFieldsToValidate) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const v = (el.value || '').toString().trim();
+                // now required
+                if (v === '') {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 항목은 필수입니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+                // format check
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 날짜 형식이 올바르지 않습니다 (YYYY-MM-DD).`;
+                    el.focus();
+                    return { ok: false };
+                }
+                // semantic validity
+                const parts = v.split('-').map(x => Number(x));
+                const year = parts[0], month = parts[1], day = parts[2];
+                const d = new Date(v);
+                if (isNaN(d.getTime()) || d.getFullYear() !== year || (d.getMonth()+1) !== month || d.getDate() !== day) {
+                    msgEl.textContent = `⚠️ ${el.previousElementSibling ? el.previousElementSibling.innerText.split('(')[0].trim() : id} 유효한 날짜가 아닙니다.`;
+                    el.focus();
+                    return { ok: false };
+                }
+            }
+
+            // clear message when valid
+            msgEl.textContent = '';
+            return { ok: true };
+       }
+
+       document.getElementById('saveBtn').addEventListener('click', async ()=>{
+            const userId = (document.getElementById('userId').value||'').trim();
+            if (userId === 'guest' || userId === '') {
+                 document.getElementById('formMsg').textContent = '❌ 로그인된 사용자 정보가 없습니다. 저장할 수 없습니다.';
+                 return;
+            }
+
+            // run validations first
+            const v = validateForm();
+            if (!v.ok) return;
+
+            // 모든 폼 필드 값 수집 (완성)
+            const profile = {
+                userId: userId,
+                name: document.getElementById('name').value,
+                nationality: document.getElementById('nationality').value,
+                passport: document.getElementById('passport').value,
+                birth: document.getElementById('birth').value,
+                entry: document.getElementById('entry').value,
+                phone: document.getElementById('phone').value,
+                current_company: document.getElementById('current_company').value
+            };
+
+            // 유효성 검사 (예시: 이름 필드 확인)
+            if (profile.name.trim() === '') {
+                 document.getElementById('formMsg').textContent = '⚠️ 이름을 입력해야 합니다.';
+                 return;
+            }
+
+            // 서버로 전송할 페이로드: 화면 레이블의 괄호 안 영문명을 키로 사용
+            const payload = {
+                user_id: profile.userId,
+                name: profile.name,
+                nationality: profile.nationality,
+                passport_number: profile.passport,
+                birth_date: profile.birth,
+                entry_date: profile.entry,
+                phone_number: profile.phone,
+                current_company: profile.current_company
+            };
+
+            // 서버에 POST 시도
+            try {
+                const res = await fetch('/api/foreign_worker_master', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const body = await res.json().catch(()=>null);
+                if (res.ok && body) {
+                    // 서버가 반환한 메시지를 화면에 표시
+                    const msgEl = document.getElementById('formMsg');
+                    // clear
+                    msgEl.innerHTML = '';
+                    msgEl.style.color = body.ok ? '#064e3b' : '#9b1c1c';
+
+                    // create message container
+                    const container = document.createElement('span');
+                    container.className = 'form-msg';
+
+                    // add icon before message
+                    const icon = document.createElement('span');
+                    icon.className = 'msg-icon';
+                    // simple inline SVG check/edit icon
+                    icon.innerHTML = body.action === 'update' ?
+                        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' :
+                        '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#064e3b" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="#064e3b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+                    const text = document.createElement('span');
+                    text.textContent = body.message || (body.ok ? '✅ 저장 완료' : '서버 응답');
+
+                    container.appendChild(icon);
+                    container.appendChild(text);
+
+                    // if action is update, add bang counter per user_id
+                    if (body.ok && body.action === 'update') {
+                        try {
+                            const uid = payload.user_id || payload.userId || document.getElementById('userId').value;
+                            const key = 'update_bangs_' + String(uid);
+                            let cnt = Number(localStorage.getItem(key) || '0');
+                            cnt = cnt + 1;
+                            localStorage.setItem(key, String(cnt));
+                            const bangs = document.createElement('span');
+                            bangs.className = 'msg-bangs';
+                            bangs.textContent = '!'.repeat(cnt);
+                            container.appendChild(bangs);
+                        } catch (e) { /* ignore */ }
+                    }
+
+                    msgEl.appendChild(container);
+
+                    // 서버가 반환한 데이터가 있으면 폼에 반영 (필드 이름이 영어 키로 온다고 가정)
+                    if (body.data && typeof body.data === 'object') {
+                        Object.keys(body.data).forEach(k => {
+                            try {
+                                // 맵핑: 서버 필드명 -> 폼 요소 id
+                                const idMap = {
+                                    user_id: 'userId',
+                                    passport_number: 'passport',
+                                    name: 'name',
+                                    nationality: 'nationality',
+                                    birth_date: 'birth',
+                                    entry_date: 'entry',
+                                    phone_number: 'phone',
+                                    current_company: 'current_company'
+                                };
+                                const targetId = idMap[k];
+                                if (!targetId) return;
+                                const el = document.getElementById(targetId);
+                                if (!el) return;
+                                let val = body.data[k];
+                                if (targetId === 'userId') {
+                                    el.value = val;
+                                    // display ID도 업데이트
+                                    const displayInput = document.getElementById('displayUserIdInput');
+                                    if (displayInput) displayInput.value = val;
+                                } else {
+                                    el.value = val;
+                                }
+                            } catch (e) { /* ignore per-field errors */ }
+                        });
+                    }
+                    return;
+                }
+                // 서버가 OK가 아니거나 JSON 파싱 실패 -> 로컬 폴백
+                console.warn('Server save failed, falling back to local storage', res.status, body);
+            } catch (err) {
+                console.error('Server save failed:', err);
+            }
+
+            // DB 저장 실패 시 로컬스토리지에 저장(폴백)
+            const profiles = loadProfiles();
+            const existingIndex = profiles.findIndex(p => p.userId === profile.userId);
+            if (existingIndex > -1) profiles[existingIndex] = profile; else profiles.push(profile);
+            saveProfiles(profiles);
+            document.getElementById('formMsg').textContent = '⚠️ 서버 저장 실패 — 고객센터로 연락주십시오.';
+        });
+        // resetBtn은 type="reset"으로 동작하지만, 클릭 시 화면에 보이는
+        // 알림 메시지(formMsg)를 즉시 지우도록 핸들러를 추가합니다.
+        (function(){
+            const form = document.getElementById('profileForm');
+            const msgEl = document.getElementById('formMsg');
+            // form의 reset 이벤트를 이용하면 브라우저가 필드를 초기화한 직후에 처리할 수 있습니다.
+            if (form) {
+                form.addEventListener('reset', () => {
+                    try {
+                        if (msgEl) {
+                            msgEl.innerHTML = '';
+                            msgEl.textContent = '';
+                            // 스타일도 원래대로 되돌립니다.
+                            msgEl.style.color = '';
+                        }
+                    } catch (e) {
+                        console.error('reset handler error', e);
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
