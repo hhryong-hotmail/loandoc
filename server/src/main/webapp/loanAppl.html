@@ -489,10 +489,20 @@
                     chk.setAttribute('data-select-option', it.select_option || '');
                     chk.setAttribute('data-group-name', it.group_name || '');
                     
-                    // Add change handler to uncheck top-level checkbox if any item is unchecked
+                    // Add change handler to sync with top-level checkbox
                     chk.addEventListener('change', function(e){
                         const topTermsCheckbox = document.getElementById('terms-checkbox');
-                        if(topTermsCheckbox && !e.target.checked){
+                        if(!topTermsCheckbox) return;
+                        
+                        // Get all term checkboxes
+                        const allTermCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
+                        const checkedCount = Array.from(allTermCheckboxes).filter(cb => cb.checked).length;
+                        
+                        // If all are checked, check the top-level checkbox
+                        // If any is unchecked, uncheck the top-level checkbox
+                        if(checkedCount === allTermCheckboxes.length){
+                            topTermsCheckbox.checked = true;
+                        } else {
                             topTermsCheckbox.checked = false;
                         }
                     });
