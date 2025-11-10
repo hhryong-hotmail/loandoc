@@ -6,10 +6,9 @@
          metadata-complete="false">
     <display-name>LOANDOC Server</display-name>
     
-    <!-- Welcome file list -->
+    <!-- Welcome file list: 메인 페이지를 home.html로 설정 -->
     <welcome-file-list>
-        <welcome-file>index.html</welcome-file>
         <welcome-file>home.html</welcome-file>
-        <welcome-file>login.html</welcome-file>
+        <welcome-file>index.html</welcome-file>
     </welcome-file-list>
 </web-app>

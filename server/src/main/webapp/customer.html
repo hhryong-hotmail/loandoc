@@ -37,8 +37,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
-            <a class="nav-button" href="signup.html">회원가입</a>
-            <a class="nav-button" href="workerInfo.html">정보조회</a>
+            <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출신청</a>
@@ -56,5 +55,24 @@
             <p class="note">문의사항은 이메일 example@loandoc.local 또는 전화 000-0000-0000로 연락주세요.</p>
         </div>
     </main>
+    <script>
+        // 네비게이션 로그아웃 버튼
+        const navLogout = document.getElementById('nav-logout');
+        if(navLogout){
+            navLogout.addEventListener('click', async function(e){
+                e.preventDefault();
+                try {
+                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.ok) {
+                        alert('로그아웃되었습니다');
+                        window.location.href = 'login.html';
+                    }
+                } catch (err) {
+                    console.error('Logout error', err);
+                }
+            });
+        }
+    </script>
 </body>
 </html>

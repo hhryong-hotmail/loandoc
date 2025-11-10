@@ -175,8 +175,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
-            <a class="nav-button" href="signup.html">회원가입</a>
-            <a class="nav-button" href="workerInfo.html">정보조회</a>
+            <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출신청</a>
@@ -196,6 +195,7 @@
                 <div class="action-item">
                     <a id="action-login" class="action-btn" href="#">로그인</a>
                     <span id="login-label" class="login-label" aria-live="polite"></span>
+                    <button id="logout-btn" class="action-btn" style="display:none; background:#dc3545; color:#fff; margin-left:8px; padding:8px 12px; border:none; cursor:pointer; border-radius:8px;">로그인</button>
                 </div>
                 <a id="action-terms" class="action-btn" href="#">약관동의</a>
                 <span class="terms-controls" aria-hidden="false">
@@ -345,33 +345,90 @@
     </div>
 
     <script>
-        function getUsers(){ try{ return JSON.parse(localStorage.getItem('users')||'[]'); }catch(e){ return []; } }
+        // 세션 확인 및 로그인 상태 표시
+        let currentUserId = null;
 
-        // Show logged-in user id to the right of the 로그인 button when present
-        (function showLoggedIn(){
-            const label = document.getElementById('login-label');
-            if(!label) return;
-            const logged = (localStorage.getItem('loggedInUser')||'').trim();
-            if(logged) label.textContent = logged;
-            else label.textContent = '';
-        })();
+        // 페이지 로드 시 세션 확인하여 로그인 상태 업데이트
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/auth/session');
+                const result = await response.json();
+                
+                if (result.authenticated && result.userId) {
+                    currentUserId = result.userId;
+                    updateLoginDisplay(result.userId);
+                } else {
+                    currentUserId = null;
+                    updateLoginDisplay(null);
+                }
+            } catch (e) {
+                console.error('Session check error', e);
+                currentUserId = null;
+                updateLoginDisplay(null);
+            }
+        }
+
+        // 로그인 버튼과 라벨 업데이트
+        function updateLoginDisplay(userId) {
+            const actionLogin = document.getElementById('action-login');
+            const loginLabel = document.getElementById('login-label');
+            
+            // 항상 '로그인'만 표시
+            if (actionLogin) {
+                actionLogin.textContent = '로그인';
+                actionLogin.href = '#';
+            }
+            
+            if (loginLabel) {
+                if (userId) {
+                    loginLabel.textContent = userId;
+                    loginLabel.style.display = 'inline';
+                } else {
+                    loginLabel.textContent = '';
+                    loginLabel.style.display = 'none';
+                }
+            }
+        }
 
         const actionLogin = document.getElementById('action-login');
         if(actionLogin){
-            actionLogin.addEventListener('click', function(e){
+            actionLogin.addEventListener('click', async function(e){
                 e.preventDefault();
-                // Only navigate to login page when there is no logged-in id
-                const logged = (localStorage.getItem('loggedInUser')||'').trim();
-                if(!logged) {
-                    window.location.href = 'login.html';
-                } else {
-                    // If already logged in, prevent navigation. Optionally flash the displayed id.
-                    const label = document.getElementById('login-label');
-                    if(label){
-                        label.style.transition = 'opacity 0.15s';
-                        label.style.opacity = '0.5';
-                        setTimeout(()=> label.style.opacity = '1', 150);
+                
+                if (currentUserId) {
+                    // 로그아웃 처리
+                    try {
+                        const response = await fetch('/api/auth/logout', { method: 'POST' });
+                        const result = await response.json();
+                        if (result.ok) {
+                            currentUserId = null;
+                            updateLoginDisplay(null);
+                            alert('로그아웃되었습니다');
+                        }
+                    } catch (err) {
+                        console.error('Logout error', err);
                     }
+                } else {
+                    // 로그인 페이지로 이동
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+
+        // 네비게이션 로그아웃 버튼 이벤트
+        const navLogout = document.getElementById('nav-logout');
+        if(navLogout){
+            navLogout.addEventListener('click', async function(e){
+                e.preventDefault();
+                try {
+                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.ok) {
+                        alert('로그아웃되었습니다');
+                        window.location.href = 'login.html';
+                    }
+                } catch (err) {
+                    console.error('Logout error', err);
                 }
             });
         }
@@ -380,14 +437,8 @@
         if(actionProfile){
             actionProfile.addEventListener('click', function(e){
                 e.preventDefault();
-                const logged = (localStorage.getItem('loggedInUser')||'').trim();
-                const users = getUsers();
-                const userExists = logged && users.some(u => Object.values(u).some(v => String(v) === logged));
-                if(!userExists) {
-                    window.location.href = 'signup.html';
-                } else {
-                    window.location.href = 'workerInfo.html';
-                }
+                // localStorage 제거됨 - 항상 회원가입 페이지로 이동
+                window.location.href = 'signup.html';
             });
         }
 
@@ -396,9 +447,8 @@
         if(actionApply){
             actionApply.addEventListener('click', function(e){
                 e.preventDefault();
-                const logged = (localStorage.getItem('loggedInUser')||'').trim();
-                if(!logged) { window.location.href = 'login.html'; }
-                else { window.location.href = 'loanAppl.html'; }
+                // localStorage 제거됨 - 항상 로그인 페이지로 이동
+                window.location.href = 'login.html';
             });
         }
 
@@ -419,8 +469,8 @@
             if(!container) return;
             const loading = document.getElementById('terms-loading');
             try{
-                // Use a relative URL so the frontend works regardless of the WAR context path
-                const res = await fetch('api/documents/groups');
+                // Use absolute path for consistent routing
+                const res = await fetch('/api/documents/groups');
                 if(!res.ok) throw new Error('네트워크 오류');
                 const items = await res.json();
                 // Expect items to be an array of {group_name, select_option}
@@ -495,7 +545,7 @@
                     }
                     
                     // Collect form data
-                    const loginId = (localStorage.getItem('loggedInUser') || '').trim();
+                    const loginId = currentUserId; // 서버 세션에서 가져온 사용자 ID 사용
                     const nationality = document.getElementById('action-nationality')?.value || '';
                     const remainMonths = document.getElementById('remain_months')?.value || '';
                     const annualIncome = document.getElementById('annual_income')?.value || '';
@@ -505,7 +555,7 @@
                     
                     // Debug: Log all field values
                     console.log('=== 입력 필드 확인 ===');
-                    console.log('로그인ID:', loginId, '(from localStorage)');
+                    console.log('로그인ID:', loginId, '(서버 세션 필요)');
                     console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
                     console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
                     console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
@@ -690,8 +740,8 @@
             modalBody.innerHTML = '<p>로딩 중...</p>';
             
             try{
-                // Fetch details from server
-                const res = await fetch('api/server/group-details?group_name=' + encodeURIComponent(groupName));
+                // Fetch details from server (absolute path)
+                const res = await fetch('/api/server/group-details?group_name=' + encodeURIComponent(groupName));
                 if(!res.ok) throw new Error('네트워크 오류');
                 const items = await res.json();
                 
@@ -796,8 +846,8 @@
             if(agreeChk) agreeChk.checked = false;
             
             try{
-                // Fetch content from server
-                const res = await fetch('api/server/document-content?title=' + encodeURIComponent(title));
+                // Fetch content from server (absolute path)
+                const res = await fetch('/api/server/document-content?title=' + encodeURIComponent(title));
                 if(!res.ok) throw new Error('네트워크 오류');
                 const data = await res.json();
                 
@@ -990,13 +1040,48 @@
             }
         }
 
+        // Check if user is logged in via server session
+        async function requireLoginPromptOnLoad(){
+            try{
+                // 서버 세션 확인
+                const response = await fetch('/api/auth/session');
+                const result = await response.json();
+                
+                if(!result.authenticated){
+                    const ok = window.confirm('로그인을 먼저 하십시오');
+                    if(ok){
+                        window.location.href = 'login.html';
+                    }
+                } else {
+                    console.log('User logged in:', result.userId);
+                    // 로그인 상태 표시 업데이트
+                    currentUserId = result.userId;
+                    updateLoginDisplay(result.userId);
+                }
+            }catch(e){
+                console.error('Session check error', e);
+                const ok = window.confirm('로그인을 먼저 하십시오');
+                if(ok){
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+
         // Load terms when the page finishes loading and position dynamic elements
         if(document.readyState === 'complete' || document.readyState === 'interactive'){
+            // Prompt for login if needed, then load terms and position elements
+            checkLoginStatus(); // 먼저 로그인 상태 확인
+            requireLoginPromptOnLoad();
             loadTermsList();
             // ensure a recalculation shortly after load (images/fonts/layout may affect positions)
             setTimeout(function(){ positionTermsList(); positionActionItems(); }, 120);
         } else {
-            window.addEventListener('DOMContentLoaded', function(){ loadTermsList(); setTimeout(function(){ positionTermsList(); positionActionItems(); },120); });
+            window.addEventListener('DOMContentLoaded', function(){ 
+                checkLoginStatus(); // 먼저 로그인 상태 확인
+                requireLoginPromptOnLoad(); 
+                loadTermsList(); 
+                setTimeout(function(){ positionTermsList(); positionActionItems(); },120); 
+            });
         }
 
     </script>

@@ -8,8 +8,8 @@
     <packaging>war</packaging>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -53,8 +53,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <!-- 컴파일 타깃을 Java 17로 설정하여 구형 서버(예: Jetty 9)와 호환되게 함 -->
-                    <release>17</release>
+                    <!-- 컴파일 타깃을 Java 21로 업그레이드 -->
+                    <release>21</release>
                 </configuration>
             </plugin>
             <!-- Toolchains plugin to allow selecting a specific JDK installation for the build -->

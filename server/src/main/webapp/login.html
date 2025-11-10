@@ -59,8 +59,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
-            <a class="nav-button" href="signup.html">회원가입</a>
-            <a class="nav-button" href="workerInfo.html">정보조회</a>
+            <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출신청</a>
@@ -87,21 +86,58 @@
         </div>
     </main>
     <script>
-        function loadUsers(){ return JSON.parse(localStorage.getItem('users')||'[]'); }
-        // TEST MODE: bypass server auth and always redirect to workerInfo for testing
-        document.getElementById('loginBtn').addEventListener('click', ()=>{
-            const id = (document.getElementById('loginId').value||'').trim();
-            try { localStorage.setItem('loggedInUser', id); localStorage.setItem('lastRegisteredId', id); } catch(e){}
-            document.getElementById('loginMsg').textContent = '로그인 정상 — 개인정보 화면으로 이동합니다.';
-            document.getElementById('loginMsg').style.color = 'green';
-            setTimeout(()=>{ window.location.href = 'workerInfo.html'; }, 400);
+        // 네비게이션 로그아웃 버튼 이벤트
+        document.getElementById('nav-logout')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/auth/logout', { method: 'POST' });
+                const result = await response.json();
+                if (result.ok) {
+                    alert('로그아웃되었습니다');
+                    window.location.href = 'login.html';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('로그아웃 처리 중 오류가 발생했습니다');
+            }
         });
 
-        // If user just registered, prefill loginId
-        (function prefill(){
-            const last = localStorage.getItem('lastRegisteredId');
-            if(last){ document.getElementById('loginId').value = last; document.getElementById('loginMsg').textContent = '회원가입 완료 — 아이디가 자동 입력되었습니다.'; document.getElementById('loginMsg').style.color='green'; localStorage.removeItem('lastRegisteredId'); }
-        })();
+        // 서버 세션 기반 로그인 구현
+        document.getElementById('loginBtn').addEventListener('click', async ()=>{
+            const id = (document.getElementById('loginId')?.value||'').trim();
+            const pw = (document.getElementById('loginPwd')?.value||'').trim();
+            
+            if(!id || !pw){
+                document.getElementById('loginMsg').textContent = '아이디와 비밀번호를 입력하세요.';
+                document.getElementById('loginMsg').style.color = 'red';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, password: pw })
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    document.getElementById('loginMsg').textContent = '로그인 성공! 홈으로 이동합니다...';
+                    document.getElementById('loginMsg').style.color = 'green';
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1000);
+                } else {
+                    document.getElementById('loginMsg').textContent = result.error || '로그인 실패';
+                    document.getElementById('loginMsg').style.color = 'red';
+                }
+            } catch (error) {
+                document.getElementById('loginMsg').textContent = '서버 오류: ' + error.message;
+                document.getElementById('loginMsg').style.color = 'red';
+            }
+        });
     </script>
 </body>
 </html>
+

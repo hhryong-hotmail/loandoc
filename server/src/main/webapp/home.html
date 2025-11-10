@@ -78,8 +78,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
-            <a class="nav-button" href="signup.html">회원가입</a>
-            <a class="nav-button" href="workerInfo.html">정보조회</a>
+            <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출신청</a>
@@ -97,5 +96,21 @@
             <div class="brand">LOANDOC</div>
         </div>
     </main>
+    <script>
+        // 로그아웃 버튼 이벤트
+        document.getElementById('nav-logout')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/auth/logout', { method: 'POST' });
+                const result = await response.json();
+                if (result.ok) {
+                    alert('로그아웃되었습니다');
+                    window.location.href = 'login.html';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+    </script>
 </body>
 </html>

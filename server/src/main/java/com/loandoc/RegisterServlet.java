@@ -26,7 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet(urlPatterns = { "/api/register" })
+@WebServlet(urlPatterns = { "/api/register", "/api/auth/register" })
 public class RegisterServlet extends HttpServlet {
     private final ObjectMapper mapper = new ObjectMapper();
     private final Path usersFile;
