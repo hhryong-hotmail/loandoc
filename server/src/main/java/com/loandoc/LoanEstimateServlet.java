@@ -73,7 +73,11 @@ public class LoanEstimateServlet extends HttpServlet {
             ArrayNode finalResults = mapper.createArrayNode();
             sortedResults.forEach(finalResults::add);
 
-            res.getWriter().write(mapper.writeValueAsString(finalResults));
+            // Wrap in response object
+            ObjectNode response = mapper.createObjectNode();
+            response.set("banks", finalResults);
+
+            res.getWriter().write(mapper.writeValueAsString(response));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,9 +100,10 @@ public class LoanEstimateServlet extends HttpServlet {
     private List<BankConfig> getBankConfigurations() {
         List<BankConfig> banks = new ArrayList<>();
 
+        // KB저축은행: Vietnam 제외, 나이 19세 이상, 연소득 2000만원 이상, 잔여체류기간별 한도 차등
         banks.add(new BankConfig("KB저축은행", 1,
                 new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                new String[]{"Vietnam"}, null, 19, 1, 30, 2000, 2000.0, 14.7));
+                new String[]{"Vietnam"}, null, 19, 12, 1, 2000, 2000.0, 14.7));
 
         banks.add(new BankConfig("전북은행", null,
                 new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
@@ -158,14 +163,14 @@ public class LoanEstimateServlet extends HttpServlet {
 
         // Age validation
         ObjectNode ageNode = mapper.createObjectNode();
-        boolean ageValid = age > bank.minAge;
+        boolean ageValid = age >= bank.minAge;
         ageNode.put("valid", ageValid);
         ageNode.put("error", ageValid ? "" : "E나이");
         result.set("age", ageNode);
 
-        // Visa expiry validation
+        // Visa expiry validation (잔여체류기간)
         ObjectNode visaExpiryNode = mapper.createObjectNode();
-        boolean visaExpiryValid = remainMonths >= bank.minVisaExpiryDays / 30.0;
+        boolean visaExpiryValid = remainMonths >= bank.minVisaExpiryDays;
         visaExpiryNode.put("valid", visaExpiryValid);
         visaExpiryNode.put("error", visaExpiryValid ? "" : "E비자만료");
         result.set("visaExpiry", visaExpiryNode);
@@ -184,16 +189,30 @@ public class LoanEstimateServlet extends HttpServlet {
         annualIncomeNode.put("error", annualIncomeValid ? "" : "E연소득");
         result.set("annualIncome", annualIncomeNode);
 
-        if (bank.estimatedLimit != null) {
-            result.put("estimatedLimit", bank.estimatedLimit);
+        // KB저축은행의 경우 잔여체류기간에 따라 예상한도를 다르게 설정
+        if (bank.name.equals("KB저축은행")) {
+            if (remainMonths >= 24) {
+                result.put("estimatedLimit", 2000.0);
+            } else if (remainMonths >= 18) {
+                result.put("estimatedLimit", 1500.0);
+            } else if (remainMonths >= 12) {
+                result.put("estimatedLimit", 1000.0);
+            } else {
+                result.putNull("estimatedLimit");
+            }
+            result.put("estimatedRate", 14.7);
         } else {
-            result.putNull("estimatedLimit");
-        }
-
-        if (bank.estimatedRate != null) {
-            result.put("estimatedRate", bank.estimatedRate);
-        } else {
-            result.putNull("estimatedRate");
+            if (bank.estimatedLimit != null) {
+                result.put("estimatedLimit", bank.estimatedLimit);
+            } else {
+                result.putNull("estimatedLimit");
+            }
+            
+            if (bank.estimatedRate != null) {
+                result.put("estimatedRate", bank.estimatedRate);
+            } else {
+                result.putNull("estimatedRate");
+            }
         }
 
         if (bank.rank != null) {

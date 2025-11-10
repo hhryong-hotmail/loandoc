@@ -283,7 +283,7 @@
             <h2 style="font-size:1.4rem;font-weight:800;color:#2d6cdf;text-align:center;margin:8px 0;">대출 신청 결과</h2>
             <table id="result-table" border="1" style="width:100%;border-collapse:collapse;text-align:center;">
                 <tr>
-                    <th rowspan="2">입력정보</th>
+                    <th rowspan="2">은행명</th>
                     <th>비자종류</th>
                     <th>국가</th>
                     <th>나이</th>
@@ -291,7 +291,7 @@
                     <th>재직기간</th>
                     <th rowspan="2">예상한도</th>
                     <th rowspan="2">예상금리</th>
-                    <th rowspan="2">배열순서</th>
+                    <th rowspan="2">잔여체류기간</th>
                 </tr>
                 <tr>
                     <td id="input-visa">-</td>
@@ -308,6 +308,11 @@
                         <strong>참고:</strong><br>
                         1. O는 조건 충족, X는 조건 미충족을 의미합니다.<br>
                         2. 대출 예상 한도와 예상금리는 개인별 평균신용등급으로 산정, 실제 해당은행에 신청시에는 한도와 금리는 달라질 수 있습니다.
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
                     </td>
                 </tr>
             </table>
@@ -718,10 +723,10 @@
                     tdRate.textContent = bank.estimatedRate ? bank.estimatedRate + '%' : '-';
                     tr.appendChild(tdRate);
                     
-                    // Rank
-                    const tdRank = document.createElement('td');
-                    tdRank.textContent = (idx + 1);
-                    tr.appendChild(tdRank);
+                    // 잔여체류기간 (Remaining stay period)
+                    const tdRemainMonths = document.createElement('td');
+                    tdRemainMonths.textContent = (inputData.remainMonths || 0) + '개월';
+                    tr.appendChild(tdRemainMonths);
                     
                     resultTbody.appendChild(tr);
                 });
