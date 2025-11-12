@@ -27,8 +27,8 @@
 </head>
 <body>
     <header>
-        <h1>외국인 근로자 대출 연계 포털</h1>
-        <p>게시판</p>
+        <h1>외국인 근로자 신용 대출</h1>
+        <p>LOANDOC</p>
     </header>
     <nav class="nav-columns" aria-label="주요 네비게이션">
         <div class="nav-column">
@@ -41,11 +41,10 @@
             <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
-            <a class="nav-button" href="loanAppl.html">대출신청</a>
-            <a class="nav-button" href="loanResult.html">대출결과</a>
+            <a class="nav-button" href="loanAppl.html">대출조회</a>
         </div>
         <div class="nav-column">
-            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
             <a class="nav-button" href="customer.html">고객센터</a>
         </div>
     </nav>
@@ -135,24 +134,40 @@
             const closeViewBtn = document.getElementById('closeViewBtn');
 
             let editId = null;
-            const currentUser = localStorage.getItem('loggedInUser') || '';
+            let currentUser = null;
 
-            // If user is not logged in, force redirect to login page
-            if(!currentUser){
-                // Give a short message then redirect to login.html to enforce authentication
-                try{ alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.'); }catch(e){}
-                window.location.href = 'login.html';
-            } else {
-                // Mirror login id into USER-ID for any other client code that expects it
-                try{ localStorage.setItem('USER-ID', currentUser); }catch(e){}
+            // 세션 확인 및 로그인 상태 체크
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/api/auth/session');
+                    const result = await response.json();
+                    
+                    if (result.authenticated && result.userId) {
+                        currentUser = result.userId;
+                        
+                        // If user is logged in, set author input to login id and make it read-only
+                        const authorInputEl = document.getElementById('author');
+                        if (authorInputEl) {
+                            authorInputEl.value = currentUser;
+                            authorInputEl.setAttribute('disabled', 'disabled');
+                        }
+                        
+                        // 게시판 데이터 로드
+                        await loadPosts();
+                    } else {
+                        // 로그인되지 않은 경우 로그인 페이지로 이동
+                        alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                        window.location.href = 'login.html';
+                    }
+                } catch (e) {
+                    console.error('Session check error', e);
+                    alert('세션 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    window.location.href = 'login.html';
+                }
             }
 
-            // If user is logged in, set author input to login id and make it read-only
-            const authorInputEl = document.getElementById('author');
-            if (authorInputEl) {
-                authorInputEl.value = currentUser;
-                if (currentUser) authorInputEl.setAttribute('disabled', 'disabled');
-            }
+            // 페이지 로드 시 세션 확인
+            checkLoginStatus();
 
             async function loadPosts(){
                 const q = encodeURIComponent(searchInput.value || '');
@@ -332,8 +347,7 @@
             editBtn.addEventListener('click', ()=>{ if(editId) startEdit(editId); });
             delBtn.addEventListener('click', ()=>{ if(editId) deletePost(editId); });
 
-            // initial load
-            loadPosts();
+            // initial load는 checkLoginStatus()에서 처리됨
         })();
         
         // 네비게이션 로그아웃 버튼

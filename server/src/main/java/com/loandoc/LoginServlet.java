@@ -32,8 +32,8 @@ public class LoginServlet extends HttpServlet {
         resp.setContentType("application/json; charset=utf-8");
         
         ObjectNode requestBody = mapper.readValue(req.getReader(), ObjectNode.class);
-        String userId = requestBody.has("id") ? requestBody.get("id").asText() : null;
-        String password = requestBody.has("password") ? requestBody.get("password").asText() : null;
+        String userId = requestBody.has("id") ? requestBody.get("id").asText().trim() : null;
+        String password = requestBody.has("password") ? requestBody.get("password").asText().trim() : null;
         
         ObjectNode response = mapper.createObjectNode();
         
@@ -96,9 +96,18 @@ public class LoginServlet extends HttpServlet {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
                             String hashedPassword = rs.getString("password");
+                            
+                            logger.info("=== 로그인 시도 ===");
+                            logger.info("사용자: " + userId);
+                            logger.info("입력된 비밀번호: " + password);
+                            logger.info("DB 해시: " + hashedPassword);
+                            
                             // bcrypt 해시 검증
                             at.favre.lib.crypto.bcrypt.BCrypt.Result verifyResult = 
                                 at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(password.toCharArray(), hashedPassword);
+                            
+                            logger.info("검증 결과: " + verifyResult.verified);
+                            logger.info("==================");
                             
                             if (verifyResult.verified) {
                                 authenticated = true;

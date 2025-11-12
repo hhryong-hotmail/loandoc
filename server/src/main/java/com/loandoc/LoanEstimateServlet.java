@@ -22,6 +22,9 @@ public class LoanEstimateServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        // Set request encoding to UTF-8 BEFORE reading any data
+        req.setCharacterEncoding("UTF-8");
+        
         res.setContentType("application/json");
         res.setCharacterEncoding("UTF-8");
 
@@ -36,6 +39,7 @@ public class LoanEstimateServlet extends HttpServlet {
             Integer age = requestBody.has("age") ? requestBody.get("age").asInt() : null;
             Integer workingMonths = requestBody.has("workingMonths") ? requestBody.get("workingMonths").asInt() : null;
             String visaType = requestBody.has("visaType") ? requestBody.get("visaType").asText() : null;
+            String healthInsurance = requestBody.has("healthInsurance") ? requestBody.get("healthInsurance").asText() : null;
 
             // Validate required fields
             if (loginId == null || nationality == null || remainMonths == null
@@ -57,7 +61,7 @@ public class LoanEstimateServlet extends HttpServlet {
             // Process each bank
             ArrayNode results = mapper.createArrayNode();
             for (BankConfig bank : banks) {
-                ObjectNode result = processBank(bank, nationality, remainMonths, annualIncome, age, workingMonths, normalizedVisaType);
+                ObjectNode result = processBank(bank, nationality, remainMonths, annualIncome, age, workingMonths, normalizedVisaType, healthInsurance);
                 results.add(result);
             }
 
@@ -100,26 +104,35 @@ public class LoanEstimateServlet extends HttpServlet {
     private List<BankConfig> getBankConfigurations() {
         List<BankConfig> banks = new ArrayList<>();
 
-        // KB저축은행: Vietnam 제외, 나이 19세 이상, 연소득 2000만원 이상, 잔여체류기간별 한도 차등
+        // 1. KB저축은행: 가중치 35%, 최고한도 3000만원
         banks.add(new BankConfig("KB저축은행", 1,
-                new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                new String[]{"Vietnam"}, null, 19, 12, 1, 2000, 2000.0, 14.7));
+                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5"},
+                null, new String[]{"Nepal", "Cambodia"}, 19, null, 8, 3, 1500, 
+                2000.0, 14.7, 0.35, 3000.0));
 
+        // 2. 전북은행: 가중치 36%, 최고한도 5000만원
         banks.add(new BankConfig("전북은행", null,
-                new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                null, null, 19, 1, 30, 2000, 2000.0, 12.0));
+                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5", "F-4"},
+                null, null, 19, null, 6, 6, 2000, 
+                2000.0, 13.07, 0.36, 5000.0));
 
+        // 3. OK저축은행: 가중치 37%, 최고한도 3500만원
         banks.add(new BankConfig("OK저축은행", null,
-                new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                null, null, 19, 1, 30, 2000, 2000.0, 15.0));
+                new String[]{"E-9"},
+                null, null, 18, 45, 0, 0, 0, 
+                2000.0, 15.0, 0.37, 3500.0));
 
+        // 4. 웰컴저축은행: 가중치 36%, 최고한도 3000만원
         banks.add(new BankConfig("웰컴저축은행", null,
-                new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                null, null, 19, 1, 30, 2000, 2000.0, 16.0));
+                new String[]{"E-9", "E-7"},
+                null, null, 0, null, 1, 0, 0, 
+                2000.0, 16.0, 0.36, 3000.0));
 
+        // 5. 예가람저축은행: 가중치 38%, 최고한도 4000만원
         banks.add(new BankConfig("예가람저축은행", 5,
-                new String[]{"E-7", "F-2", "E-9", "F-4", "F-5", "F-6"},
-                null, null, 20, 1, 30, 2000, null, null));
+                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5"},
+                null, null, 20, null, 0, 0, 0, 
+                null, null, 0.38, 4000.0));
 
         // Assign ranks to null-rank banks based on interest rate
         List<BankConfig> middleBanks = new ArrayList<>();
@@ -137,7 +150,7 @@ public class LoanEstimateServlet extends HttpServlet {
     }
 
     private ObjectNode processBank(BankConfig bank, String nationality, int remainMonths,
-            double annualIncome, int age, int workingMonths, String normalizedVisaType) {
+            double annualIncome, int age, int workingMonths, String normalizedVisaType, String healthInsurance) {
         ObjectNode result = mapper.createObjectNode();
         result.put("bankName", bank.name);
 
@@ -164,20 +177,35 @@ public class LoanEstimateServlet extends HttpServlet {
         // Age validation
         ObjectNode ageNode = mapper.createObjectNode();
         boolean ageValid = age >= bank.minAge;
+        if (bank.maxAge != null) {
+            ageValid = ageValid && age <= bank.maxAge;
+        }
         ageNode.put("valid", ageValid);
         ageNode.put("error", ageValid ? "" : "E나이");
         result.set("age", ageNode);
 
         // Visa expiry validation (잔여체류기간)
         ObjectNode visaExpiryNode = mapper.createObjectNode();
-        boolean visaExpiryValid = remainMonths >= bank.minVisaExpiryDays;
+        boolean visaExpiryValid = remainMonths >= bank.minVisaExpiryDays;  // >= for inclusive comparison
         visaExpiryNode.put("valid", visaExpiryValid);
         visaExpiryNode.put("error", visaExpiryValid ? "" : "E비자만료");
         result.set("visaExpiry", visaExpiryNode);
 
         // Employment date validation
         ObjectNode employmentDateNode = mapper.createObjectNode();
-        boolean employmentDateValid = workingMonths >= bank.minEmploymentDays / 30.0;
+        boolean employmentDateValid = workingMonths >= bank.minEmploymentDays;
+        
+        // 전북은행: E-9, E-7 비자만 재직기간 체크 (E-9: 1개월 이상, E-7: 1개월 이상)
+        // 그 외 비자는 재직기간 체크 안 함
+        if (bank.name.equals("전북은행")) {
+            if (normalizedVisaType.equals("E-9") || normalizedVisaType.equals("E-7")) {
+                employmentDateValid = workingMonths >= 1;
+            } else {
+                // E-9, E-7 이외의 비자는 재직기간 체크 안 함 (항상 통과)
+                employmentDateValid = true;
+            }
+        }
+        
         employmentDateNode.put("valid", employmentDateValid);
         employmentDateNode.put("error", employmentDateValid ? "" : "E재직일자");
         result.set("employmentDate", employmentDateNode);
@@ -185,34 +213,51 @@ public class LoanEstimateServlet extends HttpServlet {
         // Annual income validation
         ObjectNode annualIncomeNode = mapper.createObjectNode();
         boolean annualIncomeValid = annualIncome >= bank.minAnnualIncome;
+        
+        // 전북은행: E-9 비자만 연소득 체크 (1500만원 이상)
+        // 그 외 비자는 연소득 체크 안 함
+        if (bank.name.equals("전북은행")) {
+            if (normalizedVisaType.equals("E-9")) {
+                annualIncomeValid = annualIncome >= 1500;
+            } else {
+                // E-9 이외의 비자는 연소득 체크 안 함 (항상 통과)
+                annualIncomeValid = true;
+            }
+        }
+        
         annualIncomeNode.put("valid", annualIncomeValid);
         annualIncomeNode.put("error", annualIncomeValid ? "" : "E연소득");
         result.set("annualIncome", annualIncomeNode);
 
-        // KB저축은행의 경우 잔여체류기간에 따라 예상한도를 다르게 설정
+        // Health insurance validation for KB저축은행
         if (bank.name.equals("KB저축은행")) {
-            if (remainMonths >= 24) {
-                result.put("estimatedLimit", 2000.0);
-            } else if (remainMonths >= 18) {
-                result.put("estimatedLimit", 1500.0);
-            } else if (remainMonths >= 12) {
-                result.put("estimatedLimit", 1000.0);
-            } else {
-                result.putNull("estimatedLimit");
-            }
-            result.put("estimatedRate", 14.7);
+            ObjectNode healthInsuranceNode = mapper.createObjectNode();
+            boolean healthInsuranceValid = healthInsurance != null && !healthInsurance.equals("지역");
+            System.out.println("=== KB저축은행 의료보험 검증 ===");
+            System.out.println("healthInsurance 값: " + healthInsurance);
+            System.out.println("healthInsurance.equals(\"지역\"): " + (healthInsurance != null && healthInsurance.equals("지역")));
+            System.out.println("healthInsuranceValid: " + healthInsuranceValid);
+            healthInsuranceNode.put("valid", healthInsuranceValid);
+            healthInsuranceNode.put("error", healthInsuranceValid ? "" : "E의료보험");
+            result.set("healthInsurance", healthInsuranceNode);
+        }
+
+        // 예상한도 계산: 연소득 × 잔여체류기간 × 가중치 / 10
+        // 단, 최고한도를 초과할 수 없음
+        double calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
+        double finalLimit = Math.min(calculatedLimit, bank.maxLimit);
+        
+        // 소수점 이하 반올림
+        finalLimit = Math.round(finalLimit);
+        
+        result.put("estimatedLimit", finalLimit);
+        
+        if (bank.estimatedRate != null) {
+            // 소수점 2자리까지 반올림
+            double roundedRate = Math.round(bank.estimatedRate * 100.0) / 100.0;
+            result.put("estimatedRate", roundedRate);
         } else {
-            if (bank.estimatedLimit != null) {
-                result.put("estimatedLimit", bank.estimatedLimit);
-            } else {
-                result.putNull("estimatedLimit");
-            }
-            
-            if (bank.estimatedRate != null) {
-                result.put("estimatedRate", bank.estimatedRate);
-            } else {
-                result.putNull("estimatedRate");
-            }
+            result.putNull("estimatedRate");
         }
 
         if (bank.rank != null) {
@@ -244,27 +289,34 @@ public class LoanEstimateServlet extends HttpServlet {
         String[] excludedCountries;
         String[] requiredCountries;
         int minAge;
+        Integer maxAge;  // null means no max age limit
         int minVisaExpiryDays;
         int minEmploymentDays;
         double minAnnualIncome;
         Double estimatedLimit;
         Double estimatedRate;
+        double weightFactor;  // 가중치 (예: 0.35, 0.36, 0.37, 0.38)
+        double maxLimit;      // 최고한도
 
         BankConfig(String name, Integer rank, String[] allowedVisaTypes,
                 String[] excludedCountries, String[] requiredCountries,
-                int minAge, int minVisaExpiryDays, int minEmploymentDays,
-                double minAnnualIncome, Double estimatedLimit, Double estimatedRate) {
+                int minAge, Integer maxAge, int minVisaExpiryDays, int minEmploymentDays,
+                double minAnnualIncome, Double estimatedLimit, Double estimatedRate,
+                double weightFactor, double maxLimit) {
             this.name = name;
             this.rank = rank;
             this.allowedVisaTypes = allowedVisaTypes;
             this.excludedCountries = excludedCountries;
             this.requiredCountries = requiredCountries;
             this.minAge = minAge;
+            this.maxAge = maxAge;
             this.minVisaExpiryDays = minVisaExpiryDays;
             this.minEmploymentDays = minEmploymentDays;
             this.minAnnualIncome = minAnnualIncome;
             this.estimatedLimit = estimatedLimit;
             this.estimatedRate = estimatedRate;
+            this.weightFactor = weightFactor;
+            this.maxLimit = maxLimit;
         }
     }
 }

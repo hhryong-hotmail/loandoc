@@ -60,7 +60,7 @@ public class RegisterServlet extends HttpServlet {
             @SuppressWarnings("unchecked")
             Map<String, String> body = mapper.readValue(rawBody, Map.class);
             String id = (body.get("id") != null) ? body.get("id").trim() : null;
-            String password = (body.get("password") != null) ? body.get("password") : null;
+            String password = (body.get("password") != null) ? body.get("password").toLowerCase() : null;
 
         logger.info("Parsed ID: '" + id + "' (length: " + (id != null ? id.length() : "null") + ")");
         logger.info("Parsed password: '" + (password != null ? "[HIDDEN, length: " + password.length() + "]" : "null") + "'");
@@ -122,7 +122,7 @@ public class RegisterServlet extends HttpServlet {
                 logger.info("Using default DB user: " + dbUser);
             }
             if (dbPass == null) {
-                dbPass = "postgresql";
+                dbPass = "postgres";
                 logger.info("Using default DB password");
             }
 

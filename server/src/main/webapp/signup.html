@@ -45,8 +45,8 @@
 </head>
 <body>
     <header>
-        <h1>외국인 근로자 대출 연계 포털</h1>
-        <p>회원가입</p>
+        <h1>외국인 근로자 신용 대출</h1>
+        <p>LOANDOC</p>
     </header>
     <nav class="nav-columns" aria-label="주요 네비게이션">
         <div class="nav-column">
@@ -59,8 +59,7 @@
             <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
-            <a class="nav-button" href="loanAppl.html">대출신청</a>
-            <a class="nav-button" href="loanResult.html">대출결과</a>
+            <a class="nav-button" href="loanAppl.html">대출조회</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
@@ -74,9 +73,6 @@
             <label for="userId">아이디</label>
             <input id="userId" type="text" placeholder="아이디 입력" />
             
-            <label for="userName">이름</label>
-            <input id="userName" type="text" placeholder="이름 입력" />
-            
             <label for="password">비밀번호</label>
             <input id="password" type="password" placeholder="비밀번호" />
             
@@ -86,9 +82,7 @@
             <div id="passPolicy" class="note" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;line-height:1.4;">
                 <div id="p_len">◻ 최소 8자</div>
                 <div id="p_digit">◻ 숫자 포함</div>
-                <div id="p_upper">◻ 대문자 포함</div>
                 <div id="p_special">◻ 특수문자 포함</div>
-                <div id="p_lower">◻ 소문자 포함</div>
                 <div id="p_match">◻ 비밀번호 일치</div>
             </div>
             <div id="passMsg" class="note"></div>
@@ -114,8 +108,6 @@
             const pwdConfirmInput = document.getElementById('passwordConfirm');
             const policy = {
                 len: document.getElementById('p_len'),
-                upper: document.getElementById('p_upper'),
-                lower: document.getElementById('p_lower'),
                 digit: document.getElementById('p_digit'),
                 special: document.getElementById('p_special'),
                 match: document.getElementById('p_match')
@@ -128,14 +120,10 @@
                 const v = pwdInput.value || '';
                 const c = pwdConfirmInput.value || '';
                 const ok_len = v.length >= 8;
-                const ok_upper = /[A-Z]/.test(v);
-                const ok_lower = /[a-z]/.test(v);
                 const ok_digit = /[0-9]/.test(v);
                 const ok_special = /[^A-Za-z0-9]/.test(v);
                 const ok_match = v !== '' && v === c;
                 policy.len.textContent = (ok_len? '✓ ':'◻ ') + '최소 8자'; policy.len.style.color = ok_len ? 'green' : '#666';
-                policy.upper.textContent = (ok_upper? '✓ ':'◻ ') + '대문자 포함'; policy.upper.style.color = ok_upper ? 'green' : '#666';
-                policy.lower.textContent = (ok_lower? '✓ ':'◻ ') + '소문자 포함'; policy.lower.style.color = ok_lower ? 'green' : '#666';
                 policy.digit.textContent = (ok_digit? '✓ ':'◻ ') + '숫자 포함'; policy.digit.style.color = ok_digit ? 'green' : '#666';
                 policy.special.textContent = (ok_special? '✓ ':'◻ ') + '특수문자 포함'; policy.special.style.color = ok_special ? 'green' : '#666';
                 policy.match.textContent = (ok_match? '✓ ':'◻ ') + '비밀번호와 확인이 일치'; policy.match.style.color = ok_match ? 'green' : '#666';
@@ -144,7 +132,7 @@
                 const idRegex = /^[A-Za-z][A-Za-z0-9._-]{3,49}$/; // starts with letter, 4-50 chars, allowed . _ -
                 const idOk = idRegex.test(idVal);
                 // visually mark as inactive when policy not met, but keep button clickable so handler can show messages
-                if(ok_len && ok_upper && ok_lower && ok_digit && ok_special && ok_match && idOk){
+                if(ok_len && ok_digit && ok_special && ok_match && idOk){
                     createBtn.classList.remove('inactive');
                 } else {
                     createBtn.classList.add('inactive');
@@ -161,7 +149,6 @@
                 console.log('Create account button clicked!');
             // client-side validation first
             const id = (document.getElementById('userId').value||'').trim();
-            const name = (document.getElementById('userName').value||'').trim();
             const pwd = (pwdInput.value||'').trim();
             const pwdConfirm = (pwdConfirmInput.value||'').trim();
             const msg = document.getElementById('idMsg');
@@ -172,22 +159,17 @@
             // If either field is empty, show explicit errors and stop
             let emptyError = false;
             if(!id){ msg.textContent = '아이디를 입력하세요.'; msg.style.color = 'red'; emptyError = true; }
-            if(!name){ msg.textContent = '이름을 입력하세요.'; msg.style.color = 'red'; emptyError = true; }
             if(!pwd){ passMsg.textContent = '비밀번호를 입력하세요.'; passMsg.style.color = 'red'; emptyError = true; }
             if(emptyError) return;
 
             // Explicitly validate all password policy items on click as well
             const ok_len = pwd.length >= 8;
-            const ok_upper = /[A-Z]/.test(pwd);
-            const ok_lower = /[a-z]/.test(pwd);
             const ok_digit = /[0-9]/.test(pwd);
             const ok_special = /[^A-Za-z0-9]/.test(pwd);
             const ok_match = pwd !== '' && pwd === pwdConfirm;
 
             const missing = [];
             if(!ok_len) missing.push('최소 8자');
-            if(!ok_upper) missing.push('대문자 포함');
-            if(!ok_lower) missing.push('소문자 포함');
             if(!ok_digit) missing.push('숫자 포함');
             if(!ok_special) missing.push('특수문자 포함');
             if(!ok_match) missing.push('비밀번호와 확인 불일치');
@@ -215,7 +197,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ id: id, password: pwd, name: name })
+                    body: JSON.stringify({ id: id, password: pwd })
                 });
                 console.log('서버 응답 상태:', res.status, res.statusText);
                 if(!res.ok){
@@ -239,12 +221,29 @@
                 try{ data = await res.json(); }catch(e){}
                 if(data && data.ok === false){ msg.textContent = data.error || '등록 실패'; msg.style.color='red'; return; }
 
-                // success: show message and redirect to login
-                msg.textContent = '회원가입 완료! 로그인 페이지로 이동합니다...'; 
-                msg.style.color = 'green';
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1500);
+                // success: auto login and redirect to workerInfo.html
+                alert('회원가입이 성공하였습니다\n개인정보 입력 화면으로 이동합니다');
+                
+                // Auto login
+                try {
+                    const loginRes = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id, password: pwd })
+                    });
+                    const loginData = await loginRes.json();
+                    if (loginData.ok) {
+                        // Login successful, redirect to workerInfo.html
+                        window.location.href = 'workerInfo.html';
+                    } else {
+                        // Login failed, but signup was successful - still redirect
+                        window.location.href = 'workerInfo.html';
+                    }
+                } catch(loginErr) {
+                    console.error('Auto login error:', loginErr);
+                    // Even if auto login fails, redirect to workerInfo
+                    window.location.href = 'workerInfo.html';
+                }
             }catch(err){
                 console.log('서버 연결 실패:', err.message);
                 msg.textContent = '서버 연결 실패: ' + err.message;
@@ -253,44 +252,6 @@
             });
 
             // monthsBetween and working_months auto-calculation removed (field deleted)
-
-            document.getElementById('saveBtn').addEventListener('click', ()=>{
-            const profile = {
-                userId: (document.getElementById('userId').value||'').trim(),
-                name: (document.getElementById('name').value||'').trim(),
-                nationality: document.getElementById('nationality').value,
-                passport_number: (document.getElementById('passport').value||'').trim(),
-                birth_date: document.getElementById('birth').value,
-                entry_date: document.getElementById('entry').value,
-                gender: document.getElementById('gender').value,
-                employment_type: document.getElementById('employment').value,
-                foreigner_grade: document.getElementById('foreigner_grade').value,
-                visa_grade: document.getElementById('visa_grade').value,
-                phone_number: (document.getElementById('phone').value||'').trim(),
-                address: (document.getElementById('address').value||'').trim(),
-                home_country_address: (document.getElementById('home_address').value||'').trim(),
-                current_company: (document.getElementById('current_company').value||'').trim(),
-                company_entry_date: document.getElementById('company_entry_date').value,
-                annual_salary: parseInt(document.getElementById('annual_salary').value||0, 10),
-                commute_company: (document.getElementById('commute_company').value||'').trim(),
-                has_health_insurance: document.getElementById('has_health').value,
-                stay_expiry_date: document.getElementById('stay_expiry_date').value,
-                has_loan: document.getElementById('has_loan').value
-            };
-            const msg = document.getElementById('formMsg');
-            if(!profile.userId){ msg.textContent='먼저 계정을 생성하세요.'; msg.style.color='red'; return; }
-            if(!profile.name || !profile.passport_number){ msg.textContent='필수 항목(이름, 여권번호)을 입력하세요.'; msg.style.color='red'; return; }
-            // working_months removed; no recomputation needed
-
-            // localStorage 제거됨 - 서버로 회원가입 데이터 전송 필요
-            // TODO: fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(profile) })
-            
-            msg.textContent='회원가입 기능이 비활성화되었습니다. 서버 DB 연동 필요'; 
-            msg.style.color='orange';
-            // setTimeout(()=>{ window.location.href = 'login.html'; }, 1200);
-            });
-
-            document.getElementById('resetBtn').addEventListener('click', ()=>{ document.getElementById('profileForm').reset(); document.getElementById('formMsg').textContent=''; });
             
             // 네비게이션 로그아웃 버튼
             const navLogout = document.getElementById('nav-logout');
