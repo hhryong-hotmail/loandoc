@@ -20,7 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet(urlPatterns = { "/api/server/document-content" })
+@WebServlet(urlPatterns = { "/api/documents/content" })
 public class DocumentContentServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = Logger.getLogger(DocumentContentServlet.class.getName());
@@ -103,9 +103,11 @@ public class DocumentContentServlet extends HttpServlet {
 
         if (!dbWorked) {
             logger.info("Returning fallback document content for title: " + title);
+            out.put("ok", false);
             out.put("content", "(약관 내용을 불러올 수 없습니다 - DB 연결 실패)");
             resp.setHeader("X-Data-Source", "fallback");
         } else {
+            out.put("ok", true);
             resp.setHeader("X-Data-Source", "db");
         }
 
