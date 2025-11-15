@@ -192,16 +192,23 @@
                     <label for="nationality">2. 국가 (nationality)</label>
                     <select id="nationality">
                         <option value="">선택</option>
-                        <option>Vietnam</option>
-                        <option>Thailand</option>
-                        <option>Philippines</option>
-                        <option>Indonesia</option>
-                        <option>Malaysia</option>
-                        <option>Myanmar</option>
                         <option>Cambodia</option>
+                        <option>Bangladesh</option>
+                        <option>China</option>
+                        <option>East Timor</option>
+                        <option>India</option>
+                        <option>Indonesia</option>
+                        <option>Kazakhstan</option>
+                        <option>Kyrgyzstan</option>
                         <option>Laos</option>
-                        <option>Singapore</option>
-                        <option>Timor-Leste</option>
+                        <option>Myanmar</option>
+                        <option>Nepal</option>
+                        <option>Pakistan</option>
+                        <option>Philippines</option>
+                        <option>Sri Lanka</option>
+                        <option>Thailand</option>
+                        <option>Uzbekistan</option>
+                        <option>Vietnam</option>
                     </select>
                 </div>
 
@@ -300,16 +307,15 @@
             modal.style.display = 'block';
             
             try {
+                // '[필수]' 접두사 제거
+                const pureTitle = title.startsWith('[필수]') ? title.replace(/^\[필수\]\s*/, '') : title;
                 // 제목으로 약관 내용 조회
-                const url = `/api/documents/content?title=${encodeURIComponent(title)}`;
+                const url = `/api/documents/content?title=${encodeURIComponent(pureTitle)}`;
                 console.log('API 요청 URL:', url);
-                
                 const response = await fetch(url);
                 console.log('API 응답 상태:', response.status, response.statusText);
-                
                 const result = await response.json();
                 console.log('API 응답 데이터:', result);
-                
                 if (result.ok && result.content) {
                     console.log('약관 내용 로드 성공, 길이:', result.content.length);
                     modalContent.textContent = result.content;
@@ -455,11 +461,12 @@
                             let html = '';
                             personalInfoTerms.forEach((doc, index) => {
                                 console.log(`약관 ${index + 1}:`, doc);
+                                const displayTitle = `[필수] ${doc.title}`;
                                 html += `
-                                    <div style="margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                                        <input type="checkbox" class="individual-term-checkbox" id="term_${doc.id}" value="${doc.id}" 
-                                               style="width:18px; height:18px; cursor:pointer; flex-shrink:0;" onchange="checkIndividualTermChange()">
-                                        <span class="terms-title-link" onclick="showTermsDetail('${doc.title}')" style="cursor:pointer; color:#2563eb; text-decoration:underline;">${doc.title}</span>
+                                    <div style=\"margin-bottom:10px; display:flex; align-items:center; gap:8px;\">
+                                        <input type=\"checkbox\" class=\"individual-term-checkbox\" id=\"term_${doc.id}\" value=\"${doc.id}\" 
+                                               style=\"width:18px; height:18px; cursor:pointer; flex-shrink:0;\" onchange=\"checkIndividualTermChange()\">
+                                        <span class=\"terms-title-link\" onclick=\"showTermsDetail('${displayTitle}')\" style=\"cursor:pointer; color:#2563eb; text-decoration:underline;\">${displayTitle}</span>
                                     </div>
                                 `;
                             });

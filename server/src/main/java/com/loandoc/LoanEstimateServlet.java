@@ -170,6 +170,33 @@ public class LoanEstimateServlet extends HttpServlet {
         if (bank.requiredCountries != null && !containsString(bank.requiredCountries, nationality)) {
             countryValid = false;
         }
+
+        // 전북은행: 비자 종류에 따라 국가별 심사 기준을 별도로 적용
+        if (bank.name.equals("전북은행")) {
+            // Normalize country checks to support common English/Korean names
+            String nat = nationality == null ? "" : nationality.trim();
+            boolean isChina = nat.equalsIgnoreCase("China") || nat.equals("중국");
+            boolean isIndia = nat.equalsIgnoreCase("India") || nat.equals("인도");
+            boolean isUzbek = nat.equalsIgnoreCase("Uzbekistan") || nat.equals("우즈베키스탄") || nat.equalsIgnoreCase("Uzbekistan, Republic of");
+            boolean isKazakh = nat.equalsIgnoreCase("Kazakhstan") || nat.equals("카자흐스탄");
+
+            if ("E-9".equals(normalizedVisaType)) {
+                // E-9: 중국, 인도 -> 불가, 그외 O
+                if (isChina || isIndia) {
+                    countryValid = false;
+                } else {
+                    countryValid = true;
+                }
+            } else if ("F-4".equals(normalizedVisaType)) {
+                // F-4: 중국, 우즈베키스탄, 카자흐스탄 -> O, 그외 불가
+                if (isChina || isUzbek || isKazakh) {
+                    countryValid = true;
+                } else {
+                    countryValid = false;
+                }
+            }
+        }
+
         countryNode.put("valid", countryValid);
         countryNode.put("error", countryValid ? "" : "E국가");
         result.set("country", countryNode);

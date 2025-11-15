@@ -215,16 +215,22 @@
                 <select id="action-nationality" class="action-select" name="nationality">
                     <option value="">선택</option>
                     <option>Cambodia</option>
-                    <option>Vietnam</option>
-                    <option>Thailand</option>
-                    <option>Philippines</option>
+                    <option>Bangladesh</option>
+                    <option>China</option>
+                    <option>East Timor</option>
+                    <option>India</option>
                     <option>Indonesia</option>
-                    <option>Malaysia</option>
-                    <option>Myanmar</option>
+                    <option>Kazakhstan</option>
+                    <option>Kyrgyzstan</option>
                     <option>Laos</option>
-                    <option>Singapore</option>
-                    <option>Timor-Leste</option>
+                    <option>Myanmar</option>
                     <option>Nepal</option>
+                    <option>Pakistan</option>
+                    <option>Philippines</option>
+                    <option>Sri Lanka</option>
+                    <option>Thailand</option>
+                    <option>Uzbekistan</option>
+                    <option>Vietnam</option>
                 </select>
             </div>
 
@@ -515,16 +521,14 @@
                     chk.id = 'term-' + idx;
                     chk.setAttribute('data-select-option', it.select_option || '');
                     chk.setAttribute('data-group-name', it.group_name || '');
-                    
+
                     // Add change handler to sync with top-level checkbox
                     chk.addEventListener('change', function(e){
                         const topTermsCheckbox = document.getElementById('terms-checkbox');
                         if(!topTermsCheckbox) return;
-                        
                         // Get all term checkboxes
                         const allTermCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
                         const checkedCount = Array.from(allTermCheckboxes).filter(cb => cb.checked).length;
-                        
                         // If all are checked, check the top-level checkbox
                         // If any is unchecked, uncheck the top-level checkbox
                         if(checkedCount === allTermCheckboxes.length){
@@ -536,13 +540,19 @@
 
                     const label = document.createElement('label');
                     label.htmlFor = chk.id;
-                    const optionText = it.select_option ? '[' + it.select_option + ']' : '';
-                    label.textContent = optionText + (it.group_name || '');
-                    
+                    // [필수] 또는 [선택] prefix 붙이기
+                    let prefix = '';
+                    if(it.select_option && it.select_option.includes('필수')) {
+                        prefix = '[필수] ';
+                    } else if(it.select_option && it.select_option.includes('선택')) {
+                        prefix = '[선택] ';
+                    }
+                    label.textContent = prefix + (it.group_name || '');
+
                     // Add click handler to label to show details
                     label.addEventListener('click', function(e){
                         e.preventDefault();
-                        // Extract group_name without [필수] or [선택] prefix
+                        // Extract group_name without prefix
                         const groupName = it.group_name || '';
                         showTermDetails(groupName);
                     });
@@ -1013,7 +1023,7 @@
             
             try{
                 // Fetch content from server (absolute path)
-                const res = await fetch('/api/server/document-content?title=' + encodeURIComponent(title));
+                const res = await fetch('/api/documents/content?title=' + encodeURIComponent(title));
                 if(!res.ok) throw new Error('네트워크 오류');
                 const data = await res.json();
                 
