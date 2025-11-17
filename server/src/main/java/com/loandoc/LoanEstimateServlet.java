@@ -13,6 +13,13 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @WebServlet(urlPatterns = {"/api/server/loan-estimate"})
 public class LoanEstimateServlet extends HttpServlet {
@@ -31,6 +38,19 @@ public class LoanEstimateServlet extends HttpServlet {
         try {
             // Parse request body
             ObjectNode requestBody = mapper.readValue(req.getReader(), ObjectNode.class);
+
+            // Short debug: write received request summary to a debug log file so we can inspect server-side failures
+            try {
+                String visaTypeDbg = requestBody.has("visaType") ? requestBody.get("visaType").asText() : "";
+                String natDbg = requestBody.has("nationality") ? requestBody.get("nationality").asText() : "";
+                String dbg = String.format("%s - REQ loginId=%s visaType=%s nationality=%s\n",
+                        java.time.ZonedDateTime.now().toString(),
+                        (requestBody.has("loginId") ? requestBody.get("loginId").asText() : ""),
+                        visaTypeDbg, natDbg);
+                writeDebugLog(dbg, null);
+            } catch (Throwable _t) {
+                // avoid failing request if debug logging fails
+            }
 
             String loginId = requestBody.has("loginId") ? requestBody.get("loginId").asText() : null;
             String nationality = requestBody.has("nationality") ? requestBody.get("nationality").asText() : null;
@@ -84,7 +104,16 @@ public class LoanEstimateServlet extends HttpServlet {
             res.getWriter().write(mapper.writeValueAsString(response));
 
         } catch (Exception e) {
+            // print to console and also write full stacktrace to debug file
             e.printStackTrace();
+            try {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                writeDebugLog("EXCEPTION during doPost:\n", sw.toString());
+            } catch (Throwable _t) {
+                // ignore
+            }
             res.setStatus(500);
             ObjectNode error = mapper.createObjectNode();
             error.put("ok", false);
@@ -93,45 +122,86 @@ public class LoanEstimateServlet extends HttpServlet {
         }
     }
 
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        // If user opens the API URL in a browser (GET), redirect to the application page
+        // to avoid showing a default 405 page. This keeps the API POST-only while
+        // giving a friendly landing for manual browser visits.
+        try {
+            String context = req.getContextPath();
+            // Redirect to the loan application page in the same webapp
+            res.sendRedirect(context + "/loanAppl.html");
+        } catch (Exception e) {
+            // As a fallback, return a small JSON explaining usage
+            res.setContentType("application/json");
+            res.setCharacterEncoding("UTF-8");
+            res.setStatus(405);
+            ObjectNode err = mapper.createObjectNode();
+            err.put("ok", false);
+            err.put("error", "This endpoint accepts POST requests with JSON body. Use POST /api/server/loan-estimate");
+            res.getWriter().write(mapper.writeValueAsString(err));
+        }
+    }
+
+    private void writeDebugLog(String header, String stack) {
+        try {
+            Path p = Paths.get("D:/LoanDoc/server/deploy_debug.log");
+            File parent = p.toFile().getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            try (FileWriter fw = new FileWriter(p.toFile(), true); PrintWriter pw = new PrintWriter(fw)) {
+                pw.println(header);
+                if (stack != null) {
+                    pw.println(stack);
+                }
+                pw.flush();
+            }
+        } catch (Throwable t) {
+            // swallow to avoid affecting request handling
+        }
+    }
+
     private String normalizeVisaType(String visa) {
         if (visa == null) {
             return "";
         }
+        // remove hyphens/spaces and normalize to compact form like E9, E7, F4, etc.
         String cleaned = visa.replaceAll("[-\\s]", "").toUpperCase();
-        return cleaned.replaceAll("([A-Z])(\\d+)", "$1-$2");
+        return cleaned;
     }
 
     private List<BankConfig> getBankConfigurations() {
         List<BankConfig> banks = new ArrayList<>();
-
         // 1. KB저축은행: 가중치 35%, 최고한도 3000만원
         banks.add(new BankConfig("KB저축은행", 1,
-                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5"},
-                null, new String[]{"Nepal", "Cambodia"}, 19, null, 8, 3, 1500, 
+            new String[]{"E7", "E9", "F2", "F6", "F5"},
+                null, new String[]{"Nepal", "Cambodia"}, 19, null, 8, 3, 1500,
                 2000.0, 14.7, 0.35, 3000.0));
 
         // 2. 전북은행: 가중치 36%, 최고한도 5000만원
+        // 전북은행은 E9 비자에 대해 국가별 심사기준을 별도로 적용합니다.
         banks.add(new BankConfig("전북은행", null,
-                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5", "F-4"},
-                null, null, 19, null, 6, 6, 2000, 
+            new String[]{"E7", "E9", "F2", "F6", "F5", "F4"},
+                null, null, 19, null, 6, 6, 2000,
                 2000.0, 13.07, 0.36, 5000.0));
 
         // 3. OK저축은행: 가중치 37%, 최고한도 3500만원
         banks.add(new BankConfig("OK저축은행", null,
-                new String[]{"E-9"},
-                null, null, 18, 45, 0, 0, 0, 
+            new String[]{"E9"},
+                null, null, 18, 45, 0, 0, 0,
                 2000.0, 15.0, 0.37, 3500.0));
 
         // 4. 웰컴저축은행: 가중치 36%, 최고한도 3000만원
         banks.add(new BankConfig("웰컴저축은행", null,
-                new String[]{"E-9", "E-7"},
-                null, null, 0, null, 1, 0, 0, 
+            new String[]{"E9", "E7"},
+                null, null, 0, null, 1, 0, 0,
                 2000.0, 16.0, 0.36, 3000.0));
 
         // 5. 예가람저축은행: 가중치 38%, 최고한도 4000만원
         banks.add(new BankConfig("예가람저축은행", 5,
-                new String[]{"E-7", "E-9", "F-2", "F-6", "F-5"},
-                null, null, 20, null, 0, 0, 0, 
+            new String[]{"E7", "E9", "F2", "F6", "F5"},
+                null, null, 20, null, 0, 0, 0,
                 null, null, 0.38, 4000.0));
 
         // Assign ranks to null-rank banks based on interest rate
@@ -163,43 +233,153 @@ public class LoanEstimateServlet extends HttpServlet {
 
         // Country validation
         ObjectNode countryNode = mapper.createObjectNode();
-        boolean countryValid = true;
+        // normalize nationality for server-side checks
+        String natLower = nationality == null ? "" : nationality.trim().toLowerCase();
+        boolean isChina = natLower.contains("china") || natLower.contains("중국");
+        boolean isIndia = natLower.contains("india") || natLower.contains("인도");
+        boolean isUzbek = natLower.contains("uzbek") || natLower.contains("우즈베크");
+        boolean isKazakh = natLower.contains("kazakh") || natLower.contains("카자흐");
+        boolean isVietnam = natLower.contains("vietnam") || natLower.contains("베트남");
+        boolean isPhilippines = natLower.contains("philippine") || natLower.contains("필리핀");
+        boolean isCambodia = natLower.contains("cambodia") || natLower.contains("캄보디아");
+        boolean isNepal = natLower.contains("nepal") || natLower.contains("네팔");
+        boolean isIndonesia = natLower.contains("indonesia") || natLower.contains("인도네시아");
+        // Additional countries (F4 blacklist additions)
+        boolean isMyanmar = natLower.contains("myanmar") || natLower.contains("미얀마") || natLower.contains("burma");
+        boolean isBangladesh = natLower.contains("bangladesh") || natLower.contains("방글라데시");
+        boolean isThailand = natLower.contains("thailand") || natLower.contains("태국");
+        boolean isSriLanka = natLower.contains("sri lanka") || natLower.contains("srilanka") || natLower.contains("스리랑카");
+        // E4 blacklist countries (Pakistan, Kyrgyzstan, Laos, East Timor)
+        boolean isPakistan = natLower.contains("pakistan") || natLower.contains("파키스탄");
+        boolean isKyrgyz = natLower.contains("kyrgyz") || natLower.contains("키르기스") || natLower.contains("kyrgyzstan") || natLower.contains("키르기스스탄");
+        boolean isLaos = natLower.contains("laos") || natLower.contains("라오스");
+        boolean isTimor = natLower.contains("timor") || natLower.contains("east timor") || natLower.contains("동티모르") || natLower.contains("티모르");
+        // F4 special checks
+        boolean isF4 = "F4".equals(normalizedVisaType);
+        // F2/F5/F6 checks (for India rule)
+        boolean isF2 = "F2".equals(normalizedVisaType);
+        boolean isF5 = "F5".equals(normalizedVisaType);
+        boolean isF6 = "F6".equals(normalizedVisaType);
+
+        // initial computed country validity based on config lists
+        boolean countryValidComputed = true;
         if (bank.excludedCountries != null && containsString(bank.excludedCountries, nationality)) {
-            countryValid = false;
+            countryValidComputed = false;
         }
         if (bank.requiredCountries != null && !containsString(bank.requiredCountries, nationality)) {
-            countryValid = false;
+            countryValidComputed = false;
         }
 
-        // 전북은행: 비자 종류에 따라 국가별 심사 기준을 별도로 적용
-        if (bank.name.equals("전북은행")) {
-            // Normalize country checks to support common English/Korean names
-            String nat = nationality == null ? "" : nationality.trim();
-            boolean isChina = nat.equalsIgnoreCase("China") || nat.equals("중국");
-            boolean isIndia = nat.equalsIgnoreCase("India") || nat.equals("인도");
-            boolean isUzbek = nat.equalsIgnoreCase("Uzbekistan") || nat.equals("우즈베키스탄") || nat.equalsIgnoreCase("Uzbekistan, Republic of");
-            boolean isKazakh = nat.equalsIgnoreCase("Kazakhstan") || nat.equals("카자흐스탄");
-
-            if ("E-9".equals(normalizedVisaType)) {
-                // E-9: 중국, 인도 -> 불가, 그외 O
-                if (isChina || isIndia) {
-                    countryValid = false;
-                } else {
-                    countryValid = true;
+        // Apply bank-specific override rules
+        boolean countryValid = countryValidComputed;
+        String countryError = countryValid ? "" : "E국가";
+        if (bank.name != null && bank.name.equals("전북은행")) {
+            // 전북은행: E-9 + China/India -> 불가
+            if ("E9".equals(normalizedVisaType) && (isChina || isIndia)) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
                 }
-            } else if ("F-4".equals(normalizedVisaType)) {
-                // F-4: 중국, 우즈베키스탄, 카자흐스탄 -> O, 그외 불가
-                if (isChina || isUzbek || isKazakh) {
-                    countryValid = true;
-                } else {
-                    countryValid = false;
+            }
+            // 전북은행: E-4 + 특정 국가들 -> 불가
+            if ("E4".equals(normalizedVisaType) && (isPakistan || isKyrgyz || isLaos || isTimor)) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_E4: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
+                }
+            }
+            // 전북은행: F-4 + India -> 불가 (요청사항)
+            if (isF4 && isIndia) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_F4: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
+                }
+            }
+            // 전북은행: F-4 + Vietnam/Philippines -> 불가 (추가 요청)
+            if (isF4 && (isVietnam || isPhilippines)) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_F4_VN_PH: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
+                }
+            }
+            // 전북은행: F-4 + Cambodia/Nepal/Indonesia -> 불가 (추가 요청)
+            if (isF4 && (isCambodia || isNepal || isIndonesia)) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_F4_CNI: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
+                }
+            }
+            // 전북은행: F-4 + (Myanmar, Bangladesh, Thailand, Sri Lanka, Pakistan, Kyrgyzstan, Laos, East Timor) -> 불가 (요청)
+            if (isF4 && (isMyanmar || isBangladesh || isThailand || isSriLanka || isPakistan || isKyrgyz || isLaos || isTimor)) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_F4_EXT: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
+                }
+            }
+            // 전북은행: F2/F5/F6 + India -> 불가 (요청)
+            if ((isF2 || isF5 || isF6) && isIndia) {
+                countryValid = false;
+                countryError = "E국가비자";
+                try {
+                    writeDebugLog("JEONBUK_OVERRIDE_F_INDIA: bank=" + bank.name + " nat=" + natLower + " visa=" + normalizedVisaType, null);
+                } catch (Throwable _t) {
+                    // ignore
                 }
             }
         }
 
         countryNode.put("valid", countryValid);
-        countryNode.put("error", countryValid ? "" : "E국가");
+        countryNode.put("error", countryError);
         result.set("country", countryNode);
+
+        // Expose country debug flags so frontend can display server logic details
+        try {
+            ObjectNode countryDebug = mapper.createObjectNode();
+            countryDebug.put("natLower", natLower);
+            countryDebug.put("countryValidComputed", countryValidComputed);
+            countryDebug.put("isChina", isChina);
+            countryDebug.put("isIndia", isIndia);
+            countryDebug.put("isUzbek", isUzbek);
+            countryDebug.put("isKazakh", isKazakh);
+            countryDebug.put("isVietnam", isVietnam);
+            countryDebug.put("isPhilippines", isPhilippines);
+            countryDebug.put("isCambodia", isCambodia);
+            countryDebug.put("isNepal", isNepal);
+            countryDebug.put("isIndonesia", isIndonesia);
+            countryDebug.put("isMyanmar", isMyanmar);
+            countryDebug.put("isBangladesh", isBangladesh);
+            countryDebug.put("isThailand", isThailand);
+            countryDebug.put("isSriLanka", isSriLanka);
+            countryDebug.put("isPakistan", isPakistan);
+            countryDebug.put("isKyrgyz", isKyrgyz);
+            countryDebug.put("isLaos", isLaos);
+            countryDebug.put("isTimor", isTimor);
+            countryDebug.put("isF4", isF4);
+            countryDebug.put("isF2", isF2);
+            countryDebug.put("isF5", isF5);
+            countryDebug.put("isF6", isF6);
+            result.set("countryDebug", countryDebug);
+        } catch (Exception _e) {
+            // do not fail the request if debug info cannot be attached
+        }
 
         // Age validation
         ObjectNode ageNode = mapper.createObjectNode();
@@ -225,12 +405,12 @@ public class LoanEstimateServlet extends HttpServlet {
         // 전북은행: E-9, E-7 비자만 재직기간 체크 (E-9: 1개월 이상, E-7: 1개월 이상)
         // 그 외 비자는 재직기간 체크 안 함
         if (bank.name.equals("전북은행")) {
-            if (normalizedVisaType.equals("E-9") || normalizedVisaType.equals("E-7")) {
+            if (normalizedVisaType.equals("E9") || normalizedVisaType.equals("E7")) {
                 employmentDateValid = workingMonths >= 1;
             } else {
                 // E-9, E-7 이외의 비자는 재직기간 체크 안 함 (항상 통과)
                 employmentDateValid = true;
-            }
+            }            
         }
         
         employmentDateNode.put("valid", employmentDateValid);
@@ -244,7 +424,7 @@ public class LoanEstimateServlet extends HttpServlet {
         // 전북은행: E-9 비자만 연소득 체크 (1500만원 이상)
         // 그 외 비자는 연소득 체크 안 함
         if (bank.name.equals("전북은행")) {
-            if (normalizedVisaType.equals("E-9")) {
+            if (normalizedVisaType.equals("E9")) {
                 annualIncomeValid = annualIncome >= 1500;
             } else {
                 // E-9 이외의 비자는 연소득 체크 안 함 (항상 통과)
