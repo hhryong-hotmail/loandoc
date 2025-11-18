@@ -921,7 +921,28 @@
                                 };
 
                                 // 디버그: 규칙 매칭 여부를 콘솔에 남겨 문제를 진단하기 쉽도록 함
-                                const blocked = isJeonbukBlockedByRule(nat, visa);
+                                const blockedInitial = isJeonbukBlockedByRule(nat, visa);
+                                let blocked = blockedInitial;
+
+                                // 예외: 전북은행에서 F4 + China 는 허용되어야 함
+                                try {
+                                    const natNorm = normalizeCountryName(nat);
+                                    const visaNorm = String(visa || '').trim().toUpperCase().replace(/[-\s]/g, '');
+                                    const isF4 = visaNorm === 'F4' || visaNorm === 'F-4' || /^F4/.test(visaNorm);
+                                    if (isF4 && natNorm === 'china') {
+                                        // 강제 허용
+                                        blocked = false;
+                                        console.log('[Jeonbuk override] Allowing F4 + China -> blocked forced false');
+                                    }
+                                } catch (exOverride) {
+                                    console.debug('Jeonbuk override check error', exOverride);
+                                }
+                                try {
+                                    console.log('[Jeonbuk check]', 'bankName=', bank.bankName, 'visa=', String(visa).trim(), 'nationality=', String(nat).trim(), 'blockedInitial=', blockedInitial, 'blockedAfterOverride=', blocked);
+                                } catch (lgErr) {
+                                    // 로그 중 에러가 나더라도 흐름은 계속되도록 함
+                                    console.debug('Jeonbuk 로그 에러', lgErr);
+                                }
                                 try {
                                     console.log('[Jeonbuk check]', 'bankName=', bank.bankName, 'visa=', String(visa).trim(), 'nationality=', String(nat).trim(), 'blocked=', blocked);
                                 } catch (lgErr) {
@@ -939,6 +960,17 @@
                                     bank._jeonbukBlocked = true;
                                 } else {
                                     bank._jeonbukBlocked = false;
+                                    // 만약 서버가 country.valid=false로 내려줬다면, 클라이언트 예외에 의해 허용 처리
+                                    try {
+                                        if (bank.country && bank.country.valid === false) {
+                                            bank.country.valid = true;
+                                            // 이전 에러 메시지는 보존하지 않으려면 비우거나 주석 처리
+                                            bank.country.error = '';
+                                            console.log('[Jeonbuk client override] Cleared server country.error for', bank.bankName);
+                                        }
+                                    } catch (clrErr) {
+                                        console.debug('Error clearing server country.error after override', clrErr);
+                                    }
                                 }
                             } catch (e) {
                                 console.error('전북은행 규칙 적용/메시지 작성 중 오류', e);
@@ -1026,6 +1058,20 @@
                     // Bank name
                     const tdBank = document.createElement('td');
                     tdBank.textContent = bank.bankName || '-';
+                    // If Jeonbuk rule matched or server provided a country.error, show a visible red note under the bank name
+                    try {
+                        const noteText = (bank._jeonbukBlocked ? (bank.country && bank.country.error) : (bank.country && bank.country.error)) || '';
+                        if (noteText) {
+                            const note = document.createElement('div');
+                            note.style.fontSize = '0.8rem';
+                            note.style.color = 'red';
+                            note.style.marginTop = '4px';
+                            note.textContent = noteText;
+                            tdBank.appendChild(note);
+                        }
+                    } catch (noteErr) {
+                        console.debug('Bank note render error', noteErr);
+                    }
                     tr.appendChild(tdBank);
                     
                     // Visa validation
