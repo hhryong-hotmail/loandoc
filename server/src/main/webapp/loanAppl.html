@@ -186,6 +186,15 @@
         </div>
     </nav>
     <hr />
+    <style>
+        /* Reduce vertical gaps between nav and input area */
+        header { margin-bottom: 4px; }
+        nav.nav-columns { margin-bottom: 4px; }
+        /* Make hr slimmer and reduce its vertical margins */
+        hr { margin: 6px 0; border: none; border-top: 1px solid #e6e9ef; }
+        main { margin-top: 0; padding-top: 0; }
+        .button-panel { margin-top: 4px; padding-top: 0; }
+    </style>
     <main>
         <!-- All action buttons vertically aligned in a single column -->
         <div class="button-panel" style="display: flex; flex-direction: column; padding-left: 6.25%; margin-left: 0px;">
@@ -324,6 +333,29 @@
                 /* Ensure action buttons and nav buttons do not change mouse cursor */
                 .action-btn, .nav-button {
                     cursor: default !important;
+                }
+
+                /* Reduce vertical gaps between input controls (login, 국가, 잔여체류기간, 연소득, 의료보험 등) */
+                .button-panel {
+                    gap: 6px !important; /* smaller gap between stacked items */
+                    padding-left: 6.25%;
+                    margin-top: 4px !important;
+                }
+
+                .button-panel .action-item {
+                    margin-bottom: 4px !important; /* reduce space below each item */
+                    padding-top: 2px;
+                    padding-bottom: 2px;
+                }
+
+                /* Reduce spacing inside action buttons/selects */
+                .action-btn {
+                    margin: 0 6px 0 0 !important;
+                    padding: 6px 8px !important;
+                }
+                .action-select {
+                    margin: 0 !important;
+                    padding: 6px 8px !important;
                 }
             </style>
             <table id="result-table" border="1" style="width:100%;border-collapse:collapse;text-align:center;">
