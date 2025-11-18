@@ -1059,8 +1059,17 @@
                     const tdBank = document.createElement('td');
                     tdBank.textContent = bank.bankName || '-';
                     // If Jeonbuk rule matched or server provided a country.error, show a visible red note under the bank name
-                    try {
-                        const noteText = (bank._jeonbukBlocked ? (bank.country && bank.country.error) : (bank.country && bank.country.error)) || '';
+                        try {
+                        // 원본 메시지 취득
+                        let noteText = ((bank._jeonbukBlocked ? (bank.country && bank.country.error) : (bank.country && bank.country.error)) || '').trim();
+                        // 'E국가' 또는 'E국가비자' 전체 단독 메시지는 삭제
+                        if (noteText === 'E국가' || noteText === 'E국가비자') {
+                            noteText = '';
+                        } else {
+                            // 내부에 포함되어 있으면 해당 토큰만 제거 (여타 메시지는 유지)
+                            noteText = noteText.replace(/E국가비자/g, '').replace(/E국가/g, '').replace(/\s{2,}/g, ' ').trim();
+                        }
+
                         if (noteText) {
                             const note = document.createElement('div');
                             note.style.fontSize = '0.8rem';
