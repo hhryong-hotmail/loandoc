@@ -300,6 +300,28 @@
                     </label>
                 </div>
             </div>
+            <style>
+                /* Result table styling: distinguish header/title rows and data rows */
+                /* Header rows (those above tbody) */
+                #result-table > tr,
+                #result-table > thead > tr {
+                    background: #e9f2ff;
+                    color: #123f90;
+                    font-weight: 800;
+                }
+                /* Data rows: alternate subtle backgrounds for readability */
+                #result-table tbody tr:nth-child(even) {
+                    background: #fafafa;
+                }
+                #result-table tbody tr:nth-child(odd) {
+                    background: #ffffff;
+                }
+                /* Cell padding and lighter borders */
+                #result-table td, #result-table th {
+                    padding: 8px 6px;
+                    border: 1px solid #e6e9ef;
+                }
+            </style>
             <table id="result-table" border="1" style="width:100%;border-collapse:collapse;text-align:center;">
                 <tr>
                     <th rowspan="2">순위</th>
