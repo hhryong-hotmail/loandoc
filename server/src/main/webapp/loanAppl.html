@@ -1087,8 +1087,14 @@
                         // 'E국가' 또는 'E국가비자' 전체 단독 메시지는 삭제
                         if (noteText === 'E국가' || noteText === 'E국가비자') {
                             noteText = '';
+                        }
+
+                        // 메시지에 '대출불가' 텍스트가 포함된 경우 (예: "전북은행 - F4 - Cambodia : 대출불가")
+                        // 사용자 요청에 따라 해당 전체 메시지는 표시하지 않음
+                        if (noteText && noteText.indexOf('대출불가') !== -1) {
+                            noteText = '';
                         } else {
-                            // 내부에 포함되어 있으면 해당 토큰만 제거 (여타 메시지는 유지)
+                            // 내부에 포함된 E국가 토큰만 제거하고 나머지 메시지는 유지
                             noteText = noteText.replace(/E국가비자/g, '').replace(/E국가/g, '').replace(/\s{2,}/g, ' ').trim();
                         }
 
