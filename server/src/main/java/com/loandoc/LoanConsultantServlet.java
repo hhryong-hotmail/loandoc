@@ -253,18 +253,19 @@ public class LoanConsultantServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            // Resolve name and nationality from foreign_worker_master by user_id (reqLogin)
-            if (reqLogin != null && (name == null || name.trim().isEmpty() || nationality == null || nationality.trim().isEmpty())) {
+            // Resolve name, nationality and phone_number from foreign_worker_master by user_id (reqLogin)
+            if (reqLogin != null && ((name == null || name.trim().isEmpty()) || (nationality == null || nationality.trim().isEmpty()) || (phone == null || phone.trim().isEmpty()))) {
                 PreparedStatement fwStmt = null;
                 ResultSet fwRs = null;
                 try {
-                    String fwSql = "SELECT name, nationality FROM foreign_worker_master WHERE user_id = ?";
+                    String fwSql = "SELECT name, nationality, phone_number FROM foreign_worker_master WHERE user_id = ?";
                     fwStmt = conn.prepareStatement(fwSql);
                     fwStmt.setString(1, reqLogin);
                     fwRs = fwStmt.executeQuery();
                     if (fwRs.next()) {
                         if (name == null || name.trim().isEmpty()) name = fwRs.getString("name");
                         if (nationality == null || nationality.trim().isEmpty()) nationality = fwRs.getString("nationality");
+                        if (phone == null || phone.trim().isEmpty()) phone = fwRs.getString("phone_number");
                     }
                 } catch (SQLException ex) {
                     // ignore and continue with provided values
