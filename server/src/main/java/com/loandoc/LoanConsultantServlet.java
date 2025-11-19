@@ -253,6 +253,26 @@ public class LoanConsultantServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            // Resolve name and nationality from foreign_worker_master by user_id (reqLogin)
+            if (reqLogin != null && (name == null || name.trim().isEmpty() || nationality == null || nationality.trim().isEmpty())) {
+                PreparedStatement fwStmt = null;
+                ResultSet fwRs = null;
+                try {
+                    String fwSql = "SELECT name, nationality FROM foreign_worker_master WHERE user_id = ?";
+                    fwStmt = conn.prepareStatement(fwSql);
+                    fwStmt.setString(1, reqLogin);
+                    fwRs = fwStmt.executeQuery();
+                    if (fwRs.next()) {
+                        if (name == null || name.trim().isEmpty()) name = fwRs.getString("name");
+                        if (nationality == null || nationality.trim().isEmpty()) nationality = fwRs.getString("nationality");
+                    }
+                } catch (SQLException ex) {
+                    // ignore and continue with provided values
+                } finally {
+                    if (fwRs != null) try { fwRs.close(); } catch (SQLException ignore) {}
+                    if (fwStmt != null) try { fwStmt.close(); } catch (SQLException ignore) {}
+                }
+            }
             String sql = "INSERT INTO loan_consultant (req_login, counseler, name, phone_number, nationality, req_type, title, req_content) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING req_id";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, reqLogin);

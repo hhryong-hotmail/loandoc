@@ -86,10 +86,9 @@
         <!-- Form modal (simple) -->
         <div id="formPanel" style="display:none;margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.06)">
             <h3 id="formTitle">상담요청</h3>
-            <!-- Single row: author(20ch) / password(20ch) / type(10ch) / title(flex) -->
-            <div style="display:grid;grid-template-columns:20ch 20ch 10ch 1fr;gap:8px;align-items:center">
+            <!-- Single row: author(20ch) / type(10ch) / title(flex) -->
+            <div style="display:grid;grid-template-columns:20ch 10ch 1fr;gap:8px;align-items:center">
                 <input id="author" placeholder="작성자 (로그인 ID)" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                <input id="password" placeholder="비밀번호 (옵션)" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                 <select id="msg_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
                     <option value="질문" selected>질문</option>
                     <option value="답변">답변</option>
@@ -304,7 +303,6 @@
                     const row = j.row;
                     // author is locked to logged-in user; keep value from currentUser
                     if (!currentUser) document.getElementById('author').value = row.req_login || '';
-                    document.getElementById('password').value = '';
                     document.getElementById('title').value = row.title || '';
                     document.getElementById('msg_type').value = row.req_type || '질문';
                     document.getElementById('content').value = row.req_content || '';
@@ -330,19 +328,7 @@
                     if(!j.ok) throw new Error(j.error||'failed');
                     const row = j.row;
 
-                    // If the request has a password field (if implemented), prompt the user and verify before showing
-                    if(row && row.password){
-                        let attempts = 0;
-                        let ok = false;
-                        while(attempts < 3){
-                            const input = prompt('비밀번호가 설정된 글입니다. 비밀번호를 입력하세요:');
-                            if(input === null){ return; }
-                            if(input === String(row.password)){ ok = true; break; }
-                            attempts++;
-                            alert('비밀번호가 일치하지 않습니다. 남은 시도: ' + (3 - attempts));
-                        }
-                        if(!ok){ alert('비밀번호 확인에 실패했습니다.'); return; }
-                    }
+                    // No per-post password; access control handled by server/session when editing/deleting
 
                     document.getElementById('viewTitle').textContent = row.title;
                     document.getElementById('viewAuthor').textContent = row.req_login || '';
@@ -362,13 +348,11 @@
             async function savePost(){
                 const data = {
                     req_login: document.getElementById('author').value,
-                    password: document.getElementById('password').value,
                     title: document.getElementById('title').value,
                     req_type: document.getElementById('msg_type').value,
                     req_content: document.getElementById('content').value,
-                    name: document.getElementById('name').value,
-                    phone_number: document.getElementById('phone_number').value,
-                    nationality: document.getElementById('nationality').value
+                    // name and nationality will be resolved server-side from foreign_worker_master by req_login
+                    phone_number: document.getElementById('phone_number').value
                 };
                 try{
                     let res;
@@ -413,7 +397,7 @@
 
             // events
             searchBtn.addEventListener('click', ()=>loadPosts());
-            newBtn.addEventListener('click', ()=>{
+            newBtn.addEventListener('click', async ()=>{
                 editId = null;
                 // Prefill author with logged-in user; keep the field disabled when logged-in
                 const authorEl = document.getElementById('author');
@@ -421,13 +405,33 @@
                     authorEl.value = currentUser || '';
                     if(currentUser) authorEl.setAttribute('disabled','disabled'); else authorEl.removeAttribute('disabled');
                 }
-                document.getElementById('password').value = '';
                 document.getElementById('title').value = '';
                 document.getElementById('msg_type').value = '질문';
                 document.getElementById('content').value = '';
-                document.getElementById('name').value = '';
                 document.getElementById('phone_number').value = '';
-                document.getElementById('nationality').value = '';
+                // Try to prefill name and nationality from foreign_worker_master
+                try{
+                    const resp = await fetch('/server/api/foreign_worker_master', { credentials: 'same-origin' });
+                    if(resp.ok){
+                        const j = await resp.json();
+                        if(j && j.ok && j.found && j.data){
+                            const nm = j.data.name || '';
+                            const nat = j.data.nationality || '';
+                            const nameEl = document.getElementById('name');
+                            const natEl = document.getElementById('nationality');
+                            if(nameEl){ nameEl.value = nm; nameEl.setAttribute('disabled','disabled'); }
+                            if(natEl){ natEl.value = nat; natEl.setAttribute('disabled','disabled'); }
+                        } else {
+                            // clear and enable if not found
+                            const nameEl = document.getElementById('name');
+                            const natEl = document.getElementById('nationality');
+                            if(nameEl){ nameEl.value = ''; nameEl.removeAttribute('disabled'); }
+                            if(natEl){ natEl.value = ''; natEl.removeAttribute('disabled'); }
+                        }
+                    }
+                }catch(e){
+                    console.warn('Failed to prefill foreign_worker_master', e);
+                }
                 formPanel.style.display = 'block';
                 viewPanel.style.display = 'none';
                 document.getElementById('formTitle').textContent = '상담요청';
@@ -451,7 +455,7 @@
                     const result = await response.json();
                     if (result.ok) {
                         alert('로그아웃되었습니다');
-                        window.location.href = 'login.html';
+                        window.location.href = '/server/login.html';
                     }
                 } catch (err) {
                     console.error('Logout error', err);
