@@ -153,7 +153,7 @@ public class LoanConsultantServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            StringBuilder sql = new StringBuilder("SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, created_at FROM loan_consultant WHERE 1=1");
+            StringBuilder sql = new StringBuilder("SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, updated_at FROM loan_consultant WHERE 1=1");
             List<String> params = new ArrayList<>();
 
             if (reqType != null && !reqType.trim().isEmpty() && !reqType.equals("전체")) {
@@ -167,7 +167,7 @@ public class LoanConsultantServlet extends HttpServlet {
                 params.add(p); params.add(p); params.add(p); params.add(p);
             }
 
-            sql.append(" ORDER BY created_at DESC");
+            sql.append(" ORDER BY updated_at DESC");
 
             stmt = conn.prepareStatement(sql.toString());
             for (int i = 0; i < params.size(); i++) stmt.setString(i+1, params.get(i));
@@ -185,7 +185,7 @@ public class LoanConsultantServlet extends HttpServlet {
                 row.put("req_type", rs.getString("req_type"));
                 row.put("title", rs.getString("title"));
                 row.put("req_content", rs.getString("req_content"));
-                row.put("created_at", rs.getTimestamp("created_at").toString());
+                row.put("updated_at", rs.getTimestamp("updated_at").toString());
                 rows.add(row);
             }
 
@@ -210,7 +210,7 @@ public class LoanConsultantServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, created_at FROM loan_consultant WHERE req_id = ?";
+            String sql = "SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, updated_at FROM loan_consultant WHERE req_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, id);
             rs = stmt.executeQuery();
@@ -226,7 +226,7 @@ public class LoanConsultantServlet extends HttpServlet {
                 row.put("req_type", rs.getString("req_type"));
                 row.put("title", rs.getString("title"));
                 row.put("req_content", rs.getString("req_content"));
-                row.put("created_at", rs.getTimestamp("created_at").toString());
+                row.put("updated_at", rs.getTimestamp("updated_at").toString());
 
                 ObjectNode response = mapper.createObjectNode();
                 response.put("ok", true);

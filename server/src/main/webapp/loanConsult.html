@@ -272,7 +272,7 @@
                     const allowEdit = currentUser && String(currentUser) === String(r.req_login);
                     tr.innerHTML = `
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_id}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_at)}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.updated_at)}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.req_login || '')}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_type || ''}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.req_id}">${escapeHtml(r.title || '')}</a></td>
@@ -335,7 +335,7 @@
                     document.getElementById('viewName').textContent = row.name || '';
                     document.getElementById('viewPhone').textContent = row.phone_number || '';
                     document.getElementById('viewNation').textContent = row.nationality || '';
-                    document.getElementById('viewDate').textContent = formatDateTime(row.created_at || '');
+                    document.getElementById('viewDate').textContent = formatDateTime(row.updated_at || '');
                     document.getElementById('viewViews').textContent = row.views || '';
                     document.getElementById('viewContent').textContent = row.req_content || '';
                     viewPanel.style.display = 'block';
