@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LOANDOC - 게시판</title>
+    <title>LOANDOC - 대출상담게시판</title>
     <style>
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
     header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
@@ -52,20 +52,20 @@
     <hr />
     <main>
         <div class="hero">
-            <h2>게시판</h2>
-            <p class="note">게시판: 글쓰기, 수정, 삭제, 검색, 조회가 가능합니다.</p>
+            <h2>대출상담게시판</h2>
+            <p class="note">대출 관련 게시판: 대출상담 입력, 수정, 삭제, 검색, 조회가 가능합니다.</p>
             <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <input id="searchInput" placeholder="검색어 (제목/내용/작성자)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd" />
                 <select id="filterType" style="padding:8px;border-radius:6px;border:1px solid #ddd">
-                    <option value="공지">공지</option>
-                    <option value="필독">필독</option>
-                    <option value="추천">추천</option>
-                    <option value="질문">질문</option>
-                    <option value="일반">일반</option>
                     <option value="전체" selected>전체</option>
+                    <option value="질문">질문</option>
+                    <option value="답변">답변</option>
+                    <option value="완료">완료</option>
+                    <option value="미결">미결</option>
                 </select>
                 <button class="nav-button" id="searchBtn">검색</button>
-                <button class="nav-button" id="newBtn">새 글쓰기</button>
+                <button class="nav-button" id="newBtn">대출상담 입력</button>
+                <button class="nav-button" id="viewAllBtn" style="margin-left:auto">조회</button>
             </div>
         </div>
 
@@ -86,21 +86,26 @@
 
         <!-- Form modal (simple) -->
         <div id="formPanel" style="display:none;margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.06)">
-            <h3 id="formTitle">새 글쓰기</h3>
+            <h3 id="formTitle">대출상담 입력</h3>
             <!-- Single row: author(20ch) / password(20ch) / type(10ch) / title(flex) -->
-            <div style="display:grid;grid-template-columns:20ch 20ch 10ch 1fr;gap:8px;align-items:center">
-                <input id="author" placeholder="작성자" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                <input id="password" placeholder="비밀번호 (옵션)" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                <select id="msg_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
-                    <option value="공지">공지</option>
-                    <option value="필독">필독</option>
-                    <option value="추천">추천</option>
-                    <option value="질문">질문</option>
-                    <option value="일반" selected>일반</option>
-                </select>
-                <input id="title" placeholder="제목" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-            </div>
-            <textarea id="content" rows="6" style="width:100%;margin-top:8px;padding:8px"></textarea>
+                <div style="display:grid;grid-template-columns:20ch 20ch 20ch 20ch;gap:8px;align-items:center">
+                    <input id="req_login" placeholder="요청자 로그인" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <input id="name" placeholder="신청자 이름" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <input id="phone_number" placeholder="전화번호" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <input id="nationality" placeholder="국적" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                </div>
+                <div style="display:grid;grid-template-columns:20ch 20ch 1fr;gap:8px;align-items:center;margin-top:8px">
+                    <input id="counseler" placeholder="담당 상담원" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <select id="req_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
+                        <option value="질문">질문</option>
+                        <option value="답변">답변</option>
+                        <option value="완료">완료</option>
+                        <option value="미결">미결</option>
+                        <option value="전체" selected>전체</option>
+                    </select>
+                    <input id="title" placeholder="제목" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                </div>
+                <textarea id="req_content" rows="6" style="width:100%;margin-top:8px;padding:8px" placeholder="요청 세부 내용"></textarea>
             <div style="margin-top:8px;display:flex;gap:8px">
                 <button id="saveBtn" class="nav-button">저장</button>
                 <button id="cancelBtn" class="nav-button">취소</button>
@@ -110,7 +115,8 @@
         <!-- View panel -->
         <div id="viewPanel" style="display:none;margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.06)">
             <h3 id="viewTitle"></h3>
-            <div style="color:#666;font-size:13px;margin-bottom:8px">작성자: <span id="viewAuthor"></span> | 작성일: <span id="viewDate"></span> | 조회: <span id="viewViews"></span></div>
+            <div style="color:#666;font-size:13px;margin-bottom:8px">요청자: <span id="viewReqLogin"></span> | 신청자명: <span id="viewName"></span> | 전화: <span id="viewPhone"></span></div>
+            <div style="color:#666;font-size:13px;margin-bottom:8px">담당상담원: <span id="viewCounseler"></span> | 국적: <span id="viewNationality"></span> | 작성일: <span id="viewDate"></span></div>
             <div id="viewContent" style="white-space:pre-wrap"></div>
             <div style="margin-top:8px;display:flex;gap:8px">
                 <button id="editBtn" class="nav-button">수정</button>
@@ -129,6 +135,7 @@
             const formPanel = document.getElementById('formPanel');
             const viewPanel = document.getElementById('viewPanel');
             const saveBtn = document.getElementById('saveBtn');
+            const viewAllBtn = document.getElementById('viewAllBtn');
             const cancelBtn = document.getElementById('cancelBtn');
             const editBtn = document.getElementById('editBtn');
             const delBtn = document.getElementById('delBtn');
@@ -137,7 +144,8 @@
             let editId = null;
             let currentUser = null;
 
-            // 앱 컨텍스트 자동 감지
+            // 앱 컨텍스트 자동 감지 (더 강건한 방식)
+            // 예: 위치가 '/server/loanBoard.html'이면 EFFECTIVE_BASE는 '/server'가 됩니다.
             const APP_BASE = (function(){
                 try{
                     const p = window.location.pathname || '';
@@ -145,28 +153,29 @@
                     return (m && m.groups && m.groups.ctx) ? ('/' + m.groups.ctx) : '';
                 }catch(e){ return ''; }
             })();
-            const EFFECTIVE_BASE = APP_BASE || '';
+            window.APP_BASE = APP_BASE;
+            // Fallback to the deployed context path '/server' if APP_BASE cannot be detected
+            // This avoids client requests to '/api/...' (root) which cause 404 when app is deployed under '/server'
+            const EFFECTIVE_BASE = APP_BASE || '/server';
 
-            // 세션 확인 및 로그인 상태 체크
+            // 세션 확인 및 로그인 상태 체크 (credentials 포함)
             async function checkLoginStatus() {
                 try {
-                    const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                    const result = await response.json();
-                    
+                    const effectiveBase = (APP_BASE && APP_BASE.indexOf('.html') === -1) ? APP_BASE : '';
+                    const response = await fetch(`${effectiveBase}/api/auth/session`, { credentials: 'same-origin' });
+                    const ct = (response.headers.get('content-type')||'');
+                    let result = { authenticated: false };
+                    if(ct.indexOf('application/json') !== -1){ result = await response.json(); }
+
                     if (result.authenticated && result.userId) {
                         currentUser = result.userId;
-                        
-                        // If user is logged in, set author input to login id and make it read-only
-                        const authorInputEl = document.getElementById('author');
-                        if (authorInputEl) {
-                            authorInputEl.value = currentUser;
-                            authorInputEl.setAttribute('disabled', 'disabled');
+                        const reqLoginEl = document.getElementById('req_login');
+                        if (reqLoginEl) {
+                            reqLoginEl.value = currentUser;
+                            reqLoginEl.setAttribute('disabled', 'disabled');
                         }
-                        
-                        // 게시판 데이터 로드
-                        await loadPosts();
+                        // 자동 조회하지 않음; 사용자가 '조회' 또는 '검색' 버튼을 클릭하면 조회합니다.
                     } else {
-                        // 로그인되지 않은 경우 로그인 페이지로 이동
                         alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
                         window.location.href = 'login.html';
                     }
@@ -181,12 +190,20 @@
             checkLoginStatus();
 
             async function loadPosts(){
-                const q = encodeURIComponent(searchInput.value || '');
-                const t = encodeURIComponent(filterType.value || '');
-                const url = `/api/dashboard?q=${q}&msg_type=${t}`;
+                const rawQ = searchInput.value || '';
+                const rawT = filterType.value || '';
+                const q = encodeURIComponent(rawQ);
+                const t = encodeURIComponent(rawT);
+                const params = [];
+                if(rawQ && rawQ.trim() !== '') params.push('q=' + q);
+                if(rawT && rawT.trim() !== '' && rawT !== '전체') params.push('req_type=' + t);
+                const url = `${EFFECTIVE_BASE}/api/loan_dashboard` + (params.length ? ('?' + params.join('&')) : '');
                 try{
-                    const r = await fetch(url);
-                    const j = await r.json();
+                    const r = await fetch(url, { credentials: 'same-origin' });
+                    const ct = (r.headers.get('content-type')||'');
+                    let j;
+                    if(ct.indexOf('application/json') !== -1){ j = await r.json(); }
+                    else { const txt = await r.text(); throw new Error(`server returned non-json response (${r.status}) url=${r.url}: ${(txt||'').slice(0,200)}`); }
                     if(!j.ok) throw new Error(j.error || 'load failed');
                     renderPosts(j.rows || []);
                 }catch(e){
@@ -206,7 +223,7 @@
                         return s;
                     }
                     const pad = (n) => String(n).padStart(2,'0');
-                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
                 }catch(e){ return String(val); }
             }
 
@@ -219,13 +236,13 @@
                 for(const r of rows){
                     const tr = document.createElement('tr');
                     // Only allow edit/delete for the author who created the post (if logged in)
-                    const allowEdit = currentUser && String(currentUser) === String(r.author);
+                    const allowEdit = currentUser && String(currentUser) === String(r.req_login);
                     tr.innerHTML = `
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_id}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_date)}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.author || '')}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_type || ''}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.msg_id}">${escapeHtml(r.title || '')}</a></td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_id}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_at || r.updated_at)}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.req_login || '')}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_type || ''}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.req_id}">${escapeHtml(r.title || '')}</a></td>
                     `;
                     postsBody.appendChild(tr);
                 }
@@ -240,82 +257,68 @@
             // viewPost is defined below (with password check). Removed duplicate to avoid function shadowing.
 
             function startEdit(id){
-                // load full post then populate form
-                fetch(`/api/dashboard/${id}`).then(r=>r.json()).then(j=>{
-                    if(!j.ok) return alert('불러오기 실패: '+(j.error||'')); 
+                fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { credentials: 'same-origin' }).then(r=>r.json()).then(j=>{
+                    if(!j.ok) return alert('불러오기 실패: '+(j.error||''));
                     const row = j.row;
-                    // author is locked to logged-in user; keep value from currentUser
-                    if (!currentUser) document.getElementById('author').value = row.author || '';
-                    document.getElementById('password').value = '';
+                    if (!currentUser){ document.getElementById('req_login').value = row.req_login || ''; }
+                    document.getElementById('name').value = row.name || '';
+                    document.getElementById('phone_number').value = row.phone_number || '';
+                    document.getElementById('nationality').value = row.nationality || '';
+                    document.getElementById('counseler').value = row.counseler || '';
+                    document.getElementById('req_type').value = row.req_type || '질문';
                     document.getElementById('title').value = row.title || '';
-                    document.getElementById('msg_type').value = row.msg_type || '일반';
-                    document.getElementById('content').value = row.content || '';
+                    document.getElementById('req_content').value = row.req_content || row.content || '';
                     formPanel.style.display = 'block';
                     viewPanel.style.display = 'none';
-                    document.getElementById('formTitle').textContent = '글 수정';
-                    editId = row.msg_id;
+                    document.getElementById('formTitle').textContent = '요청 수정';
+                    editId = row.req_id;
                 }).catch(e=>alert('불러오기 실패: '+e.message));
             }
 
             async function viewPost(id){
                 try{
-                    const r = await fetch(`/api/dashboard/${id}`);
+                    const r = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { credentials: 'same-origin' });
                     const j = await r.json();
                     if(!j.ok) throw new Error(j.error||'failed');
                     const row = j.row;
-
-                    // If the post has a password, prompt the user and verify before showing
-                    if(row && row.password){
-                        // simple prompt loop, allow up to 3 attempts
-                        let attempts = 0;
-                        let ok = false;
-                        while(attempts < 3){
-                            const input = prompt('비밀번호가 설정된 글입니다. 비밀번호를 입력하세요:');
-                            if(input === null){ // user cancelled
-                                return;
-                            }
-                            if(input === String(row.password)){
-                                ok = true; break;
-                            }
-                            attempts++;
-                            alert('비밀번호가 일치하지 않습니다. 남은 시도: ' + (3 - attempts));
-                        }
-                        if(!ok){ alert('비밀번호 확인에 실패했습니다.'); return; }
-                    }
-
-                    document.getElementById('viewTitle').textContent = row.title;
-                    document.getElementById('viewAuthor').textContent = row.author || '';
-                    document.getElementById('viewDate').textContent = formatDateTime(row.created_date || row.created_at || row.created_datetime || '');
-                    document.getElementById('viewViews').textContent = row.views || 0;
-                    document.getElementById('viewContent').textContent = row.content || '';
+                    document.getElementById('viewTitle').textContent = row.title || '';
+                    document.getElementById('viewReqLogin').textContent = row.req_login || '';
+                    document.getElementById('viewName').textContent = row.name || '';
+                    document.getElementById('viewPhone').textContent = row.phone_number || '';
+                    document.getElementById('viewCounseler').textContent = row.counseler || '';
+                    document.getElementById('viewNationality').textContent = row.nationality || '';
+                    document.getElementById('viewDate').textContent = formatDateTime(row.created_at || row.updated_at || '');
+                    document.getElementById('viewContent').textContent = row.req_content || row.content || '';
                     viewPanel.style.display = 'block';
                     formPanel.style.display = 'none';
-                    editId = row.msg_id;
-                }catch(e){ alert('게시글 불러오기 실패: '+e.message); }
+                    editId = row.req_id;
+                }catch(e){ alert('상세 불러오기 실패: '+e.message); }
             }
 
             // savePost: create or update a post
             async function savePost(){
-                const data = {
-                    author: document.getElementById('author').value,
-                    password: document.getElementById('password').value,
+                const payload = {
+                    req_login: document.getElementById('req_login').value,
+                    name: document.getElementById('name').value,
+                    phone_number: document.getElementById('phone_number').value,
+                    nationality: document.getElementById('nationality').value,
+                    counseler: document.getElementById('counseler').value,
+                    req_type: document.getElementById('req_type').value,
                     title: document.getElementById('title').value,
-                    msg_type: document.getElementById('msg_type').value,
-                    content: document.getElementById('content').value
+                    req_content: document.getElementById('req_content').value
                 };
                 try{
                     let res;
                     if(editId){
-                        res = await fetch(`/api/dashboard/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${editId}`, { method: 'PUT', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                     } else {
-                        res = await fetch('/api/dashboard', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                     }
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'save failed');
                     formPanel.style.display = 'none';
                     editId = null;
                     await loadPosts();
-                    // show success message to user
                     try{ alert('저장이 되었습니다'); }catch(e){}
                 }catch(e){ alert('저장 실패: '+e.message); }
             }
@@ -324,7 +327,7 @@
             async function deletePost(id){
                 if(!confirm('정말로 삭제하시겠습니까?')) return;
                 try{
-                    const res = await fetch(`/api/dashboard/${id}`, { method: 'DELETE' });
+                    const res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { method: 'DELETE', credentials: 'same-origin' });
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'delete failed');
                     editId = null;
@@ -336,21 +339,37 @@
 
             // events
             searchBtn.addEventListener('click', ()=>loadPosts());
-            newBtn.addEventListener('click', ()=>{
+            if (viewAllBtn) {
+                // '조회' 버튼: 서버에서 req_type=질문으로 조회하고 req_id DESC 정렬을 요청
+                viewAllBtn.addEventListener('click', async ()=>{
+                    try {
+                        const url = `${EFFECTIVE_BASE}/api/loan_dashboard?req_type=${encodeURIComponent('질문')}&order=desc`;
+                        const r = await fetch(url, { credentials: 'same-origin' });
+                        const ct = (r.headers.get('content-type')||'');
+                        let j;
+                        if(ct.indexOf('application/json') !== -1){ j = await r.json(); }
+                        else { const txt = await r.text(); throw new Error(`server returned non-json response (${r.status}) url=${r.url}: ${(txt||'').slice(0,200)}`); }
+                        if(!j.ok) throw new Error(j.error || 'load failed');
+                        renderPosts(j.rows || []);
+                    } catch (e) {
+                        alert('목록 불러오기 실패: '+e.message);
+                    }
+                });
+            }
+                newBtn.addEventListener('click', ()=>{
                 editId = null;
-                // Prefill author with logged-in user; keep the field disabled when logged-in
-                const authorEl = document.getElementById('author');
-                if(authorEl){
-                    authorEl.value = currentUser || '';
-                    if(currentUser) authorEl.setAttribute('disabled','disabled'); else authorEl.removeAttribute('disabled');
-                }
-                document.getElementById('password').value = '';
+                const reqEl = document.getElementById('req_login');
+                if(reqEl){ reqEl.value = currentUser || ''; if(currentUser) reqEl.setAttribute('disabled','disabled'); else reqEl.removeAttribute('disabled'); }
+                document.getElementById('name').value = '';
+                document.getElementById('phone_number').value = '';
+                document.getElementById('nationality').value = '';
+                document.getElementById('counseler').value = '';
+                document.getElementById('req_type').value = '질문';
                 document.getElementById('title').value = '';
-                document.getElementById('msg_type').value = '일반';
-                document.getElementById('content').value = '';
+                document.getElementById('req_content').value = '';
                 formPanel.style.display = 'block';
                 viewPanel.style.display = 'none';
-                document.getElementById('formTitle').textContent = '새 글쓰기';
+                document.getElementById('formTitle').textContent = '대출상담 입력';
             });
             cancelBtn.addEventListener('click', ()=>{ formPanel.style.display = 'none'; editId=null; });
             closeViewBtn.addEventListener('click', ()=>{ viewPanel.style.display = 'none'; editId=null; });

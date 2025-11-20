@@ -165,7 +165,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출조회</a>
-            <a class="nav-button" href="loanConsult.html">대출상담조회</a>
+            <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
@@ -364,6 +364,15 @@
 
         // DOM 콘텐츠 로드 후 실행
         document.addEventListener('DOMContentLoaded', function(){
+            // 앱 컨텍스트 자동 감지
+            const APP_BASE = (function(){
+                try{
+                    const p = window.location.pathname || '';
+                    const m = p.match(/^\/(?<ctx>[^\/]+)\//);
+                    return (m && m.groups && m.groups.ctx) ? ('/' + m.groups.ctx) : '';
+                }catch(e){ return ''; }
+            })();
+            const EFFECTIVE_BASE = APP_BASE || '';
             const formElements = [
                 'name', 'nationality', 'passport', 'birth', 'entry', 'phone', 'current_company', 'email'
             ];
@@ -371,7 +380,7 @@
             // 서버 세션에서 로그인 사용자 ID 가져오기
             async function loadUserSession() {
                 try {
-                    const response = await fetch('/api/auth/session');
+                    const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
                     const result = await response.json();
                     
                     let loggedInUser = '';

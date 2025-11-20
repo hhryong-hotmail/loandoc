@@ -1,47 +1,18 @@
 <!DOCTYPE html>
+<!-- loanConsult2 page removed -->
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LOANDOC - 게시판</title>
-    <style>
-        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
-    header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
-    /* main을 전체 너비로 확장하여 nav와 좌우 길이를 맞춤 */
-    main{max-width:none;width:100%;margin:24px 0;background:#f6f6f6;padding:18px 24px;border-radius:8px;box-sizing:border-box}
-    nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
-    .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
-        .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
-    </style>
-    <style>
-    /* Column based nav (shared) */
-    nav.nav-columns{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:10px;background:#f6f6f6;border-radius:10px;align-items:start}
-    nav.nav-columns .nav-column{display:flex;flex-direction:column;gap:12px}
-    nav.nav-columns .nav-button{background:#FFD400;color:#000;border:none;padding:10px 12px;height:auto;display:block;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;width:100%;box-sizing:border-box;text-align:center}
-    nav.nav-columns .nav-column:nth-child(1){padding-right:12px}
-    nav.nav-columns .nav-column:nth-child(2){padding:0 12px}
-    nav.nav-columns .nav-column:nth-child(3){padding-left:12px}
-    nav.nav-columns .nav-column:nth-child(4){padding-left:12px}
-    @media (max-width:600px){nav.nav-columns{grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}nav.nav-columns .nav-button{font-size:13px;padding:8px}}
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>대출상담조회 (삭제됨)</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:1rem}</style>
 </head>
 <body>
-    <header>
-        <h1>외국인 근로자 신용 대출</h1>
-        <p>LOANDOC</p>
-    </header>
-    <nav class="nav-columns" aria-label="주요 네비게이션">
-        <div class="nav-column">
-            <a class="nav-button" href="home.html">LOANDOC</a>
-            <a class="nav-button" href="introCo.html">회사소개</a>
-            <a class="nav-button" href="intro.html">상품소개</a>
-        </div>
-        <div class="nav-column">
-            <a class="nav-button" href="login.html">로그인</a>
-            <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
-        </div>
-        <div class="nav-column">
-            <a class="nav-button" href="loanAppl.html">대출조회</a>
+  <h1>대출상담 기능이 제거되었습니다</h1>
+  <p>관련 클라이언트/서버 코드는 저장소에서 제거되었거나 비활성화되었습니다.</p>
+</body>
+</html>
             <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
         </div>
         <div class="nav-column">
@@ -52,20 +23,19 @@
     <hr />
     <main>
         <div class="hero">
-            <h2>게시판</h2>
-            <p class="note">게시판: 글쓰기, 수정, 삭제, 검색, 조회가 가능합니다.</p>
+            <h2>상담요청게시판</h2>
+            <p class="note">상담요청, 수정, 삭제, 검색, 조회가 가능합니다.</p>
             <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <input id="searchInput" placeholder="검색어 (제목/내용/작성자)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd" />
                 <select id="filterType" style="padding:8px;border-radius:6px;border:1px solid #ddd">
-                    <option value="공지">공지</option>
-                    <option value="필독">필독</option>
-                    <option value="추천">추천</option>
                     <option value="질문">질문</option>
-                    <option value="일반">일반</option>
+                    <option value="답변">답변</option>
+                    <option value="완료">완료</option>
+                    <option value="미결">미결</option>
                     <option value="전체" selected>전체</option>
                 </select>
                 <button class="nav-button" id="searchBtn">검색</button>
-                <button class="nav-button" id="newBtn">새 글쓰기</button>
+                <button class="nav-button" id="newBtn">상담요청</button>
             </div>
         </div>
 
@@ -86,19 +56,23 @@
 
         <!-- Form modal (simple) -->
         <div id="formPanel" style="display:none;margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.06)">
-            <h3 id="formTitle">새 글쓰기</h3>
+            <h3 id="formTitle">상담신청</h3>
             <!-- Single row: author(20ch) / password(20ch) / type(10ch) / title(flex) -->
             <div style="display:grid;grid-template-columns:20ch 20ch 10ch 1fr;gap:8px;align-items:center">
-                <input id="author" placeholder="작성자" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                <input id="password" placeholder="비밀번호 (옵션)" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                <select id="msg_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
-                    <option value="공지">공지</option>
-                    <option value="필독">필독</option>
-                    <option value="추천">추천</option>
+                <input id="req_login" placeholder="작성자" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                <select id="req_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
                     <option value="질문">질문</option>
-                    <option value="일반" selected>일반</option>
+                    <option value="답변">답변</option>
+                    <option value="완료">완료</option>
+                    <option value="미결">미결</option>
+                    <option value="전체" selected>전체</option>
                 </select>
                 <input id="title" placeholder="제목" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+            </div>
+            <div style="display:grid;grid-template-columns:20ch 20ch 10ch 1fr;gap:8px;align-items:center">
+                <input id="counseler" placeholder="상담자" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                <input id="phone_number" placeholder="전화번호" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                <input id="nationality" placeholder="국적" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
             </div>
             <textarea id="content" rows="6" style="width:100%;margin-top:8px;padding:8px"></textarea>
             <div style="margin-top:8px;display:flex;gap:8px">
@@ -137,7 +111,8 @@
             let editId = null;
             let currentUser = null;
 
-            // 앱 컨텍스트 자동 감지
+            // 앱 컨텍스트 자동 감지 (더 강건한 방식)
+            // 예: 위치가 '/server/loanBoard.html'이면 EFFECTIVE_BASE는 '/server'가 됩니다.
             const APP_BASE = (function(){
                 try{
                     const p = window.location.pathname || '';
@@ -145,19 +120,28 @@
                     return (m && m.groups && m.groups.ctx) ? ('/' + m.groups.ctx) : '';
                 }catch(e){ return ''; }
             })();
+
+            // 전역에서 참조할 수 있도록 노출
+            window.APP_BASE = APP_BASE;
             const EFFECTIVE_BASE = APP_BASE || '';
 
             // 세션 확인 및 로그인 상태 체크
             async function checkLoginStatus() {
                 try {
-                    const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                    const result = await response.json();
+                    // 방어: APP_BASE에 .html 같은 파일명이 포함되면 빈 문자열로 대체
+                    const effectiveBase = (APP_BASE && APP_BASE.indexOf('.html') === -1) ? APP_BASE : '';
+                    const response = await fetch(`${effectiveBase}/api/auth/session`, { credentials: 'same-origin' });
+                    const contentType = response.headers.get('content-type') || '';
+                    let result = { ok: false, authenticated: false };
+                    if (contentType.indexOf('application/json') !== -1) {
+                        result = await response.json();
+                    }
                     
                     if (result.authenticated && result.userId) {
                         currentUser = result.userId;
                         
                         // If user is logged in, set author input to login id and make it read-only
-                        const authorInputEl = document.getElementById('author');
+                        const authorInputEl = document.getElementById('req_login');
                         if (authorInputEl) {
                             authorInputEl.value = currentUser;
                             authorInputEl.setAttribute('disabled', 'disabled');
@@ -181,12 +165,27 @@
             checkLoginStatus();
 
             async function loadPosts(){
-                const q = encodeURIComponent(searchInput.value || '');
-                const t = encodeURIComponent(filterType.value || '');
-                const url = `/api/dashboard?q=${q}&msg_type=${t}`;
+                const rawQ = searchInput.value || '';
+                const rawT = filterType.value || '';
+                const q = encodeURIComponent(rawQ);
+                const t = encodeURIComponent(rawT);
+                // Build query params: omit `req_type` when user selected '전체'
+                const params = [];
+                if(rawQ && rawQ.trim() !== '') params.push('q=' + q);
+                if(rawT && rawT.trim() !== '' && rawT !== '전체') params.push('req_type=' + t);
+                const url = `${EFFECTIVE_BASE}/api/loan_consultant` + (params.length ? ('?' + params.join('&')) : '');
                 try{
-                    const r = await fetch(url);
-                    const j = await r.json();
+                        const r = await fetch(url, { credentials: 'same-origin' });
+                        const ct = (r.headers.get('content-type')||'');
+                        let j;
+                        if(ct.indexOf('application/json') !== -1){
+                            j = await r.json();
+                        } else {
+                            const txt = await r.text();
+                            const msg = `server returned non-json response (${r.status}) url=${r.url}: ${ (txt||'').slice(0,200) }`;
+                            console.error(msg);
+                            throw new Error(msg);
+                        }
                     if(!j.ok) throw new Error(j.error || 'load failed');
                     renderPosts(j.rows || []);
                 }catch(e){
@@ -206,7 +205,7 @@
                         return s;
                     }
                     const pad = (n) => String(n).padStart(2,'0');
-                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
                 }catch(e){ return String(val); }
             }
 
@@ -219,13 +218,13 @@
                 for(const r of rows){
                     const tr = document.createElement('tr');
                     // Only allow edit/delete for the author who created the post (if logged in)
-                    const allowEdit = currentUser && String(currentUser) === String(r.author);
+                    const allowEdit = currentUser && String(currentUser) === String(r.req_login);
                     tr.innerHTML = `
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_id}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_date)}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.author || '')}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_type || ''}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.msg_id}">${escapeHtml(r.title || '')}</a></td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_id}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_at || '')}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.req_login || '')}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.req_type || ''}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.req_id}">${escapeHtml(r.title || '')}</a></td>
                     `;
                     postsBody.appendChild(tr);
                 }
@@ -241,76 +240,73 @@
 
             function startEdit(id){
                 // load full post then populate form
-                fetch(`/api/dashboard/${id}`).then(r=>r.json()).then(j=>{
+                fetch(`${EFFECTIVE_BASE}/api/loan_consultant/${id}`, { credentials: 'same-origin' }).then(async r=>{
+                    const ct = (r.headers.get('content-type')||'');
+                    if(ct.indexOf('application/json')===-1){
+                        const txt = await r.text();
+                        const msg = `server returned non-json response (${r.status}) url=${r.url}: ${ (txt||'').slice(0,200) }`;
+                        console.error(msg);
+                        throw new Error(msg);
+                    }
+                    return r.json();
+                }).then(j=>{
                     if(!j.ok) return alert('불러오기 실패: '+(j.error||'')); 
                     const row = j.row;
                     // author is locked to logged-in user; keep value from currentUser
-                    if (!currentUser) document.getElementById('author').value = row.author || '';
-                    document.getElementById('password').value = '';
+                    if (!currentUser) document.getElementById('req_login').value = row.req_login || '';
                     document.getElementById('title').value = row.title || '';
-                    document.getElementById('msg_type').value = row.msg_type || '일반';
-                    document.getElementById('content').value = row.content || '';
+                    document.getElementById('req_type').value = row.req_type || '질문';
+                    document.getElementById('content').value = row.req_content || '';
+                    document.getElementById('counseler').value = row.counseler || '';
+                    document.getElementById('phone_number').value = row.phone_number || '';
+                    document.getElementById('nationality').value = row.nationality || '';
                     formPanel.style.display = 'block';
                     viewPanel.style.display = 'none';
-                    document.getElementById('formTitle').textContent = '글 수정';
-                    editId = row.msg_id;
+                    document.getElementById('formTitle').textContent = '상담수정';
+                    editId = row.req_id;
                 }).catch(e=>alert('불러오기 실패: '+e.message));
             }
 
             async function viewPost(id){
                 try{
-                    const r = await fetch(`/api/dashboard/${id}`);
-                    const j = await r.json();
+                    const r = await fetch(`${EFFECTIVE_BASE}/api/loan_consultant/${id}`, { credentials: 'same-origin' });
+                    const ct = (r.headers.get('content-type')||'');
+                    let j;
+                    if(ct.indexOf('application/json') !== -1){ j = await r.json(); } else { const txt = await r.text(); const msg = `server returned non-json response (${r.status}) url=${r.url}: ${ (txt||'').slice(0,200) }`; console.error(msg); throw new Error(msg); }
                     if(!j.ok) throw new Error(j.error||'failed');
                     const row = j.row;
 
-                    // If the post has a password, prompt the user and verify before showing
-                    if(row && row.password){
-                        // simple prompt loop, allow up to 3 attempts
-                        let attempts = 0;
-                        let ok = false;
-                        while(attempts < 3){
-                            const input = prompt('비밀번호가 설정된 글입니다. 비밀번호를 입력하세요:');
-                            if(input === null){ // user cancelled
-                                return;
-                            }
-                            if(input === String(row.password)){
-                                ok = true; break;
-                            }
-                            attempts++;
-                            alert('비밀번호가 일치하지 않습니다. 남은 시도: ' + (3 - attempts));
-                        }
-                        if(!ok){ alert('비밀번호 확인에 실패했습니다.'); return; }
-                    }
-
                     document.getElementById('viewTitle').textContent = row.title;
-                    document.getElementById('viewAuthor').textContent = row.author || '';
-                    document.getElementById('viewDate').textContent = formatDateTime(row.created_date || row.created_at || row.created_datetime || '');
-                    document.getElementById('viewViews').textContent = row.views || 0;
-                    document.getElementById('viewContent').textContent = row.content || '';
+                    document.getElementById('viewAuthor').textContent = row.req_login || '';
+                    document.getElementById('viewDate').textContent = formatDateTime(row.created_at || row.updated_at || '');
+                    document.getElementById('viewContent').textContent = row.req_content || '';
                     viewPanel.style.display = 'block';
                     formPanel.style.display = 'none';
-                    editId = row.msg_id;
+                    editId = row.req_id;
                 }catch(e){ alert('게시글 불러오기 실패: '+e.message); }
             }
 
             // savePost: create or update a post
             async function savePost(){
                 const data = {
-                    author: document.getElementById('author').value,
-                    password: document.getElementById('password').value,
+                    req_login: document.getElementById('req_login').value,
                     title: document.getElementById('title').value,
-                    msg_type: document.getElementById('msg_type').value,
-                    content: document.getElementById('content').value
+                    req_type: document.getElementById('req_type').value,
+                    req_content: document.getElementById('content').value,
+                    counseler: document.getElementById('counseler').value,
+                    phone_number: document.getElementById('phone_number').value,
+                    nationality: document.getElementById('nationality').value
                 };
                 try{
                     let res;
                     if(editId){
-                        res = await fetch(`/api/dashboard/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_consultant/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data), credentials: 'same-origin' });
                     } else {
-                        res = await fetch('/api/dashboard', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_consultant`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data), credentials: 'same-origin' });
                     }
-                    const j = await res.json();
+                    const ct2 = (res.headers.get('content-type')||'');
+                    let j;
+                    if(ct2.indexOf('application/json') !== -1){ j = await res.json(); } else { const txt = await res.text(); const msg = `server returned non-json response (${res.status}) url=${res.url}: ${ (txt||'').slice(0,200) }`; console.error(msg); throw new Error(msg); }
                     if(!j.ok) throw new Error(j.error||'save failed');
                     formPanel.style.display = 'none';
                     editId = null;
@@ -324,8 +320,10 @@
             async function deletePost(id){
                 if(!confirm('정말로 삭제하시겠습니까?')) return;
                 try{
-                    const res = await fetch(`/api/dashboard/${id}`, { method: 'DELETE' });
-                    const j = await res.json();
+                    const res = await fetch(`${EFFECTIVE_BASE}/api/loan_consultant/${id}`, { method: 'DELETE', credentials: 'same-origin' });
+                    const ct3 = (res.headers.get('content-type')||'');
+                    let j;
+                    if(ct3.indexOf('application/json') !== -1){ j = await res.json(); } else { const txt = await res.text(); const msg = `server returned non-json response (${res.status}) url=${res.url}: ${ (txt||'').slice(0,200) }`; console.error(msg); throw new Error(msg); }
                     if(!j.ok) throw new Error(j.error||'delete failed');
                     editId = null;
                     viewPanel.style.display = 'none';
@@ -339,18 +337,17 @@
             newBtn.addEventListener('click', ()=>{
                 editId = null;
                 // Prefill author with logged-in user; keep the field disabled when logged-in
-                const authorEl = document.getElementById('author');
+                const authorEl = document.getElementById('req_login');
                 if(authorEl){
                     authorEl.value = currentUser || '';
                     if(currentUser) authorEl.setAttribute('disabled','disabled'); else authorEl.removeAttribute('disabled');
                 }
-                document.getElementById('password').value = '';
                 document.getElementById('title').value = '';
-                document.getElementById('msg_type').value = '일반';
+                document.getElementById('req_type').value = '질문';
                 document.getElementById('content').value = '';
                 formPanel.style.display = 'block';
                 viewPanel.style.display = 'none';
-                document.getElementById('formTitle').textContent = '새 글쓰기';
+                document.getElementById('formTitle').textContent = '상담요청';
             });
             cancelBtn.addEventListener('click', ()=>{ formPanel.style.display = 'none'; editId=null; });
             closeViewBtn.addEventListener('click', ()=>{ viewPanel.style.display = 'none'; editId=null; });
@@ -362,12 +359,13 @@
         })();
         
         // 네비게이션 로그아웃 버튼
-        const navLogout = document.getElementById('nav-logout');
-        if(navLogout){
-            navLogout.addEventListener('click', async function(e){
-                e.preventDefault();
-                try {
-                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+            const navLogout = document.getElementById('nav-logout');
+            if(navLogout){
+                navLogout.addEventListener('click', async function(e){
+                    e.preventDefault();
+                    try {
+                        const effectiveBase = (window.APP_BASE && window.APP_BASE.indexOf('.html') === -1) ? window.APP_BASE : '';
+                        const response = await fetch(`${effectiveBase}/api/auth/logout`, { method: 'POST', credentials: 'same-origin' });
                     const result = await response.json();
                     if (result.ok) {
                         alert('로그아웃되었습니다');
@@ -381,3 +379,5 @@
     </script>
 </body>
 </html>
+
+
