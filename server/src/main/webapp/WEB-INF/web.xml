@@ -11,4 +11,26 @@
         <welcome-file>home.html</welcome-file>
         <welcome-file>index.html</welcome-file>
     </welcome-file-list>
+    
+    <!-- DashboardServlet 매핑 -->
+    <servlet>
+        <servlet-name>DashboardServlet</servlet-name>
+        <servlet-class>com.loandoc.DashboardServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DashboardServlet</servlet-name>
+        <url-pattern>/api/dashboard</url-pattern>
+        <url-pattern>/api/dashboard/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- LoanDashboardServlet 매핑 -->
+    <servlet>
+        <servlet-name>LoanDashboardServlet</servlet-name>
+        <servlet-class>com.loandoc.LoanDashboardServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>LoanDashboardServlet</servlet-name>
+        <url-pattern>/api/loan_dashboard</url-pattern>
+        <url-pattern>/api/loan_dashboard/*</url-pattern>
+    </servlet-mapping>
 </web-app>

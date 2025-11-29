@@ -12,26 +12,26 @@ Write-Host "Working in: $repoDir"
 Set-Location $repoDir
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Error "git not found in PATH. Install Git and rerun."
-    exit 1
+	Write-Error "git not found in PATH. Install Git and rerun."
+	exit 1
 }
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    Write-Error "gh (GitHub CLI) not found in PATH. Install gh and login (gh auth login) and rerun."
-    exit 1
+	Write-Error "gh (GitHub CLI) not found in PATH. Install gh and login (gh auth login) and rerun."
+	exit 1
 }
 
 if (-not (Test-Path (Join-Path $repoDir '.git'))) {
-    Write-Host "Initializing git repository..."
-    git init | Write-Host
+	Write-Host "Initializing git repository..."
+	git init | Write-Host
 } else {
-    Write-Host "Git repository already initialized."
+	Write-Host "Git repository already initialized."
 }
 
 # Create .gitignore if missing
 $gitignorePath = Join-Path $repoDir '.gitignore'
 if (-not (Test-Path $gitignorePath)) {
-    Write-Host "Creating .gitignore..."
-    @'
+	Write-Host "Creating .gitignore..."
+	@'
 # Maven
 /target/
 /.mvn/
@@ -55,7 +55,7 @@ Thumbs.db
 setenv.bat
 '@ | Out-File -FilePath $gitignorePath -Encoding utf8
 } else {
-    Write-Host ".gitignore already exists; leaving it unchanged."
+	Write-Host ".gitignore already exists; leaving it unchanged."
 }
 
 # Stage and commit
@@ -65,11 +65,11 @@ git add --all
 $commitMessage = 'Initial commit: loandoc project'
 $commitOk = $false
 try {
-    Write-Host "Creating commit..."
-    git commit -m "$commitMessage" | Write-Host
-    $commitOk = $true
+	Write-Host "Creating commit..."
+	git commit -m "$commitMessage" | Write-Host
+	$commitOk = $true
 } catch {
-    Write-Host "No commit created (possibly nothing to commit): $($_.Exception.Message)"
+	Write-Host "No commit created (possibly nothing to commit): $($_.Exception.Message)"
 }
 
 # Ensure main branch name
@@ -87,17 +87,17 @@ $createArgs += '--push'
 $createArgs += '--confirm'
 
 try {
-    gh repo create @createArgs | Write-Host
-    Write-Host "Repository created/updated and pushed to origin successfully."
+	gh repo create @createArgs | Write-Host
+	Write-Host "Repository created/updated and pushed to origin successfully."
 } catch {
-    Write-Error "gh repo create failed: $($_.Exception.Message)"
-    Write-Host "Attempting to add remote and push manually..."
-    $originUrl = "https://github.com/$fullName.git"
-    try {
-        git remote remove origin 2>$null
-    } catch { }
-    git remote add origin $originUrl
-    git push -u origin main
+	Write-Error "gh repo create failed: $($_.Exception.Message)"
+	Write-Host "Attempting to add remote and push manually..."
+	$originUrl = "https://github.com/$fullName.git"
+	try {
+		git remote remove origin 2>$null
+	} catch { }
+	git remote add origin $originUrl
+	git push -u origin main
 }
 
 Write-Host "Done. Visit: https://github.com/$fullName"

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LOANDOC - 대출상담게시판</title>
+    <title>LOANDOC - 대출상담요청게시판</title>
     <style>
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
     header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
@@ -34,7 +34,7 @@
         <div class="nav-column">
             <a class="nav-button" href="home.html">LOANDOC</a>
             <a class="nav-button" href="introCo.html">회사소개</a>
-            <a class="nav-button" href="intro.html">상품소개</a>
+                <a class="nav-button" href="intro.html">상품소개</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
@@ -42,7 +42,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출조회</a>
-            <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
+            <a class="nav-button" href="loanDashboard.html">대출상담요청게시판</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
@@ -52,20 +52,19 @@
     <hr />
     <main>
         <div class="hero">
-            <h2>대출상담게시판</h2>
-            <p class="note">대출 관련 게시판: 대출상담 입력, 수정, 삭제, 검색, 조회가 가능합니다.</p>
+            <h2>대출상담요청게시판</h2>
+            <p class="note">대출상담요청: 입력, 수정, 삭제, 검색, 조회가 가능합니다.</p>
             <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <input id="searchInput" placeholder="검색어 (제목/내용/작성자)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd" />
                 <select id="filterType" style="padding:8px;border-radius:6px;border:1px solid #ddd">
                     <option value="전체" selected>전체</option>
                     <option value="질문">질문</option>
                     <option value="답변">답변</option>
-                    <option value="완료">완료</option>
-                    <option value="미결">미결</option>
+                    <option value="완결">완결</option>
+                    <option value="미완">미결</option>
                 </select>
                 <button class="nav-button" id="searchBtn">검색</button>
-                <button class="nav-button" id="newBtn">대출상담 입력</button>
-                <button class="nav-button" id="viewAllBtn" style="margin-left:auto">조회</button>
+                <button class="nav-button" id="newBtn">대출상담요청</button>
             </div>
         </div>
 
@@ -86,26 +85,25 @@
 
         <!-- Form modal (simple) -->
         <div id="formPanel" style="display:none;margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.06)">
-            <h3 id="formTitle">대출상담 입력</h3>
+            <h3 id="formTitle">대출상담요청</h3>
             <!-- Single row: author(20ch) / password(20ch) / type(10ch) / title(flex) -->
                 <div style="display:grid;grid-template-columns:20ch 20ch 20ch 20ch;gap:8px;align-items:center">
-                    <input id="req_login" placeholder="요청자 로그인" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
-                    <input id="name" placeholder="신청자 이름" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <input id="req_login" placeholder="요청자 로그인ID" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
+                    <input id="name" placeholder="요청자 이름" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                     <input id="phone_number" placeholder="전화번호" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                     <input id="nationality" placeholder="국적" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                 </div>
                 <div style="display:grid;grid-template-columns:20ch 20ch 1fr;gap:8px;align-items:center;margin-top:8px">
                     <input id="counseler" placeholder="담당 상담원" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                     <select id="req_type" style="height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box">
-                        <option value="질문">질문</option>
+                        <option value="질문" selected>질문</option>
                         <option value="답변">답변</option>
-                        <option value="완료">완료</option>
-                        <option value="미결">미결</option>
-                        <option value="전체" selected>전체</option>
+                        <option value="완결">완결</option>
+                        <option value="미완">미결</option>
                     </select>
                     <input id="title" placeholder="제목" style="width:100%;height:44px;padding:8px;border-radius:6px;border:1px solid #ddd;box-sizing:border-box" />
                 </div>
-                <textarea id="req_content" rows="6" style="width:100%;margin-top:8px;padding:8px" placeholder="요청 세부 내용"></textarea>
+                <textarea id="content" rows="6" style="width:100%;margin-top:8px;padding:8px" placeholder="요청 세부 내용"></textarea>
             <div style="margin-top:8px;display:flex;gap:8px">
                 <button id="saveBtn" class="nav-button">저장</button>
                 <button id="cancelBtn" class="nav-button">취소</button>
@@ -135,7 +133,6 @@
             const formPanel = document.getElementById('formPanel');
             const viewPanel = document.getElementById('viewPanel');
             const saveBtn = document.getElementById('saveBtn');
-            const viewAllBtn = document.getElementById('viewAllBtn');
             const cancelBtn = document.getElementById('cancelBtn');
             const editBtn = document.getElementById('editBtn');
             const delBtn = document.getElementById('delBtn');
@@ -144,8 +141,7 @@
             let editId = null;
             let currentUser = null;
 
-            // 앱 컨텍스트 자동 감지 (더 강건한 방식)
-            // 예: 위치가 '/server/loanBoard.html'이면 EFFECTIVE_BASE는 '/server'가 됩니다.
+            // 앱 컨텍스트 자동 감지 
             const APP_BASE = (function(){
                 try{
                     const p = window.location.pathname || '';
@@ -154,63 +150,99 @@
                 }catch(e){ return ''; }
             })();
             window.APP_BASE = APP_BASE;
-            // Fallback to the deployed context path '/server' if APP_BASE cannot be detected
-            // This avoids client requests to '/api/...' (root) which cause 404 when app is deployed under '/server'
-            const EFFECTIVE_BASE = APP_BASE || '/server';
-
-            // 세션 확인 및 로그인 상태 체크 (credentials 포함)
-            async function checkLoginStatus() {
+            // If server inserts a meta tag <meta name="app-base" content="/server"> use it.
+            const _meta = document.querySelector('meta[name="app-base"]');
+            const META_APP_BASE = _meta ? (_meta.getAttribute('content')||'') : '';
+            const EFFECTIVE_BASE = META_APP_BASE || APP_BASE || '';
+            // 접근 시간 확인 및 자동 로그아웃 처리
+            function checkAccessTime() {
                 try {
-                    const effectiveBase = (APP_BASE && APP_BASE.indexOf('.html') === -1) ? APP_BASE : '';
-                    const response = await fetch(`${effectiveBase}/api/auth/session`, { credentials: 'same-origin' });
-                    const ct = (response.headers.get('content-type')||'');
-                    let result = { authenticated: false };
-                    if(ct.indexOf('application/json') !== -1){ result = await response.json(); }
+                    const loginId = localStorage.getItem('login-id');
+                    const accessTimeStr = localStorage.getItem('login-access-time');
+                    
+                    if (!loginId || !accessTimeStr) {
+                        // 로그인 정보가 없으면 로그인 페이지로 리다이렉트
+                        alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                        window.location.href = 'login.html';
+                        return false;
+                    }
+                    
+                    // 접근 시간 확인 (10분 = 600000 밀리초)
+                    const accessTime = new Date(accessTimeStr);
+                    const currentTime = new Date();
+                    const timeDiff = currentTime.getTime() - accessTime.getTime();
+                    const tenMinutes = 10 * 60 * 1000; // 10분
+                    
+                    if (timeDiff > tenMinutes) {
+                        // 10분 이상 경과 시 자동 로그아웃
+                        localStorage.removeItem('login-id');
+                        localStorage.removeItem('login-access-time');
+                        alert('10분 이상 비활성 상태로 인해 자동 로그아웃되었습니다. 다시 로그인해주세요.');
+                        window.location.href = 'login.html';
+                        return false;
+                    }
+                    
+                    // 접근 시간 업데이트
+                    localStorage.setItem('login-access-time', new Date().toISOString());
+                    return true;
+                } catch (e) {
+                    console.error('Access time check error', e);
+                    alert('로그인 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+            }
 
-                    if (result.authenticated && result.userId) {
-                        currentUser = result.userId;
-                        const reqLoginEl = document.getElementById('req_login');
-                        if (reqLoginEl) {
-                            reqLoginEl.value = currentUser;
-                            reqLoginEl.setAttribute('disabled', 'disabled');
+            function checkLoginStatus() {
+                try {
+                    // 먼저 접근 시간 확인
+                    if (!checkAccessTime()) {
+                        return; // checkAccessTime에서 이미 로그아웃 처리 및 리다이렉트 완료
+                    }
+                    
+                    const loginId = localStorage.getItem('login-id');
+                    
+                    if (loginId && loginId.trim() !== '') {
+                        currentUser = loginId.trim();
+                        
+                        // If user is logged in, set author input to login id and make it read-only
+                        const authorInputEl = document.getElementById('author');
+                        if (authorInputEl) {
+                            authorInputEl.value = currentUser;
+                            authorInputEl.setAttribute('disabled', 'disabled');
                         }
-                        // 자동 조회하지 않음; 사용자가 '조회' 또는 '검색' 버튼을 클릭하면 조회합니다.
+                        
+                        // 게시판 데이터 로드
+                        loadPosts();
                     } else {
+                        // 로그인되지 않은 경우 로그인 페이지로 이동
                         alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
                         window.location.href = 'login.html';
                     }
                 } catch (e) {
-                    console.error('Session check error', e);
-                    alert('세션 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    console.error('Login check error', e);
+                    alert('로그인 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
                     window.location.href = 'login.html';
                 }
             }
-
             // 페이지 로드 시 세션 확인
             checkLoginStatus();
-
-            async function loadPosts(){
-                const rawQ = searchInput.value || '';
-                const rawT = filterType.value || '';
-                const q = encodeURIComponent(rawQ);
-                const t = encodeURIComponent(rawT);
-                const params = [];
-                if(rawQ && rawQ.trim() !== '') params.push('q=' + q);
-                if(rawT && rawT.trim() !== '' && rawT !== '전체') params.push('req_type=' + t);
-                const url = `${EFFECTIVE_BASE}/api/loan_dashboard` + (params.length ? ('?' + params.join('&')) : '');
+async function loadPosts(){
+                const q = encodeURIComponent(searchInput.value || '');
+                let url = `/server/api/loan_dashboard?q=${q}`;
+                const t = filterType.value || '';
+                if (t && t !== '전체') {
+                    url += `&req_type=${encodeURIComponent(t)}`;
+                }
                 try{
-                    const r = await fetch(url, { credentials: 'same-origin' });
-                    const ct = (r.headers.get('content-type')||'');
-                    let j;
-                    if(ct.indexOf('application/json') !== -1){ j = await r.json(); }
-                    else { const txt = await r.text(); throw new Error(`server returned non-json response (${r.status}) url=${r.url}: ${(txt||'').slice(0,200)}`); }
+                    const r = await fetch(url);
+                    const j = await r.json();
                     if(!j.ok) throw new Error(j.error || 'load failed');
                     renderPosts(j.rows || []);
                 }catch(e){
                     alert('목록 불러오기 실패: '+e.message);
                 }
             }
-
             function formatDateTime(val){
                 if(!val) return '';
                 // If already a Date object
@@ -257,27 +289,28 @@
             // viewPost is defined below (with password check). Removed duplicate to avoid function shadowing.
 
             function startEdit(id){
-                fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { credentials: 'same-origin' }).then(r=>r.json()).then(j=>{
+                fetch(`/server/api/loan_dashboard/${id}`).then(r=>r.json()).then(j=>{
                     if(!j.ok) return alert('불러오기 실패: '+(j.error||''));
                     const row = j.row;
+                    // author is locked to logged-in user; keep value from currentUser
                     if (!currentUser){ document.getElementById('req_login').value = row.req_login || ''; }
                     document.getElementById('name').value = row.name || '';
                     document.getElementById('phone_number').value = row.phone_number || '';
                     document.getElementById('nationality').value = row.nationality || '';
                     document.getElementById('counseler').value = row.counseler || '';
-                    document.getElementById('req_type').value = row.req_type || '질문';
+                    document.getElementById('req_type').value = row.req_type || '';
                     document.getElementById('title').value = row.title || '';
-                    document.getElementById('req_content').value = row.req_content || row.content || '';
+                    document.getElementById('content').value = row.content || '';
                     formPanel.style.display = 'block';
                     viewPanel.style.display = 'none';
-                    document.getElementById('formTitle').textContent = '요청 수정';
+                    document.getElementById('formTitle').textContent = '대출상담 입력/수정';
                     editId = row.req_id;
                 }).catch(e=>alert('불러오기 실패: '+e.message));
             }
 
             async function viewPost(id){
                 try{
-                    const r = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { credentials: 'same-origin' });
+                    const r = await fetch(`/server/api/loan_dashboard/${id}`);
                     const j = await r.json();
                     if(!j.ok) throw new Error(j.error||'failed');
                     const row = j.row;
@@ -288,7 +321,7 @@
                     document.getElementById('viewCounseler').textContent = row.counseler || '';
                     document.getElementById('viewNationality').textContent = row.nationality || '';
                     document.getElementById('viewDate').textContent = formatDateTime(row.created_at || row.updated_at || '');
-                    document.getElementById('viewContent').textContent = row.req_content || row.content || '';
+                    document.getElementById('viewContent').textContent = row.content || '';
                     viewPanel.style.display = 'block';
                     formPanel.style.display = 'none';
                     editId = row.req_id;
@@ -305,14 +338,14 @@
                     counseler: document.getElementById('counseler').value,
                     req_type: document.getElementById('req_type').value,
                     title: document.getElementById('title').value,
-                    req_content: document.getElementById('req_content').value
+                    content: document.getElementById('content').value
                 };
                 try{
                     let res;
                     if(editId){
-                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${editId}`, { method: 'PUT', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                        res = await fetch(`/server/api/loan_dashboard/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                     } else {
-                        res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                        res = await fetch('/server/api/loan_dashboard', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                     }
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'save failed');
@@ -327,7 +360,7 @@
             async function deletePost(id){
                 if(!confirm('정말로 삭제하시겠습니까?')) return;
                 try{
-                    const res = await fetch(`${EFFECTIVE_BASE}/api/loan_dashboard/${id}`, { method: 'DELETE', credentials: 'same-origin' });
+                    const res = await fetch(`/server/api/loan_dashboard/${id}`, { method: 'DELETE' });
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'delete failed');
                     editId = null;
@@ -339,37 +372,46 @@
 
             // events
             searchBtn.addEventListener('click', ()=>loadPosts());
-            if (viewAllBtn) {
-                // '조회' 버튼: 서버에서 req_type=질문으로 조회하고 req_id DESC 정렬을 요청
-                viewAllBtn.addEventListener('click', async ()=>{
-                    try {
-                        const url = `${EFFECTIVE_BASE}/api/loan_dashboard?req_type=${encodeURIComponent('질문')}&order=desc`;
-                        const r = await fetch(url, { credentials: 'same-origin' });
-                        const ct = (r.headers.get('content-type')||'');
-                        let j;
-                        if(ct.indexOf('application/json') !== -1){ j = await r.json(); }
-                        else { const txt = await r.text(); throw new Error(`server returned non-json response (${r.status}) url=${r.url}: ${(txt||'').slice(0,200)}`); }
-                        if(!j.ok) throw new Error(j.error || 'load failed');
-                        renderPosts(j.rows || []);
-                    } catch (e) {
-                        alert('목록 불러오기 실패: '+e.message);
-                    }
-                });
-            }
-                newBtn.addEventListener('click', ()=>{
+            newBtn.addEventListener('click', async ()=>{
                 editId = null;
-                const reqEl = document.getElementById('req_login');
-                if(reqEl){ reqEl.value = currentUser || ''; if(currentUser) reqEl.setAttribute('disabled','disabled'); else reqEl.removeAttribute('disabled'); }
-                document.getElementById('name').value = '';
-                document.getElementById('phone_number').value = '';
-                document.getElementById('nationality').value = '';
+                // Prefill req_login with logged-in user; keep the field disabled when logged-in
+                const loginEl = document.getElementById('req_login');
+                if(loginEl){
+                    loginEl.value = currentUser || '';
+                    if(currentUser) loginEl.setAttribute('disabled','disabled'); else loginEl.removeAttribute('disabled');
+                }
+                // Clear fields first; we'll try to fill from foreign_worker_master if available
+                const nameEl = document.getElementById('name');
+                const phoneEl = document.getElementById('phone_number');
+                const natEl = document.getElementById('nationality');
+                nameEl.value = '';
+                phoneEl.value = '';
+                natEl.value = '';
                 document.getElementById('counseler').value = '';
                 document.getElementById('req_type').value = '질문';
                 document.getElementById('title').value = '';
-                document.getElementById('req_content').value = '';
+                document.getElementById('content').value = '';
+
+                // If we have a logged-in user, attempt to fetch their master info
+                try{
+                    if(currentUser){
+                        const resp = await fetch(`${EFFECTIVE_BASE}/api/foreign_worker_master?user_id=${encodeURIComponent(currentUser)}`, { credentials: 'same-origin' });
+                        if(resp && resp.ok){
+                            const j = await resp.json();
+                            if(j && j.ok && j.found && j.data){
+                                if(j.data.name) nameEl.value = j.data.name;
+                                if(j.data.phone_number) phoneEl.value = j.data.phone_number;
+                                if(j.data.nationality) natEl.value = j.data.nationality;
+                            }
+                        }
+                    }
+                }catch(e){
+                    console.debug('foreign_worker_master fetch failed', e);
+                }
+
                 formPanel.style.display = 'block';
                 viewPanel.style.display = 'none';
-                document.getElementById('formTitle').textContent = '대출상담 입력';
+                document.getElementById('formTitle').textContent = '대출상담요청 입력';
             });
             cancelBtn.addEventListener('click', ()=>{ formPanel.style.display = 'none'; editId=null; });
             closeViewBtn.addEventListener('click', ()=>{ viewPanel.style.display = 'none'; editId=null; });
@@ -386,10 +428,17 @@
             navLogout.addEventListener('click', async function(e){
                 e.preventDefault();
                 try {
-                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+                    const response = await fetch('/server/api/auth/logout', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 'login-id': null })
+                    });
                     const result = await response.json();
                     if (result.ok) {
-                        alert('로그아웃되었습니다');
+                        // localStorage에서 login-id 제거
+                        localStorage.removeItem('login-id');
+                        alert('로그아웃이 정상적으로 되었습니다');
                         window.location.href = 'login.html';
                     }
                 } catch (err) {

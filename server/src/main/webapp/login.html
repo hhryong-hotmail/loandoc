@@ -70,21 +70,21 @@
     </header>
     <nav class="nav-columns" aria-label="주요 네비게이션">
         <div class="nav-column">
-            <a class="nav-button" href="/home.html">LOANDOC</a>
-            <a class="nav-button" href="/introCo.html">회사소개</a>
-            <a class="nav-button" href="/intro.html">상품소개</a>
+            <a class="nav-button" href="home.html">LOANDOC</a>
+            <a class="nav-button" href="introCo.html">회사소개</a>
+                <a class="nav-button" href="intro.html">상품소개</a>
         </div>
         <div class="nav-column">
-            <a class="nav-button" href="/login.html">로그인</a>
+            <a class="nav-button" href="login.html">로그인</a>
             <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출조회</a>
-            <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
+            <a class="nav-button" href="loanDashboard.html">대출상담요청게시판</a>
         </div>
         <div class="nav-column">
-            <a class="nav-button" href="/dashboard.html">게시판</a>
-            <a class="nav-button" href="/customer.html">고객센터</a>
+            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
         </div>
     </nav>
     <hr class="header-divider" aria-hidden="true">
@@ -97,8 +97,8 @@
             <input id="loginPwd" type="password" placeholder="비밀번호 입력" />
             <div class="button-group">
                 <button id="loginBtn">로그인</button>
-                <a href="/signup.html" class="signup-btn">회원가입</a>
-                <button id="workerInfoBtn" class="worker-info-btn">개인정보</button>
+                <a href="/server/signup.html" class="signup-btn">회원가입</a>
+                <a href="/server/workerInfo.html" id="workerInfoBtn" class="worker-info-btn">개인정보</a>
             </div>
             <a href="#" id="forgotPasswordLink" class="forgot-password-link">비밀번호를 잊으셨나요?</a>
             <div id="loginMsg" class="muted">아이디가 없으면 회원가입을 통해 계정을 생성하십시오.</div>
@@ -187,7 +187,7 @@
                 resetMsg.textContent = '처리 중...';
                 resetMsg.style.color = '#666';
 
-                const response = await fetch('/api/auth/reset-password', {
+                const response = await fetch('/server/api/auth/reset-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, email })
@@ -222,13 +222,21 @@
         document.getElementById('nav-logout')?.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
-                const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+                const response = await fetch('/server/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 'login-id': null })
+                });
                 const result = await safeParseJson(response);
                 if (result && result.ok) {
-                    // clear client-side login state and redirect
                     currentUserId = null;
-                    alert('로그아웃되었습니다');
-                    window.location.href = '/login.html';
+                    // localStorage에서 login-id와 접근 시간 제거
+                    localStorage.removeItem('login-id');
+                    localStorage.removeItem('login-access-time');
+                    alert('로그아웃이 정상적으로 되었습니다');
+                    // 로그아웃 성공 시 login.html로 이동
+                    window.location.href = 'login.html';
                 } else {
                     alert('로그아웃 처리 중 오류가 발생했습니다');
                 }
@@ -251,29 +259,27 @@
         })();
         const EFFECTIVE_BASE = APP_BASE || '';
 
-        // 페이지 로드 시 서버 세션이 연결되어 있으면 로그인 아이디를 입력창에 표시
-        async function populateLoginIdFromSession(){
+        // 페이지 로드 시 localStorage에서 로그인 아이디를 입력창에 표시
+        function populateLoginIdFromStorage(){
             try{
-                const resp = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                if(!resp.ok) return;
-                const data = await safeParseJson(resp);
-                if(data && data.authenticated && data.userId){
+                const loginId = localStorage.getItem('login-id');
+                if(loginId && loginId.trim() !== ''){
                     const input = document.getElementById('loginId');
-                    if(input) input.value = data.userId;
-                    // reflect session state in client variable
-                    currentUserId = data.userId;
+                    if(input) input.value = loginId;
+                    // reflect login state in client variable
+                    currentUserId = loginId;
                 }
             }catch(err){
                 // 실패해도 동작에 영향없음
-                console.debug('populateLoginIdFromSession error', err);
+                console.debug('populateLoginIdFromStorage error', err);
             }
         }
 
         // 실행: DOM 준비 후 호출
         if(document.readyState === 'complete' || document.readyState === 'interactive'){
-            populateLoginIdFromSession();
+            populateLoginIdFromStorage();
         } else {
-            window.addEventListener('DOMContentLoaded', populateLoginIdFromSession);
+            window.addEventListener('DOMContentLoaded', populateLoginIdFromStorage);
         }
 
         // 서버 세션 기반 로그인 구현
@@ -300,7 +306,7 @@
             }
             
             try {
-                const response = await fetch('/api/auth/login', { credentials: 'same-origin',
+                const response = await fetch('/server/api/auth/login', { credentials: 'include',
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, password: pw })
@@ -313,6 +319,9 @@
                         loginMsg.style.color = 'green';
                         // reflect login state
                         currentUserId = id;
+                        // localStorage에 login-id와 접근 시간 저장
+                        localStorage.setItem('login-id', id);
+                        localStorage.setItem('login-access-time', new Date().toISOString());
                     } else {
                         loginMsg.textContent = (result && result.error) ? result.error : '로그인 실패';
                         loginMsg.style.color = 'red';
@@ -330,11 +339,6 @@
         // 개인정보 버튼 클릭 이벤트
         document.getElementById('workerInfoBtn').addEventListener('click', async () => {
             const loginMsg = document.getElementById('loginMsg');
-            // 이미 로그인되어 있으면 개인정보 페이지로 바로 이동
-            if(currentUserId){
-                window.location.href = '/workerInfo.html';
-                return;
-            }
 
             // 이전 메시지 삭제
             loginMsg.textContent = '아이디가 없으면 회원가입을 통해 계정을 생성하십시오.';
@@ -350,7 +354,7 @@
             }
             
             try {
-                const response = await fetch('/api/auth/login', { credentials: 'same-origin',
+                const response = await fetch('/server/api/auth/login', { credentials: 'include',
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, password: pw })
@@ -361,8 +365,11 @@
                     if (result && result.ok) {
                         // 로그인 성공 상태 반영
                         currentUserId = id;
+                        // localStorage에 login-id와 접근 시간 저장
+                        localStorage.setItem('login-id', id);
+                        localStorage.setItem('login-access-time', new Date().toISOString());
                         // 개인정보 페이지로 이동
-                        window.location.href = '/workerInfo.html';
+                        window.location.href = 'workerInfo.html';
                     } else {
                         loginMsg.textContent = (result && result.error) ? result.error : '로그인 실패';
                         loginMsg.style.color = 'red';
@@ -390,6 +397,10 @@
             const stripped = txt.replace(/\s+/g,' ').trim();
             throw new Error('서버가 JSON이 아닌 응답을 반환했습니다: ' + (stripped.length>200? stripped.slice(0,200)+'...': stripped));
         }
+    </script>
+    <script>
+    // 페이지 로드 시 loadUserProfile 실행 (login.html에는 정의되어 있지 않으므로 주석 처리)
+    // window.addEventListener('DOMContentLoaded', loadUserProfile);
     </script>
 </body>
 </html>

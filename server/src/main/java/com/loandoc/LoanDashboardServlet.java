@@ -20,12 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet(urlPatterns = {"/api/loan_dashboard", "/api/loan_dashboard/*"})
+@WebServlet(urlPatterns = {"/server/loan_dashboard"})
 public class LoanDashboardServlet extends HttpServlet {
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/loandoc";
     private static final String DB_USER = "postgres";
     private static final String DB_PASSWORD = "postgres";
-
+    private static final long serialVersionUID = 1L;
+    
     static {
         try {
             // Ensure the PostgreSQL JDBC driver is loaded and registered with DriverManager
@@ -61,6 +62,8 @@ public class LoanDashboardServlet extends HttpServlet {
             String order = req.getParameter("order");
             listRequests(q, reqType, order, resp, mapper);
         }
+        // (테스트용) 임시 응답 코드 예시
+        // resp.getWriter().write("{\"ok\": true, \"rows\": []}");
     }
 
     @Override
@@ -89,8 +92,8 @@ public class LoanDashboardServlet extends HttpServlet {
         String phone = body.has("phone_number") ? body.get("phone_number").asText() : null;
         String nationality = body.has("nationality") ? body.get("nationality").asText() : null;
         String reqType = body.has("req_type") ? body.get("req_type").asText() : null;
-        String reqContent = body.has("req_content") ? body.get("req_content").asText() : null;
-        createRequest(reqLogin, counseler, name, phone, nationality, reqType, title, reqContent, resp, mapper);
+        String content = body.has("content") ? body.get("content").asText() : null;
+        createRequest(reqLogin, counseler, name, phone, nationality, reqType, title, content, resp, mapper);
     }
 
     @Override
@@ -115,8 +118,8 @@ public class LoanDashboardServlet extends HttpServlet {
             String nationality = body.has("nationality") ? body.get("nationality").asText() : null;
             String reqType = body.has("req_type") ? body.get("req_type").asText() : null;
             String title = body.has("title") ? body.get("title").asText() : null;
-            String reqContent = body.has("req_content") ? body.get("req_content").asText() : null;
-            updateRequest(id, counseler, name, phone, nationality, reqType, title, reqContent, resp, mapper);
+            String content = body.has("content") ? body.get("content").asText() : null;
+            updateRequest(id, counseler, name, phone, nationality, reqType, title, content, resp, mapper);
         } catch (NumberFormatException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().write("{\"ok\":false,\"error\":\"Invalid ID\"}");
@@ -152,14 +155,14 @@ public class LoanDashboardServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            StringBuilder sql = new StringBuilder("SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, created_at, updated_at FROM loan_dashboard WHERE 1=1");
+            StringBuilder sql = new StringBuilder("SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, content, created_at, updated_at FROM loan_dashboard WHERE 1=1");
             List<String> params = new ArrayList<>();
             if (reqType != null && !reqType.trim().isEmpty() && !reqType.equals("전체")) {
                 sql.append(" AND req_type = ?");
                 params.add(reqType);
             }
             if (q != null && !q.trim().isEmpty()) {
-                sql.append(" AND (title ILIKE ? OR req_content ILIKE ? OR req_login ILIKE ? OR name ILIKE ?)");
+                sql.append(" AND (title ILIKE ? OR content ILIKE ? OR req_login ILIKE ? OR name ILIKE ?)");
                 String p = "%" + q + "%";
                 params.add(p); params.add(p); params.add(p); params.add(p);
             }
@@ -182,7 +185,7 @@ public class LoanDashboardServlet extends HttpServlet {
                 row.put("nationality", rs.getString("nationality"));
                 row.put("req_type", rs.getString("req_type"));
                 row.put("title", rs.getString("title"));
-                row.put("req_content", rs.getString("req_content"));
+                row.put("content", rs.getString("content"));
                 row.put("created_at", rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toString() : "");
                 row.put("updated_at", rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toString() : "");
                 rows.add(row);
@@ -207,7 +210,7 @@ public class LoanDashboardServlet extends HttpServlet {
         Connection conn = null; PreparedStatement stmt = null; ResultSet rs = null;
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, req_content, created_at, updated_at FROM loan_dashboard WHERE req_id = ?";
+            String sql = "SELECT req_id, req_login, counseler, name, phone_number, nationality, req_type, title, content, created_at, updated_at FROM loan_dashboard WHERE req_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, id);
             rs = stmt.executeQuery();
@@ -221,7 +224,7 @@ public class LoanDashboardServlet extends HttpServlet {
                 row.put("nationality", rs.getString("nationality"));
                 row.put("req_type", rs.getString("req_type"));
                 row.put("title", rs.getString("title"));
-                row.put("req_content", rs.getString("req_content"));
+                row.put("content", rs.getString("content"));
                 row.put("created_at", rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toString() : "");
                 row.put("updated_at", rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toString() : "");
 
@@ -240,7 +243,7 @@ public class LoanDashboardServlet extends HttpServlet {
         Connection conn = null; PreparedStatement stmt = null; ResultSet rs = null;
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "INSERT INTO loan_dashboard (req_login, counseler, name, phone_number, nationality, req_type, title, req_content) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING req_id";
+            String sql = "INSERT INTO loan_dashboard (req_login, counseler, name, phone_number, nationality, req_type, title, content) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING req_id";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, reqLogin);
             stmt.setString(2, counseler);
@@ -265,7 +268,7 @@ public class LoanDashboardServlet extends HttpServlet {
         Connection conn = null; PreparedStatement stmt = null;
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "UPDATE loan_dashboard SET counseler = ?, name = ?, phone_number = ?, nationality = ?, req_type = ?, title = ?, req_content = ?, updated_at = CURRENT_TIMESTAMP WHERE req_id = ?";
+            String sql = "UPDATE loan_dashboard SET counseler = ?, name = ?, phone_number = ?, nationality = ?, req_type = ?, title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE req_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, counseler);
             stmt.setString(2, name);

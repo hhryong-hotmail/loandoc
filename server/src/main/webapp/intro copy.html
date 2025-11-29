@@ -3,14 +3,16 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LOANDOC - 고객센터</title>
+    <title>LOANDOC - 상품소개</title>
     <style>
         body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
     header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
+    main{max-width:none;width:100%;margin:24px 0;background:#f6f6f6;padding:18px 24px;border-radius:8px;box-sizing:border-box}
     nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
     .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
-    main{max-width:none;width:100%;margin:24px 0;background:#f6f6f6;padding:18px 24px;border-radius:8px;box-sizing:border-box}
+    /* (removed right-align rule so buttons stay adjacent) */
         .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        .title{font-size:1.4rem;font-weight:800;color:#2d6cdf}
     </style>
     <style>
     /* Column based nav (shared) */
@@ -48,55 +50,14 @@
             <a class="nav-button" href="customer.html">고객센터</a>
         </div>
     </nav>
-    <hr
+    <hr />
     <main>
         <div class="hero">
-            <h2>고객센터</h2>
-            <p class="note">문의사항은 이메일 example@loandoc.local 또는 전화 000-0000-0000로 연락주세요.</p>
+            <div class="title">LOANDOC의 금융상품</div>
+            <p class="note">여기에 서비스가 제공하는 대출 상품 및 특징을 간단히 소개하세요.</p>
         </div>
     </main>
     <script>
-        // 접근 시간 확인 및 자동 로그아웃 처리
-        function checkAccessTime() {
-            try {
-                const loginId = localStorage.getItem('login-id');
-                const accessTimeStr = localStorage.getItem('login-access-time');
-                
-                if (!loginId || !accessTimeStr) {
-                    return false;
-                }
-                
-                // 접근 시간 확인 (10분 = 600000 밀리초)
-                const accessTime = new Date(accessTimeStr);
-                const currentTime = new Date();
-                const timeDiff = currentTime.getTime() - accessTime.getTime();
-                const tenMinutes = 10 * 60 * 1000; // 10분
-                
-                if (timeDiff > tenMinutes) {
-                    // 10분 이상 경과 시 자동 로그아웃
-                    localStorage.removeItem('login-id');
-                    localStorage.removeItem('login-access-time');
-                    alert('10분 이상 비활성 상태로 인해 자동 로그아웃되었습니다. 다시 로그인해주세요.');
-                    window.location.href = 'login.html';
-                    return false;
-                }
-                
-                // 접근 시간 업데이트
-                localStorage.setItem('login-access-time', new Date().toISOString());
-                return true;
-            } catch (e) {
-                console.error('Access time check error', e);
-                return false;
-            }
-        }
-
-        // 페이지 로드 시 접근 시간 확인
-        if(document.readyState === 'complete' || document.readyState === 'interactive'){
-            checkAccessTime();
-        } else {
-            window.addEventListener('DOMContentLoaded', checkAccessTime);
-        }
-
         // 네비게이션 로그아웃 버튼
         const navLogout = document.getElementById('nav-logout');
         if(navLogout){
@@ -111,9 +72,8 @@
                     });
                     const result = await response.json();
                     if (result.ok) {
-                        // localStorage에서 login-id와 접근 시간 제거
+                        // localStorage에서 login-id 제거
                         localStorage.removeItem('login-id');
-                        localStorage.removeItem('login-access-time');
                         alert('로그아웃이 정상적으로 되었습니다');
                         window.location.href = 'login.html';
                     }

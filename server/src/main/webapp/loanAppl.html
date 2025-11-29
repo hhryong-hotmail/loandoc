@@ -178,7 +178,7 @@
         <div class="nav-column">
             <a class="nav-button" href="home.html">LOANDOC</a>
             <a class="nav-button" href="introCo.html">회사소개</a>
-            <a class="nav-button" href="intro.html">상품소개</a>
+                <a class="nav-button" href="intro.html">상품소개</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
@@ -188,7 +188,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출조회</a>
-                <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
+                <a class="nav-button" href="loanDashboard.html">대출상담요청게시판</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
@@ -599,21 +599,81 @@
         })();
         const EFFECTIVE_BASE = APP_BASE || '';
 
-        // 페이지 로드 시 세션 확인하여 로그인 상태 업데이트
-        async function checkLoginStatus() {
+        // 접근 시간 확인 및 자동 로그아웃 처리
+        function checkAccessTime() {
+            // 이미 리다이렉트 중이면 실행하지 않음
+            if(isRedirecting) return false;
+            
             try {
-                const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                const result = await response.json();
+                const loginId = localStorage.getItem('login-id');
+                const accessTimeStr = localStorage.getItem('login-access-time');
                 
-                if (result.authenticated && result.userId) {
-                    currentUserId = result.userId;
-                    updateLoginDisplay(result.userId);
+                if (!loginId || !accessTimeStr) {
+                    // 로그인 정보가 없으면 로그인 페이지로 리다이렉트
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    loginPromptShown = true; // 알림 표시 플래그 설정
+                    alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // 접근 시간 확인 (10분 = 600000 밀리초)
+                const accessTime = new Date(accessTimeStr);
+                const currentTime = new Date();
+                const timeDiff = currentTime.getTime() - accessTime.getTime();
+                const tenMinutes = 10 * 60 * 1000; // 10분
+                
+                if (timeDiff > tenMinutes) {
+                    // 10분 이상 경과 시 자동 로그아웃
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    loginPromptShown = true; // 알림 표시 플래그 설정
+                    localStorage.removeItem('login-id');
+                    localStorage.removeItem('login-access-time');
+                    alert('10분 이상 비활성 상태로 인해 자동 로그아웃되었습니다. 다시 로그인해주세요.');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // 접근 시간 업데이트
+                localStorage.setItem('login-access-time', new Date().toISOString());
+                return true;
+            } catch (e) {
+                console.error('Access time check error', e);
+                if(!isRedirecting) {
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    loginPromptShown = true; // 알림 표시 플래그 설정
+                    alert('로그인 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    window.location.href = 'login.html';
+                }
+                return false;
+            }
+        }
+
+        // 페이지 로드 시 localStorage에서 로그인 상태 업데이트
+        function checkLoginStatus() {
+            // 리다이렉트 중이면 실행하지 않음
+            if(isRedirecting) return;
+            
+            try {
+                // 먼저 접근 시간 확인
+                if (!checkAccessTime()) {
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    currentUserId = null;
+                    updateLoginDisplay(null);
+                    return;
+                }
+                
+                const loginId = localStorage.getItem('login-id');
+                
+                if (loginId && loginId.trim() !== '') {
+                    currentUserId = loginId.trim();
+                    updateLoginDisplay(loginId.trim());
                 } else {
                     currentUserId = null;
                     updateLoginDisplay(null);
                 }
             } catch (e) {
-                console.error('Session check error', e);
+                console.error('Login check error', e);
                 currentUserId = null;
                 updateLoginDisplay(null);
             }
@@ -635,24 +695,26 @@
                 if (userId) {
                     loginLabel.textContent = userId;
                     loginLabel.style.display = 'inline';
-                    
                     // 사용자 이름 가져오기
                     if (userNameLabel) {
                         try {
-                            const response = await fetch('/api/foreign_worker_master');
+                            // GET 방식으로 login-id를 쿼리 파라미터로 전달
+                            const url = `/server/api/foreign_worker_master?login-id=${encodeURIComponent(userId)}`;
+                            const response = await fetch(url, { credentials: 'include' });
                             const result = await response.json();
-                            
                             if (result.ok && result.found && result.data && result.data.name) {
                                 userNameLabel.textContent = '(' + result.data.name + ')';
                                 userNameLabel.style.display = 'inline';
                             } else {
-                                // 이름이 없으면 개인정보 입력 필요
                                 userNameLabel.textContent = '';
                                 userNameLabel.style.display = 'none';
-                                
-                                // 팝업 띄우고 workerInfo.html로 리디렉션
-                                console.warn('개인 정보를 입력하십시오');
-                                window.location.href = 'workerInfo.html';
+                                // 이름이 없으면 알림창을 띄우고 개인정보 입력/로그인 선택
+                                const goInfo = window.confirm('개인정보(이름)가 없습니다.\n개인정보 입력 화면으로 이동하시겠습니까?\n취소를 누르면 로그인 화면으로 이동합니다.');
+                                if (goInfo) {
+                                    window.location.href = 'workerInfo.html';
+                                } else {
+                                    window.location.href = 'login.html';
+                                }
                             }
                         } catch (error) {
                             console.error('이름 로드 오류:', error);
@@ -667,6 +729,7 @@
                         userNameLabel.textContent = '';
                         userNameLabel.style.display = 'none';
                     }
+                    // userId가 없으면 UI만 업데이트 (알림은 requireLoginPromptOnLoad에서 처리)
                 }
             }
         }
@@ -679,11 +742,19 @@
             navLogout.addEventListener('click', async function(e){
                 e.preventDefault();
                 try {
-                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+                    const response = await fetch('/server/api/auth/logout', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 'login-id': null })
+                    });
                     const result = await response.json();
                     if (result.ok) {
-                        console.log('로그아웃되었습니다');
-                        window.location.href = 'login.html';
+                    // localStorage에서 login-id와 접근 시간 제거
+                    localStorage.removeItem('login-id');
+                    localStorage.removeItem('login-access-time');
+                    alert('로그아웃이 정상적으로 되었습니다');
+                    window.location.href = 'login.html';
                     }
                 } catch (err) {
                     console.error('Logout error', err);
@@ -721,9 +792,20 @@
             const loading = document.getElementById('terms-loading');
             try{
                 // Use absolute path for consistent routing
-                const res = await fetch('/api/documents/groups');
+                const res = await fetch('/server/api/documents/groups');
                 if(!res.ok) throw new Error('네트워크 오류');
-                const items = await res.json();
+                let text = await res.text();
+                let items = null;
+                try {
+                    items = JSON.parse(text);
+                } catch(parseErr) {
+                    // JSON 파싱 실패: HTML 등 비정상 응답
+                    let preview = text.slice(0, 120);
+                    alert('목록 불러오기 실패: 서버에서 올바른 JSON이 반환되지 않았습니다.\n\n응답 미리보기:\n' + preview);
+                    if(loading) loading.textContent = '목록 불러오기 실패: 서버 응답이 올바르지 않습니다.';
+                    console.error('loadTermsList: JSON parse error', parseErr, '\n서버 응답:', preview);
+                    return;
+                }
                 // Expect items to be an array of {group_name, select_option}
                 container.innerHTML = '';
                 if(!Array.isArray(items) || items.length === 0){
@@ -788,29 +870,29 @@
                 viewBtn.textContent = '조회';
                 viewBtn.type = 'button';
                 viewBtn.addEventListener('click', async function(){
-                    // Check all checkboxes
+                    // ...기존 코드 그대로...
                     const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
                     const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
-                    
                     // Find required terms (select_option contains '필수')
                     const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
                         const selectOption = cb.getAttribute('data-select-option') || '';
                         return selectOption.includes('필수') && !cb.checked;
                     });
-                    
-                    // Alert if any required terms are unchecked
                     if(requiredUnchecked.length > 0){
                         console.warn('필수 약관의 동의가 필요합니다');
                         return;
                     }
-                    
                     if(checked.length === 0){
                         console.warn('필수 약관을 체크해주세요.');
                         return;
                     }
-                    
                     // Collect form data
-                    const loginId = currentUserId; // 서버 세션에서 가져온 사용자 ID 사용
+                    const loginId = localStorage.getItem('login-id') || currentUserId || '';
+                    if (!loginId || loginId.trim() === '') {
+                        alert('로그인이 필요합니다. 로그인 화면으로 이동합니다.');
+                        window.location.href = 'login.html';
+                        return;
+                    }
                     const nationality = document.getElementById('action-nationality')?.value || '';
                     const remainMonths = document.getElementById('remain_months')?.value || '';
                     const annualIncome = document.getElementById('annual_income')?.value || '';
@@ -818,10 +900,9 @@
                     const workingMonths = document.getElementById('working_months')?.value || '';
                     const visaType = document.getElementById('visa_type')?.value || '';
                     const healthInsurance = document.getElementById('health_insurance')?.value || '';
-                    
                     // Debug: Log all field values
                     console.log('=== 입력 필드 확인 ===');
-                    console.log('로그인ID:', loginId, '(서버 세션 필요)');
+                    console.log('로그인ID:', loginId);
                     console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
                     console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
                     console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
@@ -829,7 +910,6 @@
                     console.log('재직기간:', workingMonths, '(element:', document.getElementById('working_months'), ')');
                     console.log('비자종류:', visaType, '(element:', document.getElementById('visa_type'), ')');
                     console.log('의료보험:', healthInsurance, '(element:', document.getElementById('health_insurance'), ')');
-                    
                     // Validate required fields
                     const missingFields = [];
                     if(!loginId) missingFields.push('로그인ID (로그인이 필요합니다)');
@@ -839,13 +919,11 @@
                     if(!age) missingFields.push('나이');
                     if(!workingMonths) missingFields.push('재직기간');
                     if(!visaType) missingFields.push('비자종류');
-                    
                     if(missingFields.length > 0){
                         console.error('누락된 필드:', missingFields);
                         console.warn('모든 필드를 입력해주세요. 누락된 필드: ' + missingFields.join(', '));
                         return;
                     }
-                    
                     // Send to server
                     try{
                         const requestData = {
@@ -861,24 +939,18 @@
                         console.log('=== 서버로 전송할 데이터 ===');
                         console.log('healthInsurance 값:', healthInsurance);
                         console.log('전체 데이터:', requestData);
-                        
-                        const res = await fetch('/api/server/loan-estimate', {
+                        const res = await fetch('/server/api/server/loan-estimate', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify(requestData)
                         });
-                        
                         if(!res.ok) throw new Error('서버 오류');
                         const result = await res.json();
-
                         // Client-side safeguards and immediate Jeonbuk popups removed per request.
-                        
                         // Remove any cached result then store fresh result in sessionStorage
                         sessionStorage.removeItem('loanEstimateResult');
                         sessionStorage.removeItem('loanEstimateInput');
-
                         // Jeonbuk immediate popup logic removed.
-
                         sessionStorage.setItem('loanEstimateResult', JSON.stringify(result));
                         sessionStorage.setItem('loanEstimateInput', JSON.stringify({
                             loginId,
@@ -889,7 +961,6 @@
                             workingMonths,
                             visaType
                         }));
-                        
                         // Display result in the same page
                         displayLoanResult(result, {
                             loginId,
@@ -901,9 +972,7 @@
                             visaType,
                             healthInsurance
                         });
-
                         // Jeonbuk quick visibility popup removed.
-                        
                     }catch(err){
                         console.error('대출 조회 오류:', err);
                         console.error('대출 조회 중 오류가 발생했습니다.');
@@ -911,7 +980,6 @@
                 });
                 footer.appendChild(viewBtn);
                 container.appendChild(footer);
-
                 // Position the terms list to align with the left edge of the 약관동의 button on desktop.
                 // If the function isn't available (older browsers), this will silently fail.
                 if (typeof positionTermsList === 'function') {
@@ -1186,6 +1254,7 @@
                     if (!hasFailure) {
                         const applyBtn = document.createElement('button');
                         applyBtn.type = 'button';
+                        applyBtn.className = 'loan-apply-btn';
                         applyBtn.textContent = '신청';
                         applyBtn.style.background = '#28a745';
                         applyBtn.style.color = '#fff';
@@ -1300,7 +1369,7 @@
             
             try{
                 // Fetch details from server (absolute path)
-                    const res = await fetch('/api/server/group-details?group_name=' + encodeURIComponent(groupName));
+                    const res = await fetch('/server/api/server/group-details?group_name=' + encodeURIComponent(groupName));
                 if(!res.ok) throw new Error('네트워크 오류');
                 const items = await res.json();
                 
@@ -1406,7 +1475,7 @@
             
             try{
                 // Fetch content from server (absolute path)
-                const res = await fetch('/api/documents/content?title=' + encodeURIComponent(title));
+                const res = await fetch('/server/api/documents/content?title=' + encodeURIComponent(title));
                 if(!res.ok) throw new Error('네트워크 오류');
                 const data = await res.json();
                 
@@ -1622,59 +1691,59 @@
             }
         }
 
-        // Check if user is logged in via server session
-        async function requireLoginPromptOnLoad(){
+        // Check if user is logged in via localStorage
+        let loginPromptShown = false; // 플래그 추가
+        let isRedirecting = false; // 리다이렉트 중 플래그 추가
+        function requireLoginPromptOnLoad(){
+            // 이미 알림이 표시되었거나 리다이렉트 중이면 중복 실행 방지
+            if(loginPromptShown || isRedirecting) return;
+            
             try{
-                // 서버 세션 확인
-                const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                const result = await response.json();
+                // 먼저 접근 시간 확인
+                if (!checkAccessTime()) {
+                    loginPromptShown = true;
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    return; // checkAccessTime에서 이미 로그아웃 처리 및 리다이렉트 완료
+                }
                 
-                if(!result.authenticated){
+                // localStorage에서 login-id 확인
+                const loginId = localStorage.getItem('login-id');
+                
+                if(!loginId || loginId.trim() === ''){
+                    loginPromptShown = true; // 플래그 설정
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
                     const ok = window.confirm('로그인을 먼저 하십시오');
                     if(ok){
                         window.location.href = 'login.html';
                     }
                 } else {
-                    console.log('User logged in:', result.userId);
+                    console.log('User logged in:', loginId);
                     // 로그인 상태 표시 업데이트
-                    currentUserId = result.userId;
-                    updateLoginDisplay(result.userId);
+                    currentUserId = loginId.trim();
+                    updateLoginDisplay(loginId.trim());
                 }
             }catch(e){
-                console.error('Session check error', e);
-                const ok = window.confirm('로그인을 먼저 하십시오');
-                if(ok){
-                    window.location.href = 'login.html';
+                console.error('Login check error', e);
+                if(!loginPromptShown && !isRedirecting) {
+                    loginPromptShown = true; // 플래그 설정
+                    isRedirecting = true; // 리다이렉트 중 플래그 설정
+                    const ok = window.confirm('로그인을 먼저 하십시오');
+                    if(ok){
+                        window.location.href = 'login.html';
+                    }
                 }
             }
         }
 
         // Load terms when the page finishes loading and position dynamic elements
         if(document.readyState === 'complete' || document.readyState === 'interactive'){
-            // Prompt for login if needed, then load terms and position elements
-            checkLoginStatus(); // 먼저 로그인 상태 확인
+            // Prompt for login if needed, then position elements (자동 목록조회/terms 불러오기 제거)
+            // checkLoginStatus()는 requireLoginPromptOnLoad() 내부에서 처리되므로 중복 호출 제거
             requireLoginPromptOnLoad();
-            loadTermsList();
-            // ensure a recalculation shortly after load (images/fonts/layout may affect positions)
-            setTimeout(function(){ positionTermsList(); positionActionItems(); }, 120);
-            
-            // Add event listeners for sort option radio buttons
-            document.querySelectorAll('input[name="sortOption"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (lastLoanResult && lastInputData) {
-                        displayLoanResult(lastLoanResult, lastInputData);
-                    }
-                });
-            });
-            // Jeonbuk pending-popup fallback handling removed.
-        } else {
-            window.addEventListener('DOMContentLoaded', function(){ 
-                checkLoginStatus(); // 먼저 로그인 상태 확인
-                requireLoginPromptOnLoad(); 
-                loadTermsList(); 
-                setTimeout(function(){ positionTermsList(); positionActionItems(); },120);
-                
-                // Add event listeners for sort option radio buttons
+            if(!isRedirecting) {
+                setTimeout(function(){ positionTermsList(); positionActionItems(); }, 120);
+                loadTermsList();
+                // Add event listeners for sort option radio buttons (자동 목록조회 제거)
                 document.querySelectorAll('input[name="sortOption"]').forEach(radio => {
                     radio.addEventListener('change', function() {
                         if (lastLoanResult && lastInputData) {
@@ -1682,7 +1751,23 @@
                         }
                     });
                 });
-                // Jeonbuk pending-popup fallback handling removed.
+            }
+        } else {
+            window.addEventListener('DOMContentLoaded', function(){ 
+                // checkLoginStatus()는 requireLoginPromptOnLoad() 내부에서 처리되므로 중복 호출 제거
+                requireLoginPromptOnLoad();
+                if(!isRedirecting) {
+                    setTimeout(function(){ positionTermsList(); positionActionItems(); },120);
+                    loadTermsList();
+                    // Add event listeners for sort option radio buttons (자동 목록조회 제거)
+                    document.querySelectorAll('input[name="sortOption"]').forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            if (lastLoanResult && lastInputData) {
+                                displayLoanResult(lastLoanResult, lastInputData);
+                            }
+                        });
+                    });
+                }
             });
         }
 
@@ -1734,42 +1819,59 @@
             closeApplyConfirmModal();
         });
 
-        // Submit button: perform a POST to placeholder endpoint; if not available, just show success message
+        // 모든 신청 버튼 비활성화 함수
+        function disableAllApplyButtons() {
+            const applyButtons = document.querySelectorAll('.loan-apply-btn');
+            applyButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.background = '#6c757d';
+                btn.style.cursor = 'not-allowed';
+                btn.style.opacity = '0.6';
+            });
+        }
+
+        // Submit button: 대출 신청 제출
         document.getElementById('apply-confirm-submit')?.addEventListener('click', async function(e){
             e.preventDefault();
-            const ctx = window._loanApplyContext || {};
-            const bank = ctx.bank || {};
-            const input = ctx.input || {};
             try{
-                // Attempt to POST to server endpoint; if it 404s, fallback to client alert
-                const payload = { bankName: bank.bankName || '', input: input };
-                let posted = false;
-                try{
-                    const res = await fetch('/api/loan/apply', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if(res.ok){
-                        const data = await res.json().catch(()=>({}));
-                        alert((data.message || '신청이 정상적으로 제출되었습니다.'));
-                        posted = true;
-                    } else {
-                        // non-OK; show status text
-                        console.warn('apply POST returned', res.status, res.statusText);
-                    }
-                }catch(postErr){
-                    console.debug('apply POST failed (maybe endpoint missing)', postErr);
+                // 모든 신청 버튼 비활성화
+                disableAllApplyButtons();
+
+                // localStorage에서 login-id 가져오기
+                const loginId = localStorage.getItem('login-id');
+                if (!loginId || loginId.trim() === '') {
+                    alert('로그인이 필요합니다. 로그인 화면으로 이동합니다.');
+                    window.location.href = 'login.html';
+                    return;
                 }
 
-                if(!posted){
-                    alert('신청이 제출되었습니다. (테스트 모드 — 서버 제출 엔드포인트가 없거나 실패함)');
+                // login-id와 req-yn=yes를 서버에 전송
+                const payload = {
+                    'login-id': loginId.trim(),
+                    'req-yn': 'yes'
+                };
+
+                const res = await fetch('/server/api/foreign_worker_master', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json().catch(()=>({ok: false, error: '응답 파싱 실패'}));
+                
+                if (res.ok && result.ok) {
+                    alert('대출 신청이 완료되었습니다');
+                    closeApplyConfirmModal();
+                } else {
+                    alert('대출 신청 중 오류가 발생했습니다: ' + (result.error || '알 수 없는 오류'));
+                    // 오류 시 버튼 다시 활성화하지 않음 (이미 신청이 처리되었을 수 있음)
                 }
             }catch(err){
                 console.error('apply submit error', err);
-                alert('신청 중 오류가 발생했습니다.');
+                alert('대출 신청 중 오류가 발생했습니다.');
+                // 오류 시에도 버튼은 비활성화 상태 유지
             }finally{
-                closeApplyConfirmModal();
                 window._loanApplyContext = null;
             }
         });

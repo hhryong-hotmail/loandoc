@@ -45,7 +45,7 @@ if (-not (Test-Path '.\target\server.war')){
 
 Write-Info "Deploying WAR using deploy_war.ps1"
 try{
-    & .\deploy_war.ps1
+    & .\scripts\deploy_war.ps1
 } catch {
     Write-Err "deploy_war.ps1 failed: $_"
     exit 3
@@ -56,9 +56,28 @@ if ($Restart) {
     $shutdown = Join-Path $catalinaBase 'bin\shutdown.bat'
     $startup  = Join-Path $catalinaBase 'bin\startup.bat'
     Write-Info "Restarting Tomcat (shutdown -> startup)"
-    if (Test-Path $shutdown) { & $shutdown } else { Write-Err "shutdown.bat not found: $shutdown" }
-    Start-Sleep -Seconds 3
-    if (Test-Path $startup) { & $startup } else { Write-Err "startup.bat not found: $startup" }
+    
+    # Set environment variables for Tomcat scripts
+    $env:CATALINA_HOME = $catalinaBase
+    $env:CATALINA_BASE = $catalinaBase
+    
+    # Change to bin directory before running shutdown/startup
+    Push-Location (Join-Path $catalinaBase 'bin')
+    try {
+        if (Test-Path $shutdown) { 
+            & $shutdown 
+        } else { 
+            Write-Err "shutdown.bat not found: $shutdown" 
+        }
+        Start-Sleep -Seconds 3
+        if (Test-Path $startup) { 
+            & $startup 
+        } else { 
+            Write-Err "startup.bat not found: $startup" 
+        }
+    } finally {
+        Pop-Location
+    }
     Write-Info "Tomcat restart requested"
 }
 

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,11 +19,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet(urlPatterns = {"/api/dashboard", "/api/dashboard/*"})
+// 서블릿 매핑은 web.xml에 정의됨
 public class DashboardServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/loandoc";
     private static final String DB_USER = "postgres";
     private static final String DB_PASSWORD = "postgres";
+
+    static {
+        try {
+            // Ensure the PostgreSQL JDBC driver is loaded and registered with DriverManager
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            // If driver is not available, keep going; errors will be reported when
+            // attempting connections
+            System.err.println("[DashboardServlet] PostgreSQL JDBC Driver not found: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -35,7 +47,7 @@ public class DashboardServlet extends HttpServlet {
         ObjectMapper mapper = new ObjectMapper();
 
         if (pathInfo != null && !pathInfo.equals("/")) {
-            // GET /api/dashboard/{id} - Get single post
+            // GET /server/dashboard/{id} - Get single post
             String idStr = pathInfo.substring(1);
             try {
                 int msgId = Integer.parseInt(idStr);
@@ -45,9 +57,10 @@ public class DashboardServlet extends HttpServlet {
                 resp.getWriter().write("{\"ok\":false,\"error\":\"Invalid ID\"}");
             }
         } else {
-            // GET /api/dashboard?q=&msg_type= - List posts
+            // GET /server/dashboard?q=&msg_type= - List posts
             String query = req.getParameter("q");
             String msgType = req.getParameter("msg_type");
+            System.out.println("[DashboardServlet] query 파라미터: " + query);
             listPosts(query, msgType, resp, mapper);
         }
     }
@@ -134,7 +147,8 @@ public class DashboardServlet extends HttpServlet {
         }
     }
 
-    private void listPosts(String query, String msgType, HttpServletResponse resp, ObjectMapper mapper) throws IOException {
+    private void listPosts(String query, String msgType, HttpServletResponse resp, ObjectMapper mapper)
+            throws IOException {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -142,13 +156,21 @@ public class DashboardServlet extends HttpServlet {
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
 
-            StringBuilder sql = new StringBuilder("SELECT msg_id, author, title, msg_type, created_date, views FROM dashboard_messages WHERE 1=1");
+                StringBuilder sql = new StringBuilder(
+                    "SELECT msg_id, author, title, msg_type, created_at, updated_at, content, views FROM dashboard WHERE 1=1");
             List<String> params = new ArrayList<>();
 
-            if (msgType != null && !msgType.trim().isEmpty() && !msgType.equals("전체")) {
-                sql.append(" AND msg_type = ?");
-                params.add(msgType);
+            // msgType이 null, 빈 문자열, '전체'(한글 인코딩 포함)일 때 전체 조회
+            if (msgType != null && !msgType.trim().isEmpty()) {
+                String decodedMsgType = java.net.URLDecoder.decode(msgType, "UTF-8");
+                if (!decodedMsgType.equals("전체")) {
+                    sql.append(" AND msg_type = ?");
+                    params.add(decodedMsgType);
+                }
             }
+            // SQL 및 파라미터 로그 출력
+            System.out.println("[DashboardServlet] 실행 SQL: " + sql.toString());
+            System.out.println("[DashboardServlet] 파라미터: " + params);
 
             if (query != null && !query.trim().isEmpty()) {
                 sql.append(" AND (title ILIKE ? OR content ILIKE ? OR author ILIKE ?)");
@@ -158,7 +180,7 @@ public class DashboardServlet extends HttpServlet {
                 params.add(searchPattern);
             }
 
-            sql.append(" ORDER BY created_date DESC");
+            sql.append(" ORDER BY created_at DESC");
 
             stmt = conn.prepareStatement(sql.toString());
             for (int i = 0; i < params.size(); i++) {
@@ -174,8 +196,10 @@ public class DashboardServlet extends HttpServlet {
                 row.put("author", rs.getString("author"));
                 row.put("title", rs.getString("title"));
                 row.put("msg_type", rs.getString("msg_type"));
-                row.put("created_at", rs.getDate("created_date").toString());
-                row.put("updated_at", rs.getDate("created_date").toString());
+                row.put("created_at", rs.getTimestamp("created_at").toString());
+                row.put("updated_at", rs.getTimestamp("updated_at").toString());
+                row.put("content", rs.getString("content"));
+                row.put("views", rs.getInt("views"));
                 rows.add(row);
             }
 
@@ -202,7 +226,9 @@ public class DashboardServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "SELECT msg_id, author, password, title, msg_type, content, created_date, views FROM dashboard_messages WHERE msg_id = ?";
+            String sql = "SELECT msg_id, author, password, title, msg_type, content, created_at, updated_at, views FROM dashboard WHERE msg_id = ?";
+            System.out.println("[DashboardServlet] 실행 SQL: " + sql);
+            System.out.println("[DashboardServlet] 파라미터: [" + msgId + "]");
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, msgId);
             rs = stmt.executeQuery();
@@ -215,8 +241,9 @@ public class DashboardServlet extends HttpServlet {
                 row.put("title", rs.getString("title"));
                 row.put("msg_type", rs.getString("msg_type"));
                 row.put("content", rs.getString("content"));
-                row.put("created_at", rs.getDate("created_date").toString());
-                row.put("updated_at", rs.getDate("created_date").toString());
+                row.put("created_at", rs.getTimestamp("created_at").toString());
+                row.put("updated_at", rs.getTimestamp("updated_at").toString());
+                row.put("views", rs.getInt("views"));
 
                 ObjectNode response = mapper.createObjectNode();
                 response.put("ok", true);
@@ -238,14 +265,17 @@ public class DashboardServlet extends HttpServlet {
         }
     }
 
-    private void createPost(String author, String password, String title, String msgType, String content, HttpServletResponse resp, ObjectMapper mapper) throws IOException {
+    private void createPost(String author, String password, String title, String msgType, String content,
+            HttpServletResponse resp, ObjectMapper mapper) throws IOException {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "INSERT INTO dashboard_messages (author, password, title, msg_type, content) VALUES (?, ?, ?, ?, ?) RETURNING msg_id";
+            String sql = "INSERT INTO dashboard (author, password, title, msg_type, content) VALUES (?, ?, ?, ?, ?) RETURNING msg_id";
+            System.out.println("[DashboardServlet] 실행 SQL: " + sql);
+            System.out.println("[DashboardServlet] 파라미터: [" + author + ", " + password + ", " + title + ", " + msgType + ", " + content + "]");
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, author);
             stmt.setString(2, password);
@@ -274,13 +304,16 @@ public class DashboardServlet extends HttpServlet {
         }
     }
 
-    private void updatePost(int msgId, String title, String msgType, String content, String password, HttpServletResponse resp, ObjectMapper mapper) throws IOException {
+    private void updatePost(int msgId, String title, String msgType, String content, String password,
+            HttpServletResponse resp, ObjectMapper mapper) throws IOException {
         Connection conn = null;
         PreparedStatement stmt = null;
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "UPDATE dashboard_messages SET title = ?, msg_type = ?, content = ? WHERE msg_id = ?";
+            String sql = "UPDATE dashboard SET title = ?, msg_type = ?, content = ? WHERE msg_id = ?";
+            System.out.println("[DashboardServlet] 실행 SQL: " + sql);
+            System.out.println("[DashboardServlet] 파라미터: [" + title + ", " + msgType + ", " + content + ", " + msgId + "]");
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, title);
             stmt.setString(2, msgType);
@@ -315,7 +348,9 @@ public class DashboardServlet extends HttpServlet {
 
         try {
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "DELETE FROM dashboard_messages WHERE msg_id = ?";
+            String sql = "DELETE FROM dashboard WHERE msg_id = ?";
+            System.out.println("[DashboardServlet] 실행 SQL: " + sql);
+            System.out.println("[DashboardServlet] 파라미터: [" + msgId + "]");
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, msgId);
 
@@ -343,9 +378,12 @@ public class DashboardServlet extends HttpServlet {
 
     private void closeResources(ResultSet rs, PreparedStatement stmt, Connection conn) {
         try {
-            if (rs != null) rs.close();
-            if (stmt != null) stmt.close();
-            if (conn != null) conn.close();
+            if (rs != null)
+                rs.close();
+            if (stmt != null)
+                stmt.close();
+            if (conn != null)
+                conn.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

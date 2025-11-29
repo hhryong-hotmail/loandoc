@@ -80,7 +80,7 @@ public class LoginServlet extends HttpServlet {
             dbUrl = "jdbc:postgresql://" + dbUrl;
         }
         if (dbUser == null || dbUser.isEmpty()) dbUser = "postgres";
-        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgresql";
+        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgres";
 
         // DB에서 사용자 확인 및 비밀번호 검증
         boolean authenticated = false;
@@ -97,23 +97,19 @@ public class LoginServlet extends HttpServlet {
                         if (rs.next()) {
                             String hashedPassword = rs.getString("password");
                             
-                            logger.info("=== 로그인 시도 ===");
-                            logger.info("사용자: " + userId);
-                            logger.info("입력된 비밀번호: " + password);
-                            logger.info("DB 해시: " + hashedPassword);
-                            
+                            // Log only non-sensitive info. Avoid logging plaintext passwords or stored hashes.
+                            logger.fine("Login attempt for user: " + userId);
+
                             // bcrypt 해시 검증
-                            at.favre.lib.crypto.bcrypt.BCrypt.Result verifyResult = 
-                                at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(password.toCharArray(), hashedPassword);
-                            
-                            logger.info("검증 결과: " + verifyResult.verified);
-                            logger.info("==================");
-                            
+                            at.favre.lib.crypto.bcrypt.BCrypt.Result verifyResult =
+                                    at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(password.toCharArray(), hashedPassword);
+
                             if (verifyResult.verified) {
                                 authenticated = true;
                                 userName = userId; // user_account 테이블에 name 없으므로 user_id 사용
-                                logger.info("User authenticated from DB: " + userId);
+                                logger.fine("Password verification succeeded for user: " + userId);
                             } else {
+                                // Keep failed attempts at INFO for visibility, still avoid sensitive data
                                 logger.info("Password verification failed for user: " + userId);
                             }
                         } else {

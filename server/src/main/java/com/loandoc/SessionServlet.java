@@ -62,7 +62,8 @@ public class SessionServlet extends HttpServlet {
         }
         
         response.put("ok", true);
-        response.put("message", "로그아웃되었습니다");
+        response.putNull("login-id");
+        response.put("message", "로그아웃 되었습니다");
         
         resp.getWriter().print(mapper.writeValueAsString(response));
     }

@@ -294,6 +294,20 @@ app.post('/api/foreign_worker_master', async (req, res) => {
   }
 });
 
+function mapForeignWorkerRow(row) {
+  if (!row) return null;
+  return {
+    name: row.name || null,
+    nationality: row.nationality || null,
+    passport_number: row.passport_number || null,
+    birth_date: row.birth_date ? row.birth_date.toISOString().split('T')[0] : null,
+    entry_date: row.entry_date ? row.entry_date.toISOString().split('T')[0] : null,
+    phone_number: row.phone_number || null,
+    current_company: row.current_company || null,
+    email: row.email || null
+  };
+}
+
 // Login endpoint - check DB (or file fallback) for id and bcrypt-hashed password
 app.post('/api/login', async (req, res) => {
   const { id, password } = req.body || {};
@@ -384,7 +398,7 @@ app.get('/api/dashboard', async (req, res) => {
     const where = whereClauses.length ? ('WHERE ' + whereClauses.join(' AND ')) : '';
     params.push(pageSize);
     params.push(page * pageSize);
-    const sql = `SELECT msg_id, created_date, author, title, msg_type, views FROM dashboard_messages ${where} ORDER BY created_date DESC LIMIT $${idx} OFFSET $${idx+1}`;
+    const sql = `SELECT msg_id, created_at, author, title, msg_type, views FROM dashboard_messages ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx+1}`;
     const qres = await client.query(sql, params);
     return res.json({ ok: true, rows: qres.rows });
   } catch (err) {
@@ -426,7 +440,7 @@ app.post('/api/dashboard', async (req, res) => {
   const client = getDbClient();
   try {
     await client.connect();
-    const sql = `INSERT INTO dashboard_messages(author,password,title,msg_type,content) VALUES($1,$2,$3,$4,$5) RETURNING msg_id, created_date, author, title, msg_type, views`;
+    const sql = `INSERT INTO dashboard_messages(author,password,title,msg_type,content) VALUES($1,$2,$3,$4,$5) RETURNING msg_id, created_at, author, title, msg_type, views`;
     const qres = await client.query(sql, [author, password, title, msg_type, content]);
     return res.status(201).json({ ok: true, row: qres.rows[0] });
   } catch (err) {
@@ -454,7 +468,7 @@ app.put('/api/dashboard/:id', async (req, res) => {
     idx++;
   }
   params.push(id);
-  const sql = `UPDATE dashboard_messages SET ${setParts.join(',')} WHERE msg_id = $${idx} RETURNING msg_id, created_date, author, title, msg_type, views`;
+  const sql = `UPDATE dashboard_messages SET ${setParts.join(',')} WHERE msg_id = $${idx} RETURNING msg_id, created_at, author, title, msg_type, views`;
   const client = getDbClient();
   try {
     await client.connect();

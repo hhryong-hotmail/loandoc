@@ -19,11 +19,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet("/api/foreign_worker_master")
+@WebServlet(urlPatterns = { "/api/foreign_worker_master" })
 public class ForeignWorkerMasterServlet extends HttpServlet {
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/loandoc";
     private static final String DB_USER = "postgres";
     private static final String DB_PASSWORD = "postgres";
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new ServletException("PostgreSQL JDBC Driver not found", e);
+        }
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -41,8 +51,75 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             return;
         }
 
-        // Extract fields from request body
-        String userId = requestBody.has("user_id") ? requestBody.get("user_id").asText() : null;
+        // req-yn=yes인 경우 대출 신청 처리 (req_date만 업데이트)
+        String reqYn = requestBody.has("req-yn") ? requestBody.get("req-yn").asText() : null;
+        if ("yes".equalsIgnoreCase(reqYn)) {
+            // login-id 추출
+            String loginId = requestBody.has("login-id") ? requestBody.get("login-id").asText() : null;
+            if (loginId == null || loginId.trim().isEmpty()) {
+                loginId = req.getParameter("login-id");
+            }
+            
+            if (loginId == null || loginId.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().write("{\"ok\":false,\"error\":\"login-id is required\"}");
+                return;
+            }
+            
+            // req_date를 현재일시로 업데이트
+            Connection conn = null;
+            PreparedStatement stmt = null;
+            try {
+                conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+                String updateSql = "UPDATE foreign_worker_master SET req_date = CURRENT_TIMESTAMP WHERE user_id = ?";
+                stmt = conn.prepareStatement(updateSql);
+                stmt.setString(1, loginId.trim());
+                int rowsAffected = stmt.executeUpdate();
+                
+                ObjectNode response = mapper.createObjectNode();
+                if (rowsAffected > 0) {
+                    response.put("ok", true);
+                    response.put("message", "대출 신청이 완료되었습니다");
+                } else {
+                    response.put("ok", false);
+                    response.put("error", "사용자를 찾을 수 없습니다");
+                }
+                resp.getWriter().write(mapper.writeValueAsString(response));
+                return;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                ObjectNode errorResponse = mapper.createObjectNode();
+                errorResponse.put("ok", false);
+                errorResponse.put("error", "Database error: " + e.getMessage());
+                resp.getWriter().write(mapper.writeValueAsString(errorResponse));
+                return;
+            } finally {
+                try {
+                    if (stmt != null) stmt.close();
+                    if (conn != null) conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 1. 세션에서 userId 우선 추출
+        String userId = null;
+        HttpSession session = req.getSession(false);
+        if (session != null && session.getAttribute("userId") != null) {
+            userId = (String) session.getAttribute("userId");
+        } else {
+            // 2. 세션이 없으면 쿼리 파라미터 login-id 또는 request body에서 user_id 추출
+            userId = req.getParameter("login-id");
+            if (userId == null || userId.trim().isEmpty()) {
+                userId = requestBody.has("user_id") ? requestBody.get("user_id").asText() : null;
+                if (userId == null || userId.trim().isEmpty()) {
+                    userId = requestBody.has("login-id") ? requestBody.get("login-id").asText() : null;
+                }
+            }
+        }
+
         String name = requestBody.has("name") ? requestBody.get("name").asText() : null;
         String nationality = requestBody.has("nationality") ? requestBody.get("nationality").asText() : null;
         String passportNumber = requestBody.has("passport_number") ? requestBody.get("passport_number").asText() : null;
@@ -72,7 +149,7 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             checkStmt = conn.prepareStatement(checkSql);
             checkStmt.setString(1, userId);
             rs = checkStmt.executeQuery();
-            
+
             boolean exists = false;
             if (rs.next()) {
                 exists = rs.getInt(1) > 0;
@@ -94,7 +171,7 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
                         "current_company = ?, " +
                         "email = ? " +
                         "WHERE user_id = ?";
-                
+
                 stmt = conn.prepareStatement(updateSql);
                 stmt.setString(1, name);
                 stmt.setString(2, nationality);
@@ -109,9 +186,10 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
                 // INSERT new record
                 action = "insert";
                 String insertSql = "INSERT INTO foreign_worker_master " +
-                        "(user_id, name, nationality, passport_number, birth_date, entry_date, phone_number, current_company, email) " +
+                        "(user_id, name, nationality, passport_number, birth_date, entry_date, phone_number, current_company, email) "
+                        +
                         "VALUES (?, ?, ?, ?, ?::date, ?::date, ?, ?, ?)";
-                
+
                 stmt = conn.prepareStatement(insertSql);
                 stmt.setString(1, userId);
                 stmt.setString(2, name);
@@ -130,10 +208,8 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             ObjectNode response = mapper.createObjectNode();
             response.put("ok", true);
             response.put("action", action);
-            response.put("message", action.equals("update") ? 
-                "✅ 정보가 성공적으로 업데이트되었습니다." : 
-                "✅ 정보가 성공적으로 저장되었습니다.");
-            
+            response.put("message", action.equals("update") ? "✅ 정보가 성공적으로 업데이트되었습니다." : "✅ 정보가 성공적으로 저장되었습니다.");
+
             // Return saved data
             ObjectNode data = mapper.createObjectNode();
             data.put("user_id", userId);
@@ -153,11 +229,11 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             e.printStackTrace();
             ObjectNode errorResponse = mapper.createObjectNode();
             errorResponse.put("ok", false);
-            
+
             // SQL State 확인하여 적절한 오류 메시지 반환
             String sqlState = e.getSQLState();
             String errorMessage = e.getMessage();
-            
+
             // 고유 제약 조건 위반 (23505)
             if ("23505".equals(sqlState)) {
                 // 여권번호 중복
@@ -186,14 +262,18 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
                 errorResponse.put("error", "데이터베이스 오류: " + errorMessage);
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500
             }
-            
+
             resp.getWriter().write(mapper.writeValueAsString(errorResponse));
         } finally {
             try {
-                if (rs != null) rs.close();
-                if (checkStmt != null) checkStmt.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
+                if (rs != null)
+                    rs.close();
+                if (checkStmt != null)
+                    checkStmt.close();
+                if (stmt != null)
+                    stmt.close();
+                if (conn != null)
+                    conn.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -207,15 +287,26 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        // Get userId from session
+        // Get userId from session or fallback to query parameter `user_id` or
+        // `login-id`
+        String userId = null;
         HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute("userId") == null) {
-            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Not authenticated\"}");
-            return;
+        if (session != null && session.getAttribute("userId") != null) {
+            userId = (String) session.getAttribute("userId");
+        } else {
+            // allow callers (e.g., client-side fetch) to pass ?user_id=... or ?login-id=...
+            // when no session exists
+            userId = req.getParameter("user_id");
+            if (userId == null || userId.trim().isEmpty()) {
+                userId = req.getParameter("login-id");
+            }
+            System.out.println("userId = " + userId);
+            if (userId == null || userId.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                resp.getWriter().write("{\"ok\":false,\"error\":\"Not authenticated\"}");
+                return;
+            }
         }
-
-        String userId = (String) session.getAttribute("userId");
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -227,7 +318,7 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             String selectSql = "SELECT user_id, name, nationality, passport_number, " +
                     "birth_date, entry_date, phone_number, current_company, email " +
                     "FROM foreign_worker_master WHERE user_id = ?";
-            
+
             stmt = conn.prepareStatement(selectSql);
             stmt.setString(1, userId);
             rs = stmt.executeQuery();
@@ -243,18 +334,18 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
                 data.put("name", rs.getString("name"));
                 data.put("nationality", rs.getString("nationality"));
                 data.put("passport_number", rs.getString("passport_number"));
-                
+
                 // Handle dates
                 Date birthDate = rs.getDate("birth_date");
                 if (birthDate != null) {
                     data.put("birth_date", birthDate.toString());
                 }
-                
+
                 Date entryDate = rs.getDate("entry_date");
                 if (entryDate != null) {
                     data.put("entry_date", entryDate.toString());
                 }
-                
+
                 data.put("phone_number", rs.getString("phone_number"));
                 data.put("current_company", rs.getString("current_company"));
                 data.put("email", rs.getString("email"));
@@ -280,9 +371,12 @@ public class ForeignWorkerMasterServlet extends HttpServlet {
             resp.getWriter().write(mapper.writeValueAsString(errorResponse));
         } finally {
             try {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
+                if (rs != null)
+                    rs.close();
+                if (stmt != null)
+                    stmt.close();
+                if (conn != null)
+                    conn.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }

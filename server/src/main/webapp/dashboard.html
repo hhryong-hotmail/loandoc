@@ -34,7 +34,7 @@
         <div class="nav-column">
             <a class="nav-button" href="home.html">LOANDOC</a>
             <a class="nav-button" href="introCo.html">회사소개</a>
-            <a class="nav-button" href="intro.html">상품소개</a>
+                <a class="nav-button" href="intro.html">상품소개</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="login.html">로그인</a>
@@ -42,7 +42,7 @@
         </div>
         <div class="nav-column">
             <a class="nav-button" href="loanAppl.html">대출조회</a>
-            <a class="nav-button" href="loanBoard.html">상담요청게시판</a>
+            <a class="nav-button" href="loanDashboard.html">대출상담요청게시판</a>
         </div>
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
@@ -145,34 +145,77 @@
                     return (m && m.groups && m.groups.ctx) ? ('/' + m.groups.ctx) : '';
                 }catch(e){ return ''; }
             })();
-            const EFFECTIVE_BASE = APP_BASE || '';
+            // If server inserts a meta tag <meta name="app-base" content="/server"> use it.
+            const _meta = document.querySelector('meta[name="app-base"]');
+            const META_APP_BASE = _meta ? (_meta.getAttribute('content')||'') : '';
+            const EFFECTIVE_BASE = META_APP_BASE || APP_BASE || '';
 
-            // 세션 확인 및 로그인 상태 체크
-            async function checkLoginStatus() {
+            // 접근 시간 확인 및 자동 로그아웃 처리
+            function checkAccessTime() {
                 try {
-                    const response = await fetch(`${EFFECTIVE_BASE}/api/auth/session`, { credentials: 'same-origin' });
-                    const result = await response.json();
+                    const loginId = localStorage.getItem('login-id');
+                    const accessTimeStr = localStorage.getItem('login-access-time');
                     
-                    if (result.authenticated && result.userId) {
-                        currentUser = result.userId;
-                        
+                    if (!loginId || !accessTimeStr) {
+                        // 로그인 정보가 없으면 로그인 페이지로 리다이렉트
+                        alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                        window.location.href = 'login.html';
+                        return false;
+                    }
+                    
+                    // 접근 시간 확인 (10분 = 600000 밀리초)
+                    const accessTime = new Date(accessTimeStr);
+                    const currentTime = new Date();
+                    const timeDiff = currentTime.getTime() - accessTime.getTime();
+                    const tenMinutes = 10 * 60 * 1000; // 10분
+                    
+                    if (timeDiff > tenMinutes) {
+                        // 10분 이상 경과 시 자동 로그아웃
+                        localStorage.removeItem('login-id');
+                        localStorage.removeItem('login-access-time');
+                        alert('10분 이상 비활성 상태로 인해 자동 로그아웃되었습니다. 다시 로그인해주세요.');
+                        window.location.href = 'login.html';
+                        return false;
+                    }
+                    
+                    // 접근 시간 업데이트
+                    localStorage.setItem('login-access-time', new Date().toISOString());
+                    return true;
+                } catch (e) {
+                    console.error('Access time check error', e);
+                    alert('로그인 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+            }
+
+            // localStorage에서 로그인 상태 체크
+            function checkLoginStatus() {
+                try {
+                    // 먼저 접근 시간 확인
+                    if (!checkAccessTime()) {
+                        return; // checkAccessTime에서 이미 로그아웃 처리 및 리다이렉트 완료
+                    }
+                    
+                    const loginId = localStorage.getItem('login-id');
+                    
+                    if (loginId && loginId.trim() !== '') {
+                        currentUser = loginId.trim();
                         // If user is logged in, set author input to login id and make it read-only
                         const authorInputEl = document.getElementById('author');
                         if (authorInputEl) {
                             authorInputEl.value = currentUser;
                             authorInputEl.setAttribute('disabled', 'disabled');
                         }
-                        
-                        // 게시판 데이터 로드
-                        await loadPosts();
+                        // 게시판 목록 자동 로드 제거 (원하는 시점에만 loadPosts 호출)
                     } else {
                         // 로그인되지 않은 경우 로그인 페이지로 이동
                         alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
                         window.location.href = 'login.html';
                     }
                 } catch (e) {
-                    console.error('Session check error', e);
-                    alert('세션 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
+                    console.error('Login check error', e);
+                    alert('로그인 확인 중 오류가 발생했습니다. 로그인 페이지로 이동합니다.');
                     window.location.href = 'login.html';
                 }
             }
@@ -182,8 +225,11 @@
 
             async function loadPosts(){
                 const q = encodeURIComponent(searchInput.value || '');
-                const t = encodeURIComponent(filterType.value || '');
-                const url = `/api/dashboard?q=${q}&msg_type=${t}`;
+                const t = filterType.value || '';
+                let url = `${EFFECTIVE_BASE}/api/dashboard?q=${q}`;
+                if (t && t !== '전체') {
+                    url += `&msg_type=${encodeURIComponent(t)}`;
+                }
                 try{
                     const r = await fetch(url);
                     const j = await r.json();
@@ -222,7 +268,7 @@
                     const allowEdit = currentUser && String(currentUser) === String(r.author);
                     tr.innerHTML = `
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_id}</td>
-                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.created_date)}</td>
+                        <td style="padding:8px;border-bottom:1px solid #f1f1f1">${formatDateTime(r.updated_at)}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${escapeHtml(r.author || '')}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1">${r.msg_type || ''}</td>
                         <td style="padding:8px;border-bottom:1px solid #f1f1f1"><a href="#" class="view-link" data-id="${r.msg_id}">${escapeHtml(r.title || '')}</a></td>
@@ -241,7 +287,7 @@
 
             function startEdit(id){
                 // load full post then populate form
-                fetch(`/api/dashboard/${id}`).then(r=>r.json()).then(j=>{
+                fetch(`${EFFECTIVE_BASE}/api/dashboard/${id}`).then(r=>r.json()).then(j=>{
                     if(!j.ok) return alert('불러오기 실패: '+(j.error||'')); 
                     const row = j.row;
                     // author is locked to logged-in user; keep value from currentUser
@@ -259,7 +305,7 @@
 
             async function viewPost(id){
                 try{
-                    const r = await fetch(`/api/dashboard/${id}`);
+                    const r = await fetch(`${EFFECTIVE_BASE}/api/dashboard/${id}`);
                     const j = await r.json();
                     if(!j.ok) throw new Error(j.error||'failed');
                     const row = j.row;
@@ -285,7 +331,7 @@
 
                     document.getElementById('viewTitle').textContent = row.title;
                     document.getElementById('viewAuthor').textContent = row.author || '';
-                    document.getElementById('viewDate').textContent = formatDateTime(row.created_date || row.created_at || row.created_datetime || '');
+                    document.getElementById('viewDate').textContent = formatDateTime(row.updated_at || row.created_at || '');
                     document.getElementById('viewViews').textContent = row.views || 0;
                     document.getElementById('viewContent').textContent = row.content || '';
                     viewPanel.style.display = 'block';
@@ -306,9 +352,9 @@
                 try{
                     let res;
                     if(editId){
-                        res = await fetch(`/api/dashboard/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/dashboard/${editId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
                     } else {
-                        res = await fetch('/api/dashboard', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+                        res = await fetch(`${EFFECTIVE_BASE}/api/dashboard`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
                     }
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'save failed');
@@ -324,7 +370,7 @@
             async function deletePost(id){
                 if(!confirm('정말로 삭제하시겠습니까?')) return;
                 try{
-                    const res = await fetch(`/api/dashboard/${id}`, { method: 'DELETE' });
+                    const res = await fetch(`${EFFECTIVE_BASE}/api/dashboard/${id}`, { method: 'DELETE' });
                     const j = await res.json();
                     if(!j.ok) throw new Error(j.error||'delete failed');
                     editId = null;
@@ -367,10 +413,17 @@
             navLogout.addEventListener('click', async function(e){
                 e.preventDefault();
                 try {
-                    const response = await fetch('/api/auth/logout', { method: 'POST' });
+                    const response = await fetch(`${EFFECTIVE_BASE}/api/auth/logout`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 'login-id': null })
+                    });
                     const result = await response.json();
                     if (result.ok) {
-                        alert('로그아웃되었습니다');
+                        // localStorage에서 login-id 제거
+                        localStorage.removeItem('login-id');
+                        alert('로그아웃이 정상적으로 되었습니다');
                         window.location.href = 'login.html';
                     }
                 } catch (err) {
