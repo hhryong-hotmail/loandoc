@@ -30,8 +30,8 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: '*',
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -64,10 +64,10 @@ function getDbClient() {
   try {
     // Get connection parameters
     const dbUrl = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/loandoc';
-    
+
     // Parse connection string if it exists
     let config = {};
-    
+
     if (dbUrl) {
       // If using connection string, make sure it's properly formatted
       config.connectionString = dbUrl;
@@ -81,20 +81,20 @@ function getDbClient() {
         password: process.env.DB_PASSWORD || 'postgres', // Default password, should be changed in production
       };
     }
-    
+
     // Ensure password is a string
     if (config.password !== undefined) {
       config.password = String(config.password);
     }
-    
+
     // Add SSL configuration (important for some PostgreSQL installations)
     config.ssl = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
-    
+
     console.log('[DB] Creating new client with config:', {
       ...config,
       password: config.password ? '***' : 'not set'
     });
-    
+
     return new Client(config);
   } catch (err) {
     console.error('[DB] Error creating client:', err);
@@ -140,7 +140,7 @@ function sanitizeDbValue(key, value) {
   return value;
 }
 
-app.post('/api/register', async (req, res) => {
+const handleRegister = async (req, res) => {
   const { id, password } = req.body || {};
   if (!id || !password) return res.status(400).json({ ok: false, error: 'id and password required' });
 
@@ -149,56 +149,14 @@ app.post('/api/register', async (req, res) => {
   try {
     await client.connect();
 
-    // Server-side: ensure required date fields are present and not empty
-    const requiredDateFields = ['birth_date','entry_date','company_entry_date','stay_expiry_date'];
-    for (const f of requiredDateFields) {
-      if (!(f in payload) || payload[f] === null || String(payload[f]).toString().trim() === '') {
-        return res.status(400).json({ ok: false, error: `${f} is required and cannot be empty` });
-      }
-    }
-
-    // helper: sanitize values for DB
-    function sanitizeDbValue(key, value) {
-      if (value === undefined || value === null) return null;
-      // if boolean or number already, return as-is
-      if (typeof value === 'number' || typeof value === 'boolean') return value;
-      if (typeof value === 'string') {
-        const s = value.trim();
-        // date-like fields: empty -> null
-        if (s === '') {
-          if (/(date|birth|expiry)/i.test(key)) return null;
-          if (/salary|amount|income|_count$/i.test(key)) return null;
-          // preserve empty string for textual fields
-          return '';
-        }
-
-        // remove non-breaking spaces and commas
-        let cleaned = s.replace(/[\u00A0]/g, '').replace(/,/g, '');
-
-        // numeric-like fields
-        if (key === 'annual_salary' || /salary|amount|income|_count/i.test(key)) {
-          const n = Number(cleaned);
-          return isNaN(n) ? null : n;
-        }
-
-        // date-like non-empty: return cleaned (Postgres accepts 'YYYY-MM-DD' strings)
-        if (/(date|birth|expiry)/i.test(key)) {
-          return cleaned;
-        }
-
-        // default: return cleaned string
-        return cleaned;
-      }
-      return value;
-    }
-  // simple table: user_account(user_id primary key, password varchar (hashed), created_at timestamp)
-  const check = await client.query('SELECT user_id FROM user_account WHERE user_id = $1', [id]);
+    // simple table: user_account(user_id primary key, password varchar (hashed), created_at timestamp)
+    const check = await client.query('SELECT user_id FROM user_account WHERE user_id = $1', [id]);
     if (check.rowCount > 0) {
       return res.status(409).json({ ok: false, error: 'already exists' });
     }
 
     const hash = await bcrypt.hash(password, 10);
-  const insert = await client.query('INSERT INTO user_account(user_id,password,created_at) VALUES($1,$2,NOW())', [id, hash]);
+    const insert = await client.query('INSERT INTO user_account(user_id,password,created_at) VALUES($1,$2,NOW())', [id, hash]);
     return res.status(201).json({ ok: true });
   } catch (err) {
     console.error('[REGISTER] db error:', err.code || err.message, err);
@@ -221,9 +179,12 @@ app.post('/api/register', async (req, res) => {
     }
     return res.status(500).json({ ok: false, error: 'db error' });
   } finally {
-    try { await client.end(); } catch(e){}
+    try { await client.end(); } catch (e) { }
   }
-});
+};
+
+app.post('/api/register', handleRegister);
+app.post('/api/auth/register', handleRegister);
 
 // Save foreign worker profile into foreign_worker_master table
 app.post('/api/foreign_worker_master', async (req, res) => {
@@ -243,8 +204,8 @@ app.post('/api/foreign_worker_master', async (req, res) => {
       if (updateKeys.length === 0) {
         return res.json({ ok: true, action: 'noop', message: '변경할 항목이 없습니다' });
       }
-      const setClause = updateKeys.map((k, idx) => `${k} = $${idx+1}`).join(',');
-  const updateValues = updateKeys.map(k => sanitizeDbValue(k, payload[k]));
+      const setClause = updateKeys.map((k, idx) => `${k} = $${idx + 1}`).join(',');
+      const updateValues = updateKeys.map(k => sanitizeDbValue(k, payload[k]));
       updateValues.push(userId);
       const updateSql = `UPDATE foreign_worker_master SET ${setClause} WHERE user_id = $${updateKeys.length + 1}`;
       try {
@@ -269,10 +230,10 @@ app.post('/api/foreign_worker_master', async (req, res) => {
       // INSERT path
       const keys = Object.keys(payload).filter(k => typeof payload[k] !== 'object');
       const cols = keys.map(k => k).join(',');
-      const params = keys.map((_, i) => `$${i+1}`).join(',');
-  const values = keys.map(k => sanitizeDbValue(k, payload[k]));
-  const insertSql = `INSERT INTO foreign_worker_master(${cols}) VALUES(${params})`;
-  await client.query(insertSql, values);
+      const params = keys.map((_, i) => `$${i + 1}`).join(',');
+      const values = keys.map(k => sanitizeDbValue(k, payload[k]));
+      const insertSql = `INSERT INTO foreign_worker_master(${cols}) VALUES(${params})`;
+      await client.query(insertSql, values);
       return res.json({ ok: true, action: 'insert', message: '서버에 저장되었습니다' });
     } else {
       // passport exists and no user match -> conflict
@@ -282,15 +243,15 @@ app.post('/api/foreign_worker_master', async (req, res) => {
     return res.status(201).json({ ok: true });
   } catch (err) {
     // Log incoming payload and full error for debugging (do not expose to client)
-    try { console.error('[SAVE FOREIGN WORKER] payload:', payload); } catch(e){}
+    try { console.error('[SAVE FOREIGN WORKER] payload:', payload); } catch (e) { }
     console.error('[SAVE FOREIGN WORKER] db error:', err && err.message ? err.message : err);
     if (err && err.stack) console.error(err.stack);
-  // Fallback: if DB fails, return 503 so client can fallback to localStorage
-  // In development include the error message/code to help debugging (do NOT expose in production)
-  const devInfo = (process.env.NODE_ENV === 'production') ? {} : { error_detail: err && err.message ? err.message : String(err), error_code: err && err.code ? err.code : undefined };
-  return res.status(503).json(Object.assign({ ok: false, error: 'db error' }, devInfo));
+    // Fallback: if DB fails, return 503 so client can fallback to localStorage
+    // In development include the error message/code to help debugging (do NOT expose in production)
+    const devInfo = (process.env.NODE_ENV === 'production') ? {} : { error_detail: err && err.message ? err.message : String(err), error_code: err && err.code ? err.code : undefined };
+    return res.status(503).json(Object.assign({ ok: false, error: 'db error' }, devInfo));
   } finally {
-    try { await client.end(); } catch(e){}
+    try { await client.end(); } catch (e) { }
   }
 });
 
@@ -309,7 +270,7 @@ function mapForeignWorkerRow(row) {
 }
 
 // Login endpoint - check DB (or file fallback) for id and bcrypt-hashed password
-app.post('/api/login', async (req, res) => {
+const handleLogin = async (req, res) => {
   const { id, password } = req.body || {};
   if (!id || !password) return res.status(400).json({ ok: false, error: 'id and password required' });
 
@@ -345,9 +306,17 @@ app.post('/api/login', async (req, res) => {
     }
     return res.status(500).json({ ok: false, error: 'db error' });
   } finally {
-    try { await client.end(); } catch (e) {}
+    try { await client.end(); } catch (e) { }
   }
-});
+};
+
+app.post('/api/login', handleLogin);
+app.post('/api/auth/login', handleLogin);
+app.post('/server/api/auth/login', handleLogin);
+
+// Dummy logout and reset-password for frontend compatibility
+app.post('/server/api/auth/logout', (req, res) => res.json({ ok: true }));
+app.post('/server/api/auth/reset-password', (req, res) => res.json({ ok: false, error: 'Not implemented' }));
 
 // List users (diagnostic)
 app.get('/api/users', (req, res) => {
@@ -370,7 +339,7 @@ app.post('/api/reset', (req, res) => {
 // -----------------------------
 // Dashboard CRUD API
 // -----------------------------
-const ALLOWED_MSG_TYPES = ['공지','필독','추천','질문','일반'];
+const ALLOWED_MSG_TYPES = ['공지', '필독', '추천', '질문', '일반'];
 
 // List / search posts
 app.get('/api/dashboard', async (req, res) => {
@@ -398,14 +367,14 @@ app.get('/api/dashboard', async (req, res) => {
     const where = whereClauses.length ? ('WHERE ' + whereClauses.join(' AND ')) : '';
     params.push(pageSize);
     params.push(page * pageSize);
-    const sql = `SELECT msg_id, created_at, author, title, msg_type, views FROM dashboard_messages ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx+1}`;
+    const sql = `SELECT msg_id, created_at, author, title, msg_type, views FROM dashboard_messages ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`;
     const qres = await client.query(sql, params);
     return res.json({ ok: true, rows: qres.rows });
   } catch (err) {
     console.error('[DASHBOARD][LIST] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
   } finally {
-    try { await client.end(); } catch(e){}
+    try { await client.end(); } catch (e) { }
   }
 });
 
@@ -422,7 +391,7 @@ app.get('/api/dashboard/:id', async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD][GET] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { try { await client.end(); } catch(e){} }
+  } finally { try { await client.end(); } catch (e) { } }
 });
 
 // Create post
@@ -446,7 +415,7 @@ app.post('/api/dashboard', async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD][CREATE] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { try { await client.end(); } catch(e){} }
+  } finally { try { await client.end(); } catch (e) { } }
 });
 
 // Update post
@@ -454,7 +423,7 @@ app.put('/api/dashboard/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ ok: false, error: 'invalid id' });
   const payload = req.body || {};
-  const allowed = ['author','password','title','msg_type','content'];
+  const allowed = ['author', 'password', 'title', 'msg_type', 'content'];
   const keys = Object.keys(payload).filter(k => allowed.includes(k));
   if (keys.length === 0) return res.status(400).json({ ok: false, error: 'nothing to update' });
   if (payload.msg_type && !ALLOWED_MSG_TYPES.includes(payload.msg_type)) return res.status(400).json({ ok: false, error: 'invalid msg_type' });
@@ -478,7 +447,7 @@ app.put('/api/dashboard/:id', async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD][UPDATE] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { try { await client.end(); } catch(e){} }
+  } finally { try { await client.end(); } catch (e) { } }
 });
 
 // Delete post
@@ -494,7 +463,7 @@ app.delete('/api/dashboard/:id', async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD][DELETE] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { try { await client.end(); } catch(e){} }
+  } finally { try { await client.end(); } catch (e) { } }
 });
 
 // Get documents groups (약관 목록)
@@ -513,8 +482,8 @@ app.get('/api/server/groups', async (req, res) => {
   } catch (err) {
     console.error('[DOCUMENTS][GROUPS] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { 
-    try { await client.end(); } catch(e){} 
+  } finally {
+    try { await client.end(); } catch (e) { }
   }
 });
 
@@ -524,7 +493,7 @@ app.get('/api/server/group-details', async (req, res) => {
   if (!groupName) {
     return res.status(400).json({ ok: false, error: 'group_name is required' });
   }
-  
+
   const client = getDbClient();
   try {
     await client.connect();
@@ -541,8 +510,8 @@ app.get('/api/server/group-details', async (req, res) => {
   } catch (err) {
     console.error('[DOCUMENTS][DETAILS] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { 
-    try { await client.end(); } catch(e){} 
+  } finally {
+    try { await client.end(); } catch (e) { }
   }
 });
 
@@ -552,7 +521,7 @@ app.get('/api/server/document-content', async (req, res) => {
   if (!title) {
     return res.status(400).json({ ok: false, error: 'title is required' });
   }
-  
+
   const client = getDbClient();
   try {
     await client.connect();
@@ -570,8 +539,8 @@ app.get('/api/server/document-content', async (req, res) => {
   } catch (err) {
     console.error('[DOCUMENTS][CONTENT] db error:', err && err.message ? err.message : err);
     return res.status(500).json({ ok: false, error: 'db error' });
-  } finally { 
-    try { await client.end(); } catch(e){} 
+  } finally {
+    try { await client.end(); } catch (e) { }
   }
 });
 
@@ -579,14 +548,14 @@ app.get('/api/server/document-content', async (req, res) => {
 app.post('/api/server/loan-estimate', async (req, res) => {
   try {
     const { loginId, nationality, remainMonths, annualIncome, age, workingMonths, visaType } = req.body;
-    
+
     // Validate required fields
     if (!loginId || !nationality || !remainMonths || !annualIncome || !age || !workingMonths || !visaType) {
       return res.status(400).json({ ok: false, error: '모든 필드가 필요합니다' });
     }
-    
+
     const today = new Date();
-    
+
     // Normalize visa type: E9 -> E-9, F2 -> F-2, etc.
     const normalizeVisaType = (visa) => {
       if (!visa) return '';
@@ -594,9 +563,9 @@ app.post('/api/server/loan-estimate', async (req, res) => {
       // Add hyphen back: E9 -> E-9
       return cleaned.replace(/([A-Z])(\d+)/, '$1-$2');
     };
-    
+
     const normalizedVisaType = normalizeVisaType(visaType);
-    
+
     // Bank configurations
     const banks = [
       {
@@ -666,7 +635,7 @@ app.post('/api/server/loan-estimate', async (req, res) => {
         }
       }
     ];
-    
+
     // Process each bank
     const results = banks.map(bank => {
       const result = {
@@ -681,13 +650,13 @@ app.post('/api/server/loan-estimate', async (req, res) => {
         estimatedRate: bank.config.estimatedRate,
         rank: bank.rank
       };
-      
+
       // Visa type validation - use normalized visa type
       if (!bank.config.allowedVisaTypes.includes(normalizedVisaType)) {
         result.visaType.valid = false;
         result.visaType.error = 'E비자종류';
       }
-      
+
       // Country validation
       if (bank.config.excludedCountries && bank.config.excludedCountries.includes(nationality)) {
         result.country.valid = false;
@@ -697,38 +666,38 @@ app.post('/api/server/loan-estimate', async (req, res) => {
         result.country.valid = false;
         result.country.error = 'E국가';
       }
-      
+
       // Age validation
       if (age <= bank.config.minAge) {
         result.age.valid = false;
         result.age.error = 'E나이';
       }
-      
+
       // Visa expiry validation (assuming remainMonths represents visa validity)
       // If remainMonths <= 0, visa is expired
       if (remainMonths < bank.config.minVisaExpiryDays / 30) {
         result.visaExpiry.valid = false;
         result.visaExpiry.error = 'E비자만료';
       }
-      
+
       // Employment date validation (workingMonths should be >= minEmploymentDays/30)
       if (workingMonths < bank.config.minEmploymentDays / 30) {
         result.employmentDate.valid = false;
         result.employmentDate.error = 'E재직일자';
       }
-      
+
       // Annual income validation
       if (annualIncome < bank.config.minAnnualIncome) {
         result.annualIncome.valid = false;
         result.annualIncome.error = 'E연소득';
       }
-      
+
       return result;
     });
-    
+
     // Sort by interest rate (ascending), but keep KB at rank 1 and 예가람 at rank 5
     const sortedResults = [...results];
-    
+
     // Assign ranks based on interest rate
     const middleBanks = sortedResults.filter(r => r.rank === null);
     middleBanks.sort((a, b) => {
@@ -736,16 +705,16 @@ app.post('/api/server/loan-estimate', async (req, res) => {
       if (b.estimatedRate === null) return -1;
       return a.estimatedRate - b.estimatedRate;
     });
-    
+
     middleBanks.forEach((bank, idx) => {
       bank.rank = idx + 2; // Start from rank 2
     });
-    
+
     // Sort by rank for final output
     sortedResults.sort((a, b) => a.rank - b.rank);
-    
+
     return res.json(sortedResults);
-    
+
   } catch (err) {
     console.error('[LOAN-ESTIMATE] error:', err);
     return res.status(500).json({ ok: false, error: 'server error' });
@@ -753,6 +722,17 @@ app.post('/api/server/loan-estimate', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
+
+// Catch-all 404 handler for API requests to avoid HTML response
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ ok: false, error: 'API endpoint not found' });
+});
+
+// Also catch /server/api/*
+app.use('/server/api/*', (req, res) => {
+  res.status(404).json({ ok: false, error: 'API endpoint not found' });
+});
+
 app.listen(PORT, () => {
   console.log(`LOANDOC API listening on http://127.0.0.1:${PORT}`);
 });

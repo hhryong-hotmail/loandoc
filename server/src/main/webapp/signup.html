@@ -192,7 +192,7 @@
             // send credentials to server
                 try{
                 console.log('서버에 계정 등록 요청 전송 중...');
-                const res = await fetch('/api/auth/register', {
+                const res = await fetch('/server/api/auth/register', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -222,29 +222,33 @@
                 try{ data = await res.json(); }catch(e){}
                 if(data && data.ok === false){ msg.textContent = data.error || '등록 실패'; msg.style.color='red'; return; }
 
-                // success: auto login and redirect to workerInfo.html
+                // success: 회원가입 완료 - login-id를 localStorage에 저장
                 alert('회원가입이 성공하였습니다\n개인정보 입력 화면으로 이동합니다');
                 
-                // Auto login
+                // localStorage에 login-id와 접근 시간 저장
+                localStorage.setItem('login-id', id);
+                localStorage.setItem('login-access-time', new Date().toISOString());
+                
+                // Auto login (선택적 - 서버 세션 생성용)
                 try {
-                    const loginRes = await fetch('/api/auth/login', {
+                    const loginRes = await fetch('/server/api/auth/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id: id, password: pwd })
                     });
                     const loginData = await loginRes.json();
                     if (loginData.ok) {
-                        // Login successful, redirect to workerInfo.html
-                        window.location.href = 'workerInfo.html';
+                        console.log('자동 로그인 성공:', id);
                     } else {
-                        // Login failed, but signup was successful - still redirect
-                        window.location.href = 'workerInfo.html';
+                        console.warn('자동 로그인 실패 (회원가입은 성공):', loginData.error);
                     }
                 } catch(loginErr) {
                     console.error('Auto login error:', loginErr);
-                    // Even if auto login fails, redirect to workerInfo
-                    window.location.href = 'workerInfo.html';
+                    // 자동 로그인 실패해도 localStorage에 저장되어 있으므로 계속 진행
                 }
+                
+                // workerInfo.html로 이동 (localStorage에 login-id가 저장되어 있음)
+                window.location.href = 'workerInfo.html';
             }catch(err){
                 console.log('서버 연결 실패:', err.message);
                 msg.textContent = '서버 연결 실패: ' + err.message;

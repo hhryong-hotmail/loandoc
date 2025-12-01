@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@WebServlet(urlPatterns = {"/server/loan_dashboard"})
+// 서블릿 매핑은 web.xml에 정의됨
 public class LoanDashboardServlet extends HttpServlet {
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/loandoc";
     private static final String DB_USER = "postgres";

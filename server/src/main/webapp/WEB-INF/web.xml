@@ -33,4 +33,25 @@
         <url-pattern>/api/loan_dashboard</url-pattern>
         <url-pattern>/api/loan_dashboard/*</url-pattern>
     </servlet-mapping>
+
+        <!-- RegisterServlet 매핑 -->
+        <servlet>
+            <servlet-name>RegisterServlet</servlet-name>
+            <servlet-class>com.loandoc.RegisterServlet</servlet-class>
+        </servlet>
+        <servlet-mapping>
+            <servlet-name>RegisterServlet</servlet-name>
+            <url-pattern>/api/register</url-pattern>
+            <url-pattern>/api/auth/register</url-pattern>
+        </servlet-mapping>
+
+    <!-- LoginServlet 매핑 -->
+    <servlet>
+        <servlet-name>LoginServlet</servlet-name>
+        <servlet-class>com.loandoc.LoginServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>LoginServlet</servlet-name>
+        <url-pattern>/api/auth/login</url-pattern>
+    </servlet-mapping>
 </web-app>
