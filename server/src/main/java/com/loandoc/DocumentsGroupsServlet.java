@@ -73,7 +73,7 @@ public class DocumentsGroupsServlet extends HttpServlet {
             logger.info("Prepending jdbc: to DB URL: " + dbUrl);
         }
         if (dbUser == null || dbUser.isEmpty()) dbUser = "postgres";
-        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgresql";
+        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgres";
 
         boolean dbWorked = false;
         try {
@@ -84,7 +84,7 @@ public class DocumentsGroupsServlet extends HttpServlet {
             }
             logger.info("Attempting DB connection for documents groups: " + dbUrl + " user=" + dbUser);
             try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
-                String sql = "SELECT group_name, select_option FROM (SELECT DISTINCT group_name, group_number, select_option FROM documents where gubun='기본') AS t ORDER BY t.group_number";
+                String sql = "SELECT DISTINCT ON (group_name) group_name, select_option FROM documents WHERE group_name LIKE '%론닥%' ORDER BY group_name, group_number";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {

@@ -406,11 +406,6 @@
             </table>
         </div>
     </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
 
     <!-- 약관 상세 팝업 모달 -->
     <div id="terms-modal" class="terms-modal">
@@ -786,7 +781,7 @@
         // Load terms checklist from server and render as checkboxes.
         // Assumption: server exposes a JSON endpoint at /api/documents/groups
         // which returns an array of { group_name: string, select_option: string }
-        async function loadTermsList(){
+       /* async function loadTermsList(){
             const container = document.getElementById('terms-list');
             if(!container) return;
             const loading = document.getElementById('terms-loading');
@@ -990,7 +985,217 @@
                 console.error('loadTermsList error', err);
             }
         }
+*/
+async function loadTermsList(){
+            const container = document.getElementById('terms-list');
+            if(!container) return;
+            const loading = document.getElementById('terms-loading');
+            try{
+                // Use absolute path for consistent routing
+                const res = await fetch('/server/api/documents/groups');
+                if(!res.ok) throw new Error('네트워크 오류');
+                const items = await res.json();
+                // Expect items to be an array of {group_name, select_option}
+                container.innerHTML = '';
+                if(!Array.isArray(items) || items.length === 0){
+                    container.textContent = '약관 항목이 없습니다.';
+                    return;
+                }
+                items.forEach((it, idx)=>{
+                    const div = document.createElement('div');
+                    div.className = 'term-item';
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'term-checkbox';
+                    chk.id = 'term-' + idx;
+                    chk.setAttribute('data-select-option', it.select_option || '');
+                    chk.setAttribute('data-group-name', it.group_name || '');
 
+                    // Add change handler to sync with top-level checkbox
+                    chk.addEventListener('change', function(e){
+                        const topTermsCheckbox = document.getElementById('terms-checkbox');
+                        if(!topTermsCheckbox) return;
+                        // Get all term checkboxes
+                        const allTermCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
+                        const checkedCount = Array.from(allTermCheckboxes).filter(cb => cb.checked).length;
+                        // If all are checked, check the top-level checkbox
+                        // If any is unchecked, uncheck the top-level checkbox
+                        if(checkedCount === allTermCheckboxes.length){
+                            topTermsCheckbox.checked = true;
+                        } else {
+                            topTermsCheckbox.checked = false;
+                        }
+                    });
+
+                    const label = document.createElement('label');
+                    label.htmlFor = chk.id;
+                    // [필수] prefix 붙이기 (select_option에 '필수'가 포함된 경우)
+                    let displayText = '';
+                    if(it.select_option && it.select_option.includes('필수')) {
+                        displayText = '[필수] ' + (it.group_name || '');
+                    } else if(it.select_option && it.select_option.includes('선택')) {
+                        displayText = '[선택] ' + (it.group_name || '');
+                    } else {
+                        // select_option이 없거나 명시되지 않은 경우 기본적으로 [필수]로 표시
+                        displayText = '[필수] ' + (it.group_name || '');
+                    }
+                    label.textContent = displayText;
+
+                    // Add click handler to label to show details
+                    label.addEventListener('click', function(e){
+                        e.preventDefault();
+                        // Extract group_name without prefix for API call
+                        const groupName = it.group_name || '';
+                        showTermDetails(groupName);
+                    });
+
+                    div.appendChild(chk);
+                    div.appendChild(label);
+                    container.appendChild(div);
+                });
+
+                // Add footer with view button
+                const footer = document.createElement('div');
+                footer.className = 'terms-list-footer';
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'terms-view-btn';
+                viewBtn.textContent = '조회';
+                viewBtn.type = 'button';
+                viewBtn.addEventListener('click', async function(){
+                    // Check all checkboxes
+                    const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
+                    const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
+                    
+                    // Find required terms (select_option contains '필수')
+                    const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
+                        const selectOption = cb.getAttribute('data-select-option') || '';
+                        return selectOption.includes('필수') && !cb.checked;
+                    });
+                    
+                    // Alert if any required terms are unchecked
+                    if(requiredUnchecked.length > 0){
+                        console.warn('필수 약관의 동의가 필요합니다');
+                        return;
+                    }
+                    
+                    if(checked.length === 0){
+                        console.warn('필수 약관을 체크해주세요.');
+                        return;
+                    }
+                    
+                    // Collect form data
+                    const loginId = currentUserId; // 서버 세션에서 가져온 사용자 ID 사용
+                    const nationality = document.getElementById('action-nationality')?.value || '';
+                    const remainMonths = document.getElementById('remain_months')?.value || '';
+                    const annualIncome = document.getElementById('annual_income')?.value || '';
+                    const age = document.getElementById('age')?.value || '';
+                    const workingMonths = document.getElementById('working_months')?.value || '';
+                    const visaType = document.getElementById('visa_type')?.value || '';
+                    const healthInsurance = document.getElementById('health_insurance')?.value || '';
+                    
+                    // Debug: Log all field values
+                    console.log('=== 입력 필드 확인 ===');
+                    console.log('로그인ID:', loginId, '(서버 세션 필요)');
+                    console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
+                    console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
+                    console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
+                    console.log('나이:', age, '(element:', document.getElementById('age'), ')');
+                    console.log('재직기간:', workingMonths, '(element:', document.getElementById('working_months'), ')');
+                    console.log('비자종류:', visaType, '(element:', document.getElementById('visa_type'), ')');
+                    console.log('의료보험:', healthInsurance, '(element:', document.getElementById('health_insurance'), ')');
+                    
+                    // Validate required fields
+                    const missingFields = [];
+                    if(!loginId) missingFields.push('로그인ID (로그인이 필요합니다)');
+                    if(!nationality) missingFields.push('국가');
+                    if(!remainMonths) missingFields.push('잔여체류기간');
+                    if(!annualIncome) missingFields.push('연소득');
+                    if(!age) missingFields.push('나이');
+                    if(!workingMonths) missingFields.push('재직기간');
+                    if(!visaType) missingFields.push('비자종류');
+                    
+                    if(missingFields.length > 0){
+                        console.error('누락된 필드:', missingFields);
+                        console.warn('모든 필드를 입력해주세요. 누락된 필드: ' + missingFields.join(', '));
+                        return;
+                    }
+                    
+                    // Send to server
+                    try{
+                        const requestData = {
+                            loginId,
+                            nationality,
+                            remainMonths: parseInt(remainMonths),
+                            annualIncome: parseFloat(annualIncome),
+                            age: parseInt(age),
+                            workingMonths: parseInt(workingMonths),
+                            visaType,
+                            healthInsurance
+                        };
+                        console.log('=== 서버로 전송할 데이터 ===');
+                        console.log('healthInsurance 값:', healthInsurance);
+                        console.log('전체 데이터:', requestData);
+                        
+                        const res = await fetch('/server/api/server/loan-estimate', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(requestData)
+                        });
+                        
+                        if(!res.ok) throw new Error('서버 오류');
+                        const result = await res.json();
+
+                        // Client-side safeguards and immediate Jeonbuk popups removed per request.
+                        
+                        // Remove any cached result then store fresh result in sessionStorage
+                        sessionStorage.removeItem('loanEstimateResult');
+                        sessionStorage.removeItem('loanEstimateInput');
+
+                        // Jeonbuk immediate popup logic removed.
+
+                        sessionStorage.setItem('loanEstimateResult', JSON.stringify(result));
+                        sessionStorage.setItem('loanEstimateInput', JSON.stringify({
+                            loginId,
+                            nationality,
+                            remainMonths,
+                            annualIncome,
+                            age,
+                            workingMonths,
+                            visaType
+                        }));
+                        
+                        // Display result in the same page
+                        displayLoanResult(result, {
+                            loginId,
+                            nationality,
+                            remainMonths,
+                            annualIncome,
+                            age,
+                            workingMonths,
+                            visaType,
+                            healthInsurance
+                        });
+
+                        // Jeonbuk quick visibility popup removed.
+                        
+                    }catch(err){
+                        console.error('대출 조회 오류:', err);
+                        console.error('대출 조회 중 오류가 발생했습니다.');
+                    }
+                });
+                footer.appendChild(viewBtn);
+                container.appendChild(footer);
+
+                // Position the terms list to align with the left edge of the 약관동의 button on desktop.
+                // If the function isn't available (older browsers), this will silently fail.
+                if (typeof positionTermsList === 'function') {
+                    positionTermsList();
+                }
+            }catch(err){
+                if(loading) loading.textContent = '약관 항목을 불러오는 중 오류가 발생했습니다.';
+                console.error('loadTermsList error', err);
+            }
+        }
         // Display loan result in the same page
         function displayLoanResult(result, inputData){
             // 결과 데이터 저장 (라디오 버튼 변경 시 재사용)
@@ -1174,7 +1379,9 @@
                 });
                 
                 // Track rank for '가능' banks only
+                // 테스트 모드: 동일한 값일 때 같은 순위 부여 (1,2,2,4,5 형식)
                 let currentRank = 1;
+                let prevValue = null; // 이전 '가능' 은행의 정렬 기준 값 저장
                 
                 sortedBanks.forEach((bank, idx) => {
                     
@@ -1197,8 +1404,16 @@
                         tdRank.style.color = 'red';
                         tdRank.style.fontWeight = 'bold';
                     } else {
+                        // 동일한 값일 때 같은 순위 부여 (1,2,2,4,5 형식)
+                        const currentValue = sortByRate ? (bank.estimatedRate || 999) : (bank.estimatedLimit || 0);
+                        
+                        // 첫 번째 '가능' 항목이 아니고 이전 값과 다르면 순위 증가
+                        if (prevValue !== null && prevValue !== currentValue) {
+                            currentRank++;
+                        }
+                        
                         tdRank.textContent = currentRank;
-                        currentRank++;
+                        prevValue = currentValue; // 현재 값을 이전 값으로 저장
                     }
                     tr.appendChild(tdRank);
                     

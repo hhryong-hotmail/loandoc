@@ -78,14 +78,14 @@ public class GroupDetailsServlet extends HttpServlet {
             logger.info("Prepending jdbc: to DB URL: " + dbUrl);
         }
         if (dbUser == null || dbUser.isEmpty()) dbUser = "postgres";
-        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgresql";
+        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgres";
 
         ArrayNode out = mapper.createArrayNode();
         boolean dbWorked = false;
         try {
             try { Class.forName("org.postgresql.Driver"); } catch (ClassNotFoundException e) { logger.log(Level.WARNING, "PostgreSQL JDBC driver not found", e); }
             try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
-                String sql = "SELECT title FROM (SELECT DISTINCT group_name, title FROM documents WHERE group_name = ?) AS t ORDER BY title";
+                String sql = "SELECT title FROM documents d WHERE d.group_name = ? ORDER BY title";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, groupName);
                     try (ResultSet rs = ps.executeQuery()) {

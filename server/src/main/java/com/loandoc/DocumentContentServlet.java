@@ -77,14 +77,14 @@ public class DocumentContentServlet extends HttpServlet {
             logger.info("Prepending jdbc: to DB URL: " + dbUrl);
         }
         if (dbUser == null || dbUser.isEmpty()) dbUser = "postgres";
-        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgresql";
+        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgres";
 
         boolean dbWorked = false;
         ObjectNode out = mapper.createObjectNode();
         try {
             try { Class.forName("org.postgresql.Driver"); } catch (ClassNotFoundException e) { logger.log(Level.WARNING, "PostgreSQL JDBC driver not found", e); }
             try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
-                String sql = "SELECT content FROM documents WHERE title = ? LIMIT 1";
+                String sql = "SELECT content FROM documents d WHERE d.title = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, title);
                     try (ResultSet rs = ps.executeQuery()) {

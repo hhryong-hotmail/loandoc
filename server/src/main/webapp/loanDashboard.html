@@ -212,8 +212,8 @@
                             authorInputEl.setAttribute('disabled', 'disabled');
                         }
                         
-                        // 게시판 데이터 로드
-                        loadPosts();
+                        // 게시판 데이터 자동 로드 제거 (사용자가 검색 버튼을 클릭할 때만 로드)
+                        // loadPosts();
                     } else {
                         // 로그인되지 않은 경우 로그인 페이지로 이동
                         alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');

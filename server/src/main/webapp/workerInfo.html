@@ -264,14 +264,13 @@
 
                 <div class="full">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:8px;">
-                        <label style="font-weight:700; margin:0;">10. 약관동의</label>
+                        <label style="font-weight:700; margin:0;">10. 개인정보동의</label>
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:#2d6cdf;">
                             <input type="checkbox" id="agreeAllTerms" style="width:20px; height:20px; cursor:pointer;">
                             <span>전체 동의</span>
                         </label>
                     </div>
                     <div style="border:1px solid #ccc; border-radius:6px; padding:16px; background:#f9f9f9;">
-                        <div style="font-weight:600; margin-bottom:12px; color:#2d6cdf;">론닥 서비스 이용 약관</div>
                         <div id="termsListArea" style="min-height:100px;">
                             <p style="color:#666; text-align:center; margin:40px 0;">약관 목록을 불러오는 중...</p>
                         </div>
@@ -300,21 +299,46 @@
             const agreeCheckbox = document.getElementById('termsAgreeCheckbox');
             const confirmBtn = document.getElementById('termsConfirmBtn');
 
-            modalTitle.textContent = title;
+            // title에서 [필수] 제거 (이미 data-title로 원본 title이 전달되지만 안전을 위해)
+            const pureTitle = title ? (title.startsWith('[필수]') ? title.replace(/^\[필수\]\s*/, '') : title).trim() : '';
+            
+            // 모달 제목은 [필수] 포함하여 표시
+            const displayTitle = title && title.startsWith('[필수]') ? title : `[필수] ${title || ''}`;
+            modalTitle.textContent = displayTitle;
             modalContent.textContent = '로딩 중...';
             agreeCheckbox.checked = false;
             confirmBtn.disabled = true;
             modal.style.display = 'block';
 
+            if (!pureTitle) {
+                modalContent.textContent = '약관 제목이 없습니다.';
+                return;
+            }
+
             try {
-                const pureTitle = title.startsWith('[필수]') ? title.replace(/^\[필수\]\s*/, '') : title;
                 const url = `${WORKER_INFO_API_BASE}/api/documents/content?title=${encodeURIComponent(pureTitle)}`;
+                console.log('약관 내용 요청 URL:', url);
                 const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('약관 내용 요청 실패:', response.status, response.statusText);
+                    modalContent.textContent = `약관 내용을 불러올 수 없습니다. (HTTP ${response.status})`;
+                    return;
+                }
+                
                 const result = await response.json();
-                modalContent.textContent = (result.ok && result.content) ? result.content : '약관 내용을 불러올 수 없습니다.';
+                console.log('약관 내용 응답:', result);
+                
+                if (result.ok && result.content) {
+                    modalContent.textContent = result.content;
+                    confirmBtn.disabled = false;
+                } else {
+                    modalContent.textContent = result.error || '약관 내용을 불러올 수 없습니다.';
+                    console.warn('약관 내용 조회 실패:', result);
+                }
             } catch (error) {
                 console.error('약관 내용 로드 오류:', error);
-                modalContent.textContent = '약관 내용 로드 중 오류가 발생했습니다.';
+                modalContent.textContent = `약관 내용 로드 중 오류가 발생했습니다: ${error.message}`;
             }
         }
 
@@ -478,7 +502,7 @@
             // 전역에서 호출 가능하도록 window에 등록
             window.loadUserProfile = loadUserProfile;
 
-            // 약관 목록 불러오기
+            /* // 약관 목록 불러오기
             async function loadTermsList() {
                 try {
                     const response = await fetch(TERMS_GROUP_URL);
@@ -516,6 +540,67 @@
                     }
                 }
             }
+
+            */
+           
+            // 약관 목록 불러오기
+            async function loadTermsList() {
+                try {
+                    console.log('약관 목록 요청 시작...');
+                    const TERMS_GROUP_URL = `${WORKER_INFO_API_BASE}/api/documents?group_name=${encodeURIComponent('론닥 서비스 이용약관')}`;
+                    const response = await fetch(TERMS_GROUP_URL);
+                    const result = await response.json();
+                    
+                    console.log('서버 응답:', result);
+                    console.log('result.ok:', result.ok);
+                    console.log('result.documents:', result.documents);
+                    console.log('documents 개수:', result.documents ? result.documents.length : 0);
+                    
+                    const termsListArea = document.getElementById('termsListArea');
+                    
+                    if (result.ok && result.documents && result.documents.length > 0) {
+                        // 개인정보 관련 약관만 필터링
+                        const personalInfoTerms = result.documents.filter(doc => 
+                            doc.title && doc.title.includes('개인정보')
+                        );
+                        
+                        console.log('개인정보 관련 약관:', personalInfoTerms);
+                        
+                        if (personalInfoTerms.length > 0) {
+                            // 체크박스 리스트 생성
+                            let html = '';
+                            personalInfoTerms.forEach((doc, index) => {
+                                console.log(`약관 ${index + 1}:`, doc);
+                                const displayTitle = `[필수] ${doc.title}`;
+                                // doc.title을 직접 전달 (서버에서 정확히 매칭하기 위해)
+                                const originalTitle = doc.title || '';
+                                html += `
+                                    <div style=\"margin-bottom:10px; display:flex; align-items:center; gap:8px;\">
+                                        <input type=\"checkbox\" class=\"individual-term-checkbox\" id=\"term_${doc.id}\" value=\"${doc.id}\" 
+                                               style=\"width:18px; height:18px; cursor:pointer; flex-shrink:0;\" onchange=\"checkIndividualTermChange()\">
+                                        <span class=\"terms-title-link\" data-title=\"${originalTitle.replace(/"/g, '&quot;')}\" onclick=\"showTermsDetail(this.getAttribute('data-title'))\" style=\"cursor:pointer; color:#2563eb; text-decoration:underline;\">${displayTitle}</span>
+                                    </div>
+                                `;
+                            });
+                            termsListArea.innerHTML = html;
+                            
+                            // 전체 동의 체크박스 이벤트 리스너 등록
+                            setupAgreeAllTermsListener();
+                        } else {
+                            console.log('개인정보 관련 약관이 필터링 결과에 없습니다.');
+                            termsListArea.innerHTML = '<p style="color:#999; margin:20px 0;">개인정보 관련 약관이 없습니다.</p>';
+                        }
+                    } else {
+                        console.log('약관 데이터가 없거나 result.ok가 false입니다.');
+                        termsListArea.innerHTML = '<p style="color:#999; margin:20px 0;">약관을 불러올 수 없습니다.</p>';
+                    }
+                } catch (error) {
+                    console.error('약관 로드 오류:', error);
+                    document.getElementById('termsListArea').innerHTML = '<p style="color:#e74c3c; margin:20px 0;">약관 로드 중 오류가 발생했습니다.</p>';
+                }
+            }
+            
+
 
             // 모달 외부 클릭 시 닫기
             window.onclick = function(event) {
