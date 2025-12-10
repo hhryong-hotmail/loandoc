@@ -1337,7 +1337,13 @@ async function loadTermsList(){
             if(result && Array.isArray(result.banks)){
                 // Sort banks: '가능' first, '불가' last
                 // Within '가능' banks, sort by estimatedRate (if sortByRate) or estimatedLimit (if sortByLimit)
-                const sortedBanks = result.banks.slice().sort((a, b) => {
+                // 인덱스를 추가하여 안정적인 정렬을 위해
+                const banksWithIndex = result.banks.map((bank, idx) => ({ bank, originalIndex: idx }));
+                
+                const sortedBanks = banksWithIndex.sort((itemA, itemB) => {
+                    const a = itemA.bank;
+                    const b = itemB.bank;
+                    
                     const hasFailureA = 
                         (a.visaType && !a.visaType.valid) ||
                         (a.country && !a.country.valid) ||
@@ -1366,23 +1372,59 @@ async function loadTermsList(){
                             // Sort by rate (lower rate first)
                             const rateA = a.estimatedRate || 999;
                             const rateB = b.estimatedRate || 999;
-                            return rateA - rateB;
+                            if (rateA !== rateB) {
+                                return rateA - rateB;
+                            }
+                            // 같은 값일 때 OK저축은행이 웰컴저축은행보다 앞에 오도록
+                            if (a.bankName === 'OK저축은행' && b.bankName === '웰컴저축은행') return -1;
+                            if (a.bankName === '웰컴저축은행' && b.bankName === 'OK저축은행') return 1;
+                            // 같은 값이고 같은 은행이 아니면 원래 인덱스로 정렬 (안정적인 정렬)
+                            return itemA.originalIndex - itemB.originalIndex;
                         } else {
                             // Sort by limit (higher limit first)
                             const limitA = a.estimatedLimit || 0;
                             const limitB = b.estimatedLimit || 0;
-                            return limitB - limitA;
+                            if (limitA !== limitB) {
+                                return limitB - limitA;
+                            }
+                            // 같은 값일 때 OK저축은행이 웰컴저축은행보다 앞에 오도록
+                            if (a.bankName === 'OK저축은행' && b.bankName === '웰컴저축은행') return -1;
+                            if (a.bankName === '웰컴저축은행' && b.bankName === 'OK저축은행') return 1;
+                            // 같은 값이고 같은 은행이 아니면 원래 인덱스로 정렬 (안정적인 정렬)
+                            return itemA.originalIndex - itemB.originalIndex;
                         }
                     }
                     
-                    return 0;
-                });
+                    // 둘 다 불가능한 경우 원래 인덱스로 정렬
+                    return itemA.originalIndex - itemB.originalIndex;
+                }).map(item => item.bank); // bank 객체만 추출
                 
-                // Track rank for '가능' banks only
-                // 테스트 모드: 동일한 값일 때 같은 순위 부여 (1,2,2,4,5 형식)
+                // 먼저 순위를 계산하여 각 은행에 저장
+                // 순차적으로 순위 부여 (동일한 값이어도 다른 순위)
                 let currentRank = 1;
-                let prevValue = null; // 이전 '가능' 은행의 정렬 기준 값 저장
                 
+                // 정렬된 순서대로 순위 부여
+                for (let i = 0; i < sortedBanks.length; i++) {
+                    const bank = sortedBanks[i];
+                    const hasFailure = 
+                        (bank.visaType && !bank.visaType.valid) ||
+                        (bank.country && !bank.country.valid) ||
+                        (bank.age && !bank.age.valid) ||
+                        (bank.annualIncome && !bank.annualIncome.valid) ||
+                        (bank.employmentDate && !bank.employmentDate.valid) ||
+                        (bank.visaExpiry && !bank.visaExpiry.valid) ||
+                        (bank.healthInsurance && !bank.healthInsurance.valid);
+                    
+                    if (!hasFailure) {
+                        // 순위를 은행 객체에 저장 (순차적으로 증가)
+                        bank._displayRank = currentRank;
+                        currentRank++;
+                    } else {
+                        bank._displayRank = null; // 불가능한 경우 순위 없음
+                    }
+                }
+                
+                // 순위 계산 후 화면에 표시
                 sortedBanks.forEach((bank, idx) => {
                     
                     const tr = document.createElement('tr');
@@ -1404,16 +1446,7 @@ async function loadTermsList(){
                         tdRank.style.color = 'red';
                         tdRank.style.fontWeight = 'bold';
                     } else {
-                        // 동일한 값일 때 같은 순위 부여 (1,2,2,4,5 형식)
-                        const currentValue = sortByRate ? (bank.estimatedRate || 999) : (bank.estimatedLimit || 0);
-                        
-                        // 첫 번째 '가능' 항목이 아니고 이전 값과 다르면 순위 증가
-                        if (prevValue !== null && prevValue !== currentValue) {
-                            currentRank++;
-                        }
-                        
-                        tdRank.textContent = currentRank;
-                        prevValue = currentValue; // 현재 값을 이전 값으로 저장
+                        tdRank.textContent = bank._displayRank || '-';
                     }
                     tr.appendChild(tdRank);
                     
@@ -1494,9 +1527,6 @@ async function loadTermsList(){
                     if (hasFailure) {
                         // 대출불가 판정 시 예상한도 표시 안 함
                         tdLimit.textContent = '-';
-                    } else if (bank.bankName === '예가람저축은행') {
-                        // 서버에서 계산된 예상한도 사용 (최고한도 4000만원 기준)
-                        tdLimit.textContent = bank.estimatedLimit ? bank.estimatedLimit.toLocaleString() + '만원' : '-';
                     } else {
                         tdLimit.textContent = bank.estimatedLimit ? bank.estimatedLimit.toLocaleString() + '만원' : '-';
                     }
@@ -1507,8 +1537,6 @@ async function loadTermsList(){
                     if (hasFailure) {
                         // 대출불가 판정 시 예상금리 표시 안 함
                         tdRate.textContent = '-';
-                    } else if (bank.bankName === '예가람저축은행') {
-                        tdRate.textContent = '16.50%';
                     } else {
                         // 소수점 2자리까지 표시
                         tdRate.textContent = bank.estimatedRate ? bank.estimatedRate.toFixed(2) + '%' : '-';
@@ -1866,19 +1894,15 @@ async function loadTermsList(){
                 resultHtml += `<div>연소득: ${bank.annualIncome.valid ? 'O' : 'X (' + bank.annualIncome.error + ')'}</div>`;
                 
                 // Display loan estimate - 대출불가 판정 시 표시 안 함
-                if(!hasFailure && (bank.estimatedLimit !== null || bank.bankName === '예가람저축은행' || (inputData.annualIncome && inputData.annualIncome < 2000))){
+                if(!hasFailure && (bank.estimatedLimit !== null || bank.bankName === '예가람저축은행' || bank.bankName === '웰컴저축은행' || (inputData.annualIncome && inputData.annualIncome < 2000))){
                     resultHtml += `<div style="grid-column:1/-1;margin-top:8px;padding-top:8px;border-top:1px solid #f1f4fb;">`;
                     if (inputData.annualIncome && inputData.annualIncome < 2000) {
                         // 연소득이 2000만원 미만일 경우 예상한도를 연소득으로 표시 (모든 은행)
                         resultHtml += `<strong>예상한도:</strong> ${inputData.annualIncome.toLocaleString()}만원 | `;
-                        resultHtml += `<strong>예상금리:</strong> ${bank.estimatedRate || (bank.bankName === '예가람저축은행' ? '16.5' : '-')}%</div>`;
-                    } else if (bank.bankName === '예가람저축은행') {
-                        // 서버에서 계산된 예상한도 사용 (최고한도 4000만원 기준)
-                        resultHtml += `<strong>예상한도:</strong> ${bank.estimatedLimit ? bank.estimatedLimit.toLocaleString() : '-'}만원 | `;
-                        resultHtml += `<strong>예상금리:</strong> 16.5%</div>`;
+                        resultHtml += `<strong>예상금리:</strong> ${bank.estimatedRate || '-'}%</div>`;
                     } else {
-                        resultHtml += `<strong>예상한도:</strong> ${bank.estimatedLimit.toLocaleString()}만원 | `;
-                        resultHtml += `<strong>예상금리:</strong> ${bank.estimatedRate}%</div>`;
+                        resultHtml += `<strong>예상한도:</strong> ${bank.estimatedLimit ? bank.estimatedLimit.toLocaleString() : '-'}만원 | `;
+                        resultHtml += `<strong>예상금리:</strong> ${bank.estimatedRate || '-'}%</div>`;
                     }
                 } else if(hasFailure) {
                     resultHtml += `<div style="grid-column:1/-1;margin-top:8px;padding-top:8px;border-top:1px solid #f1f4fb;color:#999;">`;

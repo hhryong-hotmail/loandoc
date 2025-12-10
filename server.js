@@ -578,7 +578,7 @@ app.post('/api/server/loan-estimate', async (req, res) => {
           minVisaExpiryDays: 1, // 오늘 이후
           minEmploymentDays: 30,
           minAnnualIncome: 2000,
-          estimatedLimit: 2000,
+          estimatedLimit: 3000,
           estimatedRate: 14.7
         }
       },
@@ -638,6 +638,8 @@ app.post('/api/server/loan-estimate', async (req, res) => {
 
     // Process each bank
     const results = banks.map(bank => {
+      // 테스트 모드: 웰컴저축은행은 예상한도 3500만원, 예상금리 15.00%로 고정
+      const isWelcomeBank = bank.name === '웰컴저축은행';
       const result = {
         bankName: bank.name,
         visaType: { valid: true, error: '' },
@@ -646,8 +648,8 @@ app.post('/api/server/loan-estimate', async (req, res) => {
         visaExpiry: { valid: true, error: '' },
         employmentDate: { valid: true, error: '' },
         annualIncome: { valid: true, error: '' },
-        estimatedLimit: bank.config.estimatedLimit,
-        estimatedRate: bank.config.estimatedRate,
+        estimatedLimit: isWelcomeBank ? 3500 : bank.config.estimatedLimit,
+        estimatedRate: isWelcomeBank ? 15.00 : bank.config.estimatedRate,
         rank: bank.rank
       };
 
