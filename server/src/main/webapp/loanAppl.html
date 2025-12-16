@@ -1246,7 +1246,15 @@ async function loadTermsList(){
             
             // Clear previous results
             resultTbody.innerHTML = '';
-            console.log("하현용.............")
+            // 예가람저축은행 예상금리 강제 설정
+            if (result && Array.isArray(result.banks)) {
+                result.banks.forEach(function(bank) {
+                    if (bank && bank.bankName && String(bank.bankName).trim() === '예가람저축은행') {
+                        bank.estimatedRate = 16.5;
+                    }
+                });
+            }
+            //console.log("하현용.............")
             // Apply 전북은행 client-side rules: 서버 응답을 덮어쓰지 않되,
             // 전북은행 항목이 규칙에 걸리면 country.valid=false로 표시하여
             // UI에서 '불가'로 보이게 합니다. 맵은 JEONBUK_BLOCK_RULES에 있음.
