@@ -19,10 +19,6 @@ Thumbs.db
 *.env
 *.keystore
 setenv.bat
- 
-# Node / frontend
-node_modules/
-npm-debug.log*
 
 # Build output
 server/target/
