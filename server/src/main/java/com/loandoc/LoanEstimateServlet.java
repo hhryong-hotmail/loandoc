@@ -3,6 +3,15 @@ package com.loandoc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,6 +35,7 @@ public class LoanEstimateServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = Logger.getLogger(LoanEstimateServlet.class.getName());
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
@@ -60,6 +70,7 @@ public class LoanEstimateServlet extends HttpServlet {
             Integer workingMonths = requestBody.has("workingMonths") ? requestBody.get("workingMonths").asInt() : null;
             String visaType = requestBody.has("visaType") ? requestBody.get("visaType").asText() : null;
             String healthInsurance = requestBody.has("healthInsurance") ? requestBody.get("healthInsurance").asText() : null;
+            boolean testMode = requestBody.has("testMode") && requestBody.get("testMode").asBoolean();
 
             // Validate required fields
             if (loginId == null || nationality == null || remainMonths == null
@@ -75,13 +86,13 @@ public class LoanEstimateServlet extends HttpServlet {
             // Normalize visa type
             String normalizedVisaType = normalizeVisaType(visaType);
 
-            // Bank configurations
-            List<BankConfig> banks = getBankConfigurations();
+            // Bank configurations - testMode에 따라 데이터베이스에서 가져오거나 하드코딩된 값 사용
+            List<BankConfig> banks = getBankConfigurations(testMode);
 
             // Process each bank
             ArrayNode results = mapper.createArrayNode();
             for (BankConfig bank : banks) {
-                ObjectNode result = processBank(bank, nationality, remainMonths, annualIncome, age, workingMonths, normalizedVisaType, healthInsurance);
+                ObjectNode result = processBank(bank, nationality, remainMonths, annualIncome, age, workingMonths, normalizedVisaType, healthInsurance, testMode);
                 results.add(result);
             }
 
@@ -171,38 +182,43 @@ public class LoanEstimateServlet extends HttpServlet {
         return cleaned;
     }
 
-    private List<BankConfig> getBankConfigurations() {
+    private List<BankConfig> getBankConfigurations(boolean testMode) {
+        // testMode와 운영 모드 모두 데이터베이스에서 가져옴
+        return getBankConfigurationsFromDB(testMode);
+        
+        // 운영 모드: 기존 하드코딩된 로직 사용 (주석 처리 - DB에서 가져오도록 변경)
+        /*
         List<BankConfig> banks = new ArrayList<>();
         // 1. KB저축은행: 가중치 35%, 최고한도 3000만원
         banks.add(new BankConfig("KB저축은행", 1,
             new String[]{"E7", "E9", "F2", "F6", "F5"},
                 null, new String[]{"Nepal", "Cambodia"}, 19, null, 8, 3, 1500,
-                2000.0, 14.7, 0.35, 3000.0));
+                2000.0, 14.7, 0.35, 3000.0, null));
 
         // 2. 전북은행: 가중치 36%, 최고한도 5000만원
         // 전북은행은 E9 비자에 대해 국가별 심사기준을 별도로 적용합니다.
         banks.add(new BankConfig("전북은행", null,
             new String[]{"E7", "E9", "F2", "F6", "F5", "F4"},
                 null, null, 19, null, 6, 6, 2000,
-                2000.0, 13.07, 0.36, 5000.0));
+                2000.0, 13.07, 0.36, 5000.0, null));
 
         // 3. OK저축은행: 가중치 37%, 최고한도 3500만원
         banks.add(new BankConfig("OK저축은행", null,
             new String[]{"E9"},
                 null, null, 18, 45, 0, 0, 0,
-                2000.0, 15.0, 0.37, 3500.0));
+                2000.0, 15.0, 0.37, 3500.0, null));
 
         // 4. 웰컴저축은행: 가중치 36%, 최고한도 3000만원
         banks.add(new BankConfig("웰컴저축은행", null,
             new String[]{"E9", "E7"},
                 null, null, 0, null, 1, 0, 0,
-                2000.0, 16.0, 0.36, 3000.0));
+                2000.0, 16.0, 0.36, 3000.0, null));
 
         // 5. 예가람저축은행: 가중치 38%, 최고한도 4000만원
         banks.add(new BankConfig("예가람저축은행", 5,
             new String[]{"E7", "E9", "F2", "F6", "F5"},
                 null, null, 20, null, 0, 0, 0,
-                null, null, 0.38, 4000.0));
+                null, null, 0.38, 4000.0, null));
 
         // Assign ranks to null-rank banks based on interest rate
         List<BankConfig> middleBanks = new ArrayList<>();
@@ -217,10 +233,140 @@ public class LoanEstimateServlet extends HttpServlet {
         }
 
         return banks;
+        */
+    }
+
+    private List<BankConfig> getBankConfigurationsFromDB(boolean testMode) {
+        List<BankConfig> banks = new ArrayList<>();
+        String tableName = testMode ? "test_bank_info" : "bank_info";
+        
+        // Read DB connection settings
+        String dbUrl = System.getenv("DB_URL");
+        String dbUser = System.getenv("DB_USER");
+        String dbPass = System.getenv("DB_PASSWORD");
+        String defaultDbName = "loandoc";
+
+        // Servlet context init parameters
+        try {
+            String ctxUrl = getServletContext().getInitParameter("DB_URL");
+            String ctxUser = getServletContext().getInitParameter("DB_USER");
+            String ctxPass = getServletContext().getInitParameter("DB_PASSWORD");
+            if (dbUrl == null || dbUrl.isEmpty()) dbUrl = ctxUrl;
+            if (dbUser == null || dbUser.isEmpty()) dbUser = ctxUser;
+            if (dbPass == null || dbPass.isEmpty()) dbPass = ctxPass;
+        } catch (Exception e) {
+            logger.log(Level.FINE, "No servlet context DB init params available", e);
+        }
+
+        // classpath properties file
+        Properties props = new Properties();
+        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream("db.properties")) {
+            if (in != null) {
+                props.load(in);
+                if ((dbUrl == null || dbUrl.isEmpty()) && props.getProperty("DB_URL") != null) dbUrl = props.getProperty("DB_URL");
+                if ((dbUser == null || dbUser.isEmpty()) && props.getProperty("DB_USER") != null) dbUser = props.getProperty("DB_USER");
+                if ((dbPass == null || dbPass.isEmpty()) && props.getProperty("DB_PASSWORD") != null) dbPass = props.getProperty("DB_PASSWORD");
+            }
+        } catch (Exception e) {
+            logger.log(Level.FINE, "No db.properties found on classpath or failed to load", e);
+        }
+
+        // Defaults
+        if (dbUrl == null || dbUrl.isEmpty()) {
+            dbUrl = "jdbc:postgresql://localhost:5432/" + defaultDbName;
+        } else if (!dbUrl.startsWith("jdbc:")) {
+            dbUrl = "jdbc:postgresql://" + dbUrl;
+        }
+        if (dbUser == null || dbUser.isEmpty()) dbUser = "postgres";
+        if (dbPass == null || dbPass.isEmpty()) dbPass = "postgres";
+
+        try {
+            try {
+                Class.forName("org.postgresql.Driver");
+            } catch (ClassNotFoundException e) {
+                logger.log(Level.WARNING, "PostgreSQL JDBC driver not found on classpath", e);
+            }
+            
+            try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPass)) {
+                // use_it 컬럼 존재 여부 확인
+                String checkColumnSql = "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ? AND column_name = 'use_it')";
+                boolean hasUseItColumn = false;
+                try (PreparedStatement checkColPs = conn.prepareStatement(checkColumnSql)) {
+                    checkColPs.setString(1, tableName);
+                    try (ResultSet rs = checkColPs.executeQuery()) {
+                        if (rs.next()) {
+                            hasUseItColumn = rs.getBoolean(1);
+                        }
+                    }
+                }
+
+                // use_it=1인 데이터만 조회
+                String sql;
+                if (hasUseItColumn) {
+                    sql = "SELECT bank_name, bank_code, current_rate, max_limit, weight, comm FROM " + tableName + " WHERE use_it = 1 ORDER BY id";
+                } else {
+                    sql = "SELECT bank_name, bank_code, current_rate, max_limit, weight, comm FROM " + tableName + " ORDER BY id";
+                }
+                
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        int rank = 1;
+                        while (rs.next()) {
+                            String bankName = rs.getString("bank_name");
+                            Double currentRate = rs.getBigDecimal("current_rate") != null ? rs.getBigDecimal("current_rate").doubleValue() : null;
+                            Long maxLimit = rs.getLong("max_limit");
+                            Double weight = rs.getBigDecimal("weight") != null ? rs.getBigDecimal("weight").doubleValue() : 0.0;
+                            Integer comm = rs.getObject("comm") != null ? rs.getInt("comm") : null;
+                            
+                            // testMode일 때는 간단한 BankConfig 생성 (기본값 사용)
+                            // 실제 검증 로직은 운영 모드에서만 사용
+                            double weightFactor;
+                            double maxLimitValue;
+                            
+                            if (testMode) {
+                                // testMode일 때: weight를 그대로 사용 (test_bank_info의 weight는 35.00, 37.00 등)
+                                weightFactor = weight;
+                                // test_bank_info의 max_limit은 만원 단위이므로 그대로 사용
+                                maxLimitValue = maxLimit.doubleValue();
+                            } else {
+                                // 운영 모드: 기존 로직 유지
+                                weightFactor = weight / 100.0; // weight를 100으로 나눔
+                                maxLimitValue = maxLimit / 10000.0; // 원 단위를 만원 단위로 변환
+                            }
+                            
+                            banks.add(new BankConfig(
+                                bankName,
+                                rank++,
+                                new String[]{"E7", "E9", "F2", "F6", "F5", "F4"}, // 기본 허용 비자
+                                null, // excludedCountries
+                                null, // requiredCountries
+                                0, // minAge (검증 안 함)
+                                null, // maxAge
+                                0, // minVisaExpiryDays (검증 안 함)
+                                0, // minEmploymentDays (검증 안 함)
+                                0, // minAnnualIncome (검증 안 함)
+                                2000.0, // estimatedLimit
+                                currentRate, // estimatedRate
+                                weightFactor, // weightFactor
+                                maxLimitValue, // maxLimit
+                                comm // comm
+                            ));
+                        }
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.WARNING, "Database query failed for bank configurations: " + ex.getMessage(), ex);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Unexpected error while fetching bank configurations from DB", ex);
+        }
+
+        // 데이터베이스에서 가져온 데이터가 없으면 빈 리스트 반환
+        return banks;
     }
 
     private ObjectNode processBank(BankConfig bank, String nationality, int remainMonths,
-            double annualIncome, int age, int workingMonths, String normalizedVisaType, String healthInsurance) {
+            double annualIncome, int age, int workingMonths, String normalizedVisaType, String healthInsurance, boolean testMode) {
         ObjectNode result = mapper.createObjectNode();
         result.put("bankName", bank.name);
 
@@ -449,10 +595,24 @@ public class LoanEstimateServlet extends HttpServlet {
             result.set("healthInsurance", healthInsuranceNode);
         }
 
-        // 예상한도 계산: 연소득 × 잔여체류기간 × 가중치 / 10
+        // 예상한도 계산
+        double calculatedLimit;
+        double maxLimitValue;
+        
+        if (testMode) {
+            // testMode일 때: 연소득 × 잔여체류개월수 × 가중치 (test_bank_info의 weight) / 10
+            // weightFactor는 이미 weight 그대로 저장되어 있음 (testMode일 때는 weight / 100.0 하지 않음)
+            calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
+            // test_bank_info의 max_limit은 만원 단위이므로 그대로 사용
+            maxLimitValue = bank.maxLimit;
+        } else {
+            // 운영 모드: 기존 로직 유지
+            calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
+            maxLimitValue = bank.maxLimit;
+        }
+        
         // 단, 최고한도를 초과할 수 없음
-        double calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
-        double finalLimit = Math.min(calculatedLimit, bank.maxLimit);
+        double finalLimit = Math.min(calculatedLimit, maxLimitValue);
         
         // 소수점 이하 반올림
         finalLimit = Math.round(finalLimit);
@@ -471,6 +631,13 @@ public class LoanEstimateServlet extends HttpServlet {
             result.put("rank", bank.rank);
         } else {
             result.putNull("rank");
+        }
+
+        // comm 값 추가
+        if (bank.comm != null) {
+            result.put("comm", bank.comm);
+        } else {
+            result.putNull("comm");
         }
 
         return result;
@@ -504,12 +671,13 @@ public class LoanEstimateServlet extends HttpServlet {
         Double estimatedRate;
         double weightFactor;  // 가중치 (예: 0.35, 0.36, 0.37, 0.38)
         double maxLimit;      // 최고한도
+        Integer comm;         // 통신 상태 값
 
         BankConfig(String name, Integer rank, String[] allowedVisaTypes,
                 String[] excludedCountries, String[] requiredCountries,
                 int minAge, Integer maxAge, int minVisaExpiryDays, int minEmploymentDays,
                 double minAnnualIncome, Double estimatedLimit, Double estimatedRate,
-                double weightFactor, double maxLimit) {
+                double weightFactor, double maxLimit, Integer comm) {
             this.name = name;
             this.rank = rank;
             this.allowedVisaTypes = allowedVisaTypes;
@@ -524,6 +692,7 @@ public class LoanEstimateServlet extends HttpServlet {
             this.estimatedRate = estimatedRate;
             this.weightFactor = weightFactor;
             this.maxLimit = maxLimit;
+            this.comm = comm;
         }
     }
 }

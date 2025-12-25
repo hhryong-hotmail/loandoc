@@ -90,9 +90,9 @@
     /* terms controls: checkbox and 전체 동의 button/text to the right of 약관동의 */
     .terms-controls{display:flex;align-items:center;gap:8px;margin-left:8px}
     .terms-controls .terms-checkbox{width:auto;height:18px;margin:0;padding:0}
-    /* Shift the 전체 동의 controls 500px to the right on desktop */
+    /* Shift the 전체 동의 controls 460px to the right on desktop (40px left from original) */
     @media (min-width:601px) {
-        .terms-controls{transform:translateX(500px);transition:transform .18s ease}
+        .terms-controls{transform:translateX(460px);transition:transform .18s ease}
     }
     .terms-controls .agree-all-btn{background:var(--brand);color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px}
     @media (max-width:600px){.terms-controls{margin-left:0;margin-top:8px}}
@@ -205,6 +205,13 @@
         main { margin-top: 0; padding-top: 0; }
         .button-panel { margin-top: 4px; padding-top: 0; }
     </style>
+    <!-- 환경 선택: 항상 상단에 표시 (label 제거) -->
+    <div style="width:100%;display:flex;justify-content:flex-end;align-items:center;margin:8px 0 0 0;padding:0 24px 0 0;">
+        <select id="env-select" style="margin-left:0;padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;width:120px;">
+            <option value="prod" selected>운영</option>
+            <option value="test">테스트</option>
+        </select>
+    </div>
     <main>
         <!-- All action buttons vertically aligned in a single column -->
         <div class="button-panel" style="display: flex; flex-direction: column; padding-left: 6.25%; margin-left: 0px;">
@@ -317,12 +324,12 @@
                         <input type="radio" name="sortOption" value="limit" style="cursor:pointer;">
                         <span>예상한도로 조회</span>
                     </label>
-                    <select id="env-select" style="margin-left:8px;padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;width:120px;transition:opacity 0.2s;pointer-events:auto;vertical-align:middle;" tabindex="0"
-                        style="margin-left:8px;padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;width:120px;transition:opacity 0.2s;pointer-events:auto;vertical-align:middle;opacity:0;"
-                        onfocus="this.style.opacity='1'" onblur="this.style.opacity='0'" onmousedown="this.style.opacity='1'">
-                        <option value="prod" selected>운영</option>
-                        <option value="test">테스트</option>
-                    </select>
+                    <div class="action-item">
+                        <select id="env-select" class="action-select">
+                            <option value="prod" selected>운영</option>
+                            <option value="test">테스트</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <style>
@@ -459,10 +466,108 @@
 
         // 세션 확인 및 로그인 상태 표시
         let currentUserId = null;
-        
+
+        // 환경 모드: 운영/테스트
+        let testMode = false;
+
+        // 은행 정보 (데이터베이스에서 로드)
+        let bank_info = [];
+        let test_bank_info = [];
+
         // 대출 결과 데이터 저장 (정렬 옵션 변경 시 재사용)
         let lastLoanResult = null;
         let lastInputData = null;
+
+        // 은행 정보를 데이터베이스에서 가져오는 함수
+        async function loadBankInfo(mode) {
+            try {
+                const modeParam = mode === 'test' ? 'test' : 'prod';
+                const response = await fetch(`/api/bank-info?mode=${modeParam}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load bank info');
+                }
+                const data = await response.json();
+                if (mode === 'test') {
+                    test_bank_info = data;
+                } else {
+                    bank_info = data;
+                }
+                return data;
+            } catch (error) {
+                console.error('Error loading bank info:', error);
+                // Fallback to empty array
+                return mode === 'test' ? (test_bank_info = []) : (bank_info = []);
+            }
+        }
+
+        // 초기 로드: 운영 모드와 테스트 모드 모두 로드
+        loadBankInfo('prod');
+        loadBankInfo('test');
+
+        // env-select 값 변경 시 testMode 설정 및 은행 정보 재로드
+        // 모든 env-select 요소에 이벤트 리스너 추가
+        function updateTestMode() {
+            // 모든 env-select 요소를 확인
+            const envSelects = document.querySelectorAll('#env-select');
+            if (envSelects.length > 0) {
+                // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
+                const lastEnvSelect = envSelects[envSelects.length - 1];
+                const envValue = lastEnvSelect.value;
+                testMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                // 모드 변경 시 해당 모드의 은행 정보가 없으면 로드
+                const currentBanks = testMode ? test_bank_info : bank_info;
+                if (currentBanks.length === 0) {
+                    loadBankInfo(testMode ? 'test' : 'prod');
+                }
+            } else {
+                // fallback
+                const envSelect = document.getElementById('env-select');
+                if (envSelect) {
+                    const envValue = envSelect.value;
+                    testMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                    const currentBanks = testMode ? test_bank_info : bank_info;
+                    if (currentBanks.length === 0) {
+                        loadBankInfo(testMode ? 'test' : 'prod');
+                    }
+                }
+            }
+        }
+        
+        // 초기 로드 시 testMode 설정
+        updateTestMode();
+        
+        // env-select 변경 이벤트 리스너
+        document.getElementById('env-select')?.addEventListener('change', function(e) {
+            updateTestMode();
+        });
+
+        // 조건 체크 함수 (간단 예시)
+        function checkBankEligibility(bank, input) {
+            // 실제 조건은 필요에 따라 수정
+            // O: 조건 충족, X: 미충족
+            // input: {nationality, age, visaType, ...}
+            const result = {
+                visa: 'O',
+                country: 'O',
+                age: 'O',
+                income: 'O',
+                working: 'O',
+                remain: 'O'
+            };
+            // 예시: 나이 20~60세만 O
+            if (!input.age || input.age < 20 || input.age > 60) result.age = 'X';
+            // 예시: 연소득 1000만원 이상만 O
+            if (!input.annualIncome || input.annualIncome < 1000) result.income = 'X';
+            // 예시: 재직기간 6개월 이상만 O
+            if (!input.workingMonths || input.workingMonths < 6) result.working = 'X';
+            // 예시: 잔여체류기간 3개월 이상만 O
+            if (!input.remainMonths || input.remainMonths < 3) result.remain = 'X';
+            // 예시: 비자종류 필수
+            if (!input.visaType) result.visa = 'X';
+            // 예시: 국가 필수
+            if (!input.nationality) result.country = 'X';
+            return result;
+        }
 
         // Format an error value for display in popups: hide empty / zero-like values
         function fmtError(val) {
@@ -863,114 +968,51 @@
                 viewBtn.className = 'terms-view-btn';
                 viewBtn.textContent = '조회';
                 viewBtn.type = 'button';
-                viewBtn.addEventListener('click', async function(){
-                    // ...기존 코드 그대로...
-                    const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
-                    const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
-                    // Find required terms (select_option contains '필수')
-                    const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
-                        const selectOption = cb.getAttribute('data-select-option') || '';
-                        return selectOption.includes('필수') && !cb.checked;
+                viewBtn.addEventListener('click', async function() {
+                    // 입력값 수집
+                    const input = {
+                        nationality: document.getElementById('action-nationality')?.value,
+                        remainMonths: parseInt(document.getElementById('remain_months')?.value),
+                        annualIncome: parseInt(document.getElementById('annual_income')?.value),
+                        age: parseInt(document.getElementById('age')?.value),
+                        workingMonths: parseInt(document.getElementById('working_months')?.value),
+                        visaType: document.getElementById('visa_type')?.value,
+                        healthInsurance: document.getElementById('health_insurance')?.value
+                    };
+                    // testMode가 true면 test_bank_info만 사용
+                    // 은행 정보가 없으면 먼저 로드
+                    const currentBanks = testMode ? test_bank_info : bank_info;
+                    if (currentBanks.length === 0) {
+                        await loadBankInfo(testMode ? 'test' : 'prod');
+                    }
+                    const banks = testMode ? test_bank_info : bank_info;
+                    // 서버에서 이미 use_it=1인 데이터만 조회하므로 필터링 불필요
+                    // 결과 테이블 tbody
+                    const tbody = document.getElementById('result-tbody');
+                    tbody.innerHTML = '';
+                    banks.forEach((bank, idx) => {
+                        const check = checkBankEligibility(bank, input);
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${idx+1}</td>
+                            <td>${bank.bank_name}</td>
+                            <td>${Object.values(check).every(v=>v==='O') ? 'O' : 'X'}</td>
+                            <td><button class="loan-apply-btn" ${Object.values(check).every(v=>v==='O')?'':'disabled'}>신청</button></td>
+                            <td>${bank.max_limit.toLocaleString()}</td>
+                            <td>${bank.current_rate}</td>
+                            <td>${input.visaType||'-'} (${check.visa})</td>
+                            <td>${input.nationality||'-'} (${check.country})</td>
+                            <td>${input.age||'-'} (${check.age})</td>
+                            <td>${input.annualIncome||'-'} (${check.income})</td>
+                            <td>${input.workingMonths||'-'} (${check.working})</td>
+                            <td>${input.healthInsurance||'-'}</td>
+                            <td>${input.remainMonths||'-'} (${check.remain})</td>
+                            <td>OK</td>
+                        `;
+                        tbody.appendChild(tr);
                     });
-                    if(requiredUnchecked.length > 0){
-                        console.warn('필수 약관의 동의가 필요합니다');
-                        return;
-                    }
-                    if(checked.length === 0){
-                        console.warn('필수 약관을 체크해주세요.');
-                        return;
-                    }
-                    // Collect form data
-                    const loginId = localStorage.getItem('login-id') || currentUserId || '';
-                    if (!loginId || loginId.trim() === '') {
-                        alert('로그인이 필요합니다. 로그인 화면으로 이동합니다.');
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    const nationality = document.getElementById('action-nationality')?.value || '';
-                    const remainMonths = document.getElementById('remain_months')?.value || '';
-                    const annualIncome = document.getElementById('annual_income')?.value || '';
-                    const age = document.getElementById('age')?.value || '';
-                    const workingMonths = document.getElementById('working_months')?.value || '';
-                    const visaType = document.getElementById('visa_type')?.value || '';
-                    const healthInsurance = document.getElementById('health_insurance')?.value || '';
-                    // Debug: Log all field values
-                    console.log('=== 입력 필드 확인 ===');
-                    console.log('로그인ID:', loginId);
-                    console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
-                    console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
-                    console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
-                    console.log('나이:', age, '(element:', document.getElementById('age'), ')');
-                    console.log('재직기간:', workingMonths, '(element:', document.getElementById('working_months'), ')');
-                    console.log('비자종류:', visaType, '(element:', document.getElementById('visa_type'), ')');
-                    console.log('의료보험:', healthInsurance, '(element:', document.getElementById('health_insurance'), ')');
-                    // Validate required fields
-                    const missingFields = [];
-                    if(!loginId) missingFields.push('로그인ID (로그인이 필요합니다)');
-                    if(!nationality) missingFields.push('국가');
-                    if(!remainMonths) missingFields.push('잔여체류기간');
-                    if(!annualIncome) missingFields.push('연소득');
-                    if(!age) missingFields.push('나이');
-                    if(!workingMonths) missingFields.push('재직기간');
-                    if(!visaType) missingFields.push('비자종류');
-                    if(missingFields.length > 0){
-                        console.error('누락된 필드:', missingFields);
-                        console.warn('모든 필드를 입력해주세요. 누락된 필드: ' + missingFields.join(', '));
-                        return;
-                    }
-                    // Send to server
-                    try{
-                        const requestData = {
-                            loginId,
-                            nationality,
-                            remainMonths: parseInt(remainMonths),
-                            annualIncome: parseFloat(annualIncome),
-                            age: parseInt(age),
-                            workingMonths: parseInt(workingMonths),
-                            visaType,
-                            healthInsurance
-                        };
-                        console.log('=== 서버로 전송할 데이터 ===');
-                        console.log('healthInsurance 값:', healthInsurance);
-                        console.log('전체 데이터:', requestData);
-                        const res = await fetch('/server/api/server/loan-estimate', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify(requestData)
-                        });
-                        if(!res.ok) throw new Error('서버 오류');
-                        const result = await res.json();
-                        // Client-side safeguards and immediate Jeonbuk popups removed per request.
-                        // Remove any cached result then store fresh result in sessionStorage
-                        sessionStorage.removeItem('loanEstimateResult');
-                        sessionStorage.removeItem('loanEstimateInput');
-                        // Jeonbuk immediate popup logic removed.
-                        sessionStorage.setItem('loanEstimateResult', JSON.stringify(result));
-                        sessionStorage.setItem('loanEstimateInput', JSON.stringify({
-                            loginId,
-                            nationality,
-                            remainMonths,
-                            annualIncome,
-                            age,
-                            workingMonths,
-                            visaType
-                        }));
-                        // Display result in the same page
-                        displayLoanResult(result, {
-                            loginId,
-                            nationality,
-                            remainMonths,
-                            annualIncome,
-                            age,
-                            workingMonths,
-                            visaType,
-                            healthInsurance
-                        });
-                        // Jeonbuk quick visibility popup removed.
-                    }catch(err){
-                        console.error('대출 조회 오류:', err);
-                        console.error('대출 조회 중 오류가 발생했습니다.');
-                    }
+                    // 결과 섹션 보이기
+                    document.getElementById('result-section').style.display = 'block';
                 });
                 footer.appendChild(viewBtn);
                 container.appendChild(footer);
@@ -1119,6 +1161,24 @@ async function loadTermsList(){
                         return;
                     }
                     
+                    // env-select의 현재 값을 확인하여 testMode 설정
+                    // 모든 env-select 요소를 확인 (같은 id를 가진 요소가 여러 개일 수 있음)
+                    const envSelects = document.querySelectorAll('#env-select');
+                    let currentTestMode = false;
+                    let envValue = '';
+                    if (envSelects.length > 0) {
+                        // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
+                        const lastEnvSelect = envSelects[envSelects.length - 1];
+                        envValue = lastEnvSelect.value;
+                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                    } else {
+                        // fallback: getElementById 사용
+                        const envSelect = document.getElementById('env-select');
+                        envValue = envSelect ? envSelect.value : '';
+                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                    }
+                    testMode = currentTestMode; // 전역 변수도 업데이트
+                    
                     // Send to server
                     try{
                         const requestData = {
@@ -1129,10 +1189,14 @@ async function loadTermsList(){
                             age: parseInt(age),
                             workingMonths: parseInt(workingMonths),
                             visaType,
-                            healthInsurance
+                            healthInsurance,
+                            testMode: currentTestMode
                         };
                         console.log('=== 서버로 전송할 데이터 ===');
                         console.log('healthInsurance 값:', healthInsurance);
+                        console.log('env-select 개수:', envSelects.length);
+                        console.log('env-select 값:', envValue);
+                        console.log('testMode 값:', currentTestMode);
                         console.log('전체 데이터:', requestData);
                         
                         const res = await fetch('/server/api/server/loan-estimate', {
@@ -1185,6 +1249,139 @@ async function loadTermsList(){
                 footer.appendChild(viewBtn);
                 container.appendChild(footer);
 
+                // 원복: 서버 fetch 방식으로만 동작 (운영/테스트 모드 구분 없이)
+                viewBtn.addEventListener('click', async function(){
+                    const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
+                    const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
+                    // Find required terms (select_option contains '필수')
+                    const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
+                        const selectOption = cb.getAttribute('data-select-option') || '';
+                        return selectOption.includes('필수') && !cb.checked;
+                    });
+                    if(requiredUnchecked.length > 0){
+                        console.warn('필수 약관의 동의가 필요합니다');
+                        return;
+                    }
+                    if(checked.length === 0){
+                        console.warn('필수 약관을 체크해주세요.');
+                        return;
+                    }
+                    // Collect form data
+                    const loginId = localStorage.getItem('login-id') || currentUserId || '';
+                    if (!loginId || loginId.trim() === '') {
+                        alert('로그인이 필요합니다. 로그인 화면으로 이동합니다.');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    const nationality = document.getElementById('action-nationality')?.value || '';
+                    const remainMonths = document.getElementById('remain_months')?.value || '';
+                    const annualIncome = document.getElementById('annual_income')?.value || '';
+                    const age = document.getElementById('age')?.value || '';
+                    const workingMonths = document.getElementById('working_months')?.value || '';
+                    const visaType = document.getElementById('visa_type')?.value || '';
+                    const healthInsurance = document.getElementById('health_insurance')?.value || '';
+                    // Debug: Log all field values
+                    console.log('=== 입력 필드 확인 ===');
+                    console.log('로그인ID:', loginId);
+                    console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
+                    console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
+                    console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
+                    console.log('나이:', age, '(element:', document.getElementById('age'), ')');
+                    console.log('재직기간:', workingMonths, '(element:', document.getElementById('working_months'), ')');
+                    console.log('비자종류:', visaType, '(element:', document.getElementById('visa_type'), ')');
+                    console.log('의료보험:', healthInsurance, '(element:', document.getElementById('health_insurance'), ')');
+                    // Validate required fields
+                    const missingFields = [];
+                    if(!loginId) missingFields.push('로그인ID (로그인이 필요합니다)');
+                    if(!nationality) missingFields.push('국가');
+                    if(!remainMonths) missingFields.push('잔여체류기간');
+                    if(!annualIncome) missingFields.push('연소득');
+                    if(!age) missingFields.push('나이');
+                    if(!workingMonths) missingFields.push('재직기간');
+                    if(!visaType) missingFields.push('비자종류');
+                    if(missingFields.length > 0){
+                        console.error('누락된 필드:', missingFields);
+                        console.warn('모든 필드를 입력해주세요. 누락된 필드: ' + missingFields.join(', '));
+                        return;
+                    }
+                    
+                    // env-select의 현재 값을 확인하여 testMode 설정
+                    // 모든 env-select 요소를 확인 (같은 id를 가진 요소가 여러 개일 수 있음)
+                    const envSelects = document.querySelectorAll('#env-select');
+                    let currentTestMode = false;
+                    let envValue = '';
+                    if (envSelects.length > 0) {
+                        // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
+                        const lastEnvSelect = envSelects[envSelects.length - 1];
+                        envValue = lastEnvSelect.value;
+                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                    } else {
+                        // fallback: getElementById 사용
+                        const envSelect = document.getElementById('env-select');
+                        envValue = envSelect ? envSelect.value : '';
+                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                    }
+                    testMode = currentTestMode; // 전역 변수도 업데이트
+                    
+                    // Send to server
+                    try{
+                        const requestData = {
+                            loginId,
+                            nationality,
+                            remainMonths: parseInt(remainMonths),
+                            annualIncome: parseFloat(annualIncome),
+                            age: parseInt(age),
+                            workingMonths: parseInt(workingMonths),
+                            visaType,
+                            healthInsurance,
+                            testMode: currentTestMode
+                        };
+                        console.log('=== 서버로 전송할 데이터 ===');
+                        console.log('healthInsurance 값:', healthInsurance);
+                        console.log('env-select 개수:', envSelects.length);
+                        console.log('env-select 값:', envValue);
+                        console.log('testMode 값:', currentTestMode);
+                        console.log('전체 데이터:', requestData);
+                        const res = await fetch('/server/api/server/loan-estimate', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(requestData)
+                        });
+                        if(!res.ok) throw new Error('서버 오류');
+                        const result = await res.json();
+                        // Client-side safeguards and immediate Jeonbuk popups removed per request.
+                        // Remove any cached result then store fresh result in sessionStorage
+                        sessionStorage.removeItem('loanEstimateResult');
+                        sessionStorage.removeItem('loanEstimateInput');
+                        // Jeonbuk immediate popup logic removed.
+                        sessionStorage.setItem('loanEstimateResult', JSON.stringify(result));
+                        sessionStorage.setItem('loanEstimateInput', JSON.stringify({
+                            loginId,
+                            nationality,
+                            remainMonths,
+                            annualIncome,
+                            age,
+                            workingMonths,
+                            visaType
+                        }));
+                        // Display result in the same page
+                        displayLoanResult(result, {
+                            loginId,
+                            nationality,
+                            remainMonths,
+                            annualIncome,
+                            age,
+                            workingMonths,
+                            visaType,
+                            healthInsurance
+                        });
+                        // Jeonbuk quick visibility popup removed.
+                    }catch(err){
+                        console.error('대출 조회 오류:', err);
+                        console.error('대출 조회 중 오류가 발생했습니다.');
+                    }
+                });
+
                 // Position the terms list to align with the left edge of the 약관동의 button on desktop.
                 // If the function isn't available (older browsers), this will silently fail.
                 if (typeof positionTermsList === 'function') {
@@ -1236,8 +1433,18 @@ async function loadTermsList(){
             
             // Clear previous results
             resultTbody.innerHTML = '';
-            // 예가람저축은행 예상금리 강제 설정
-            if (result && Array.isArray(result.banks)) {
+            
+            // testMode 확인 (env-select의 현재 값 확인)
+            const envSelects = document.querySelectorAll('#env-select');
+            let isTestMode = false;
+            if (envSelects.length > 0) {
+                const lastEnvSelect = envSelects[envSelects.length - 1];
+                const envValue = lastEnvSelect.value;
+                isTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+            }
+            
+            // 예가람저축은행 예상금리 강제 설정 (운영 모드일 때만)
+            if (!isTestMode && result && Array.isArray(result.banks)) {
                 result.banks.forEach(function(bank) {
                     if (bank && bank.bankName && String(bank.bankName).trim() === '예가람저축은행') {
                         bank.estimatedRate = 16.5;
@@ -1342,6 +1549,12 @@ async function loadTermsList(){
                     const a = itemA.bank;
                     const b = itemB.bank;
                     
+                    // comm 값이 null이거나 undefined이거나 0보다 작으면 통신장애로 처리
+                    const commValueA = (a.comm !== null && a.comm !== undefined) ? a.comm : null;
+                    const hasCommFailureA = (commValueA === null || commValueA === undefined || commValueA <= 0);
+                    const commValueB = (b.comm !== null && b.comm !== undefined) ? b.comm : null;
+                    const hasCommFailureB = (commValueB === null || commValueB === undefined || commValueB <= 0);
+                    
                     const hasFailureA = 
                         (a.visaType && !a.visaType.valid) ||
                         (a.country && !a.country.valid) ||
@@ -1349,7 +1562,8 @@ async function loadTermsList(){
                         (a.annualIncome && !a.annualIncome.valid) ||
                         (a.employmentDate && !a.employmentDate.valid) ||
                         (a.visaExpiry && !a.visaExpiry.valid) ||
-                        (a.healthInsurance && !a.healthInsurance.valid);
+                        (a.healthInsurance && !a.healthInsurance.valid) ||
+                        hasCommFailureA; // comm 값이 null이거나 0 이하면 대출불가
                     
                     const hasFailureB = 
                         (b.visaType && !b.visaType.valid) ||
@@ -1358,7 +1572,8 @@ async function loadTermsList(){
                         (b.annualIncome && !b.annualIncome.valid) ||
                         (b.employmentDate && !b.employmentDate.valid) ||
                         (b.visaExpiry && !b.visaExpiry.valid) ||
-                        (b.healthInsurance && !b.healthInsurance.valid);
+                        (b.healthInsurance && !b.healthInsurance.valid) ||
+                        hasCommFailureB; // comm 값이 null이거나 0 이하면 대출불가
                     
                     // '가능' (no failure) comes before '불가' (has failure)
                     if (!hasFailureA && hasFailureB) return -1;
@@ -1373,10 +1588,19 @@ async function loadTermsList(){
                             if (rateA !== rateB) {
                                 return rateA - rateB;
                             }
-                            // 같은 값일 때 OK저축은행이 웰컴저축은행보다 앞에 오도록
-                            if (a.bankName === 'OK저축은행' && b.bankName === '웰컴저축은행') return -1;
-                            if (a.bankName === '웰컴저축은행' && b.bankName === 'OK저축은행') return 1;
-                            // 같은 값이고 같은 은행이 아니면 원래 인덱스로 정렬 (안정적인 정렬)
+                            // 금리가 같으면 예상한도가 큰 순서대로
+                            const limitA = a.estimatedLimit || 0;
+                            const limitB = b.estimatedLimit || 0;
+                            if (limitA !== limitB) {
+                                return limitB - limitA;
+                            }
+                            // 금리와 한도가 모두 같으면 comm 값이 작은 순서대로
+                            const commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
+                            const commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            if (commA !== commB) {
+                                return commA - commB;
+                            }
+                            // 모든 값이 같으면 원래 인덱스로 정렬
                             return itemA.originalIndex - itemB.originalIndex;
                         } else {
                             // Sort by limit (higher limit first)
@@ -1385,10 +1609,19 @@ async function loadTermsList(){
                             if (limitA !== limitB) {
                                 return limitB - limitA;
                             }
-                            // 같은 값일 때 OK저축은행이 웰컴저축은행보다 앞에 오도록
-                            if (a.bankName === 'OK저축은행' && b.bankName === '웰컴저축은행') return -1;
-                            if (a.bankName === '웰컴저축은행' && b.bankName === 'OK저축은행') return 1;
-                            // 같은 값이고 같은 은행이 아니면 원래 인덱스로 정렬 (안정적인 정렬)
+                            // 한도가 같으면 예상금리가 작은 순서대로
+                            const rateA = a.estimatedRate || 999;
+                            const rateB = b.estimatedRate || 999;
+                            if (rateA !== rateB) {
+                                return rateA - rateB;
+                            }
+                            // 금리와 한도가 모두 같으면 comm 값이 작은 순서대로
+                            const commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
+                            const commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            if (commA !== commB) {
+                                return commA - commB;
+                            }
+                            // 모든 값이 같으면 원래 인덱스로 정렬
                             return itemA.originalIndex - itemB.originalIndex;
                         }
                     }
@@ -1404,6 +1637,10 @@ async function loadTermsList(){
                 // 정렬된 순서대로 순위 부여
                 for (let i = 0; i < sortedBanks.length; i++) {
                     const bank = sortedBanks[i];
+                    // comm 값이 null이거나 undefined이거나 0보다 작으면 통신장애로 처리
+                    const commValue = (bank.comm !== null && bank.comm !== undefined) ? bank.comm : null;
+                    const hasCommFailure = (commValue === null || commValue === undefined || commValue <= 0);
+                    
                     const hasFailure = 
                         (bank.visaType && !bank.visaType.valid) ||
                         (bank.country && !bank.country.valid) ||
@@ -1411,7 +1648,8 @@ async function loadTermsList(){
                         (bank.annualIncome && !bank.annualIncome.valid) ||
                         (bank.employmentDate && !bank.employmentDate.valid) ||
                         (bank.visaExpiry && !bank.visaExpiry.valid) ||
-                        (bank.healthInsurance && !bank.healthInsurance.valid);
+                        (bank.healthInsurance && !bank.healthInsurance.valid) ||
+                        hasCommFailure; // comm 값이 null이거나 0 이하면 대출불가
                     
                     if (!hasFailure) {
                         // 순위를 은행 객체에 저장 (순차적으로 증가)
@@ -1428,6 +1666,10 @@ async function loadTermsList(){
                     const tr = document.createElement('tr');
                     
                     // Check if this bank has any failure
+                    // comm 값이 null이거나 undefined이거나 0보다 작으면 통신장애로 처리
+                    const commValue = (bank.comm !== null && bank.comm !== undefined) ? bank.comm : null;
+                    const hasCommFailure = (commValue === null || commValue === undefined || commValue <= 0);
+                    
                     const hasFailure = 
                         (bank.visaType && !bank.visaType.valid) ||
                         (bank.country && !bank.country.valid) ||
@@ -1435,7 +1677,8 @@ async function loadTermsList(){
                         (bank.annualIncome && !bank.annualIncome.valid) ||
                         (bank.employmentDate && !bank.employmentDate.valid) ||
                         (bank.visaExpiry && !bank.visaExpiry.valid) ||
-                        (bank.healthInsurance && !bank.healthInsurance.valid);
+                        (bank.healthInsurance && !bank.healthInsurance.valid) ||
+                        hasCommFailure; // comm 값이 null이거나 0 이하면 대출불가
                     
                     // Rank column - show number for '가능', 'X' for '불가'
                     const tdRank = document.createElement('td');
@@ -1582,7 +1825,15 @@ async function loadTermsList(){
 
                     // 통신 상태
                     const tdCommStatus = document.createElement('td');
-                    const commStatus = (!hasFailure) ? '정상' : '장애';
+                    let commStatus;
+                    // comm 값이 null이거나 undefined이면 '장애'
+                    if (commValue === null || commValue === undefined) {
+                        commStatus = '장애';
+                    } else if (commValue > 0) {
+                        commStatus = '정상';
+                    } else {
+                        commStatus = '장애';
+                    }
                     tdCommStatus.textContent = commStatus;
                     tdCommStatus.style.fontWeight = 'bold';
                     tdCommStatus.style.color = commStatus === '정상' ? 'green' : 'red';
