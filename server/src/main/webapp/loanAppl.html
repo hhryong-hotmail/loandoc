@@ -206,7 +206,7 @@
         .button-panel { margin-top: 4px; padding-top: 0; }
     </style>
     <!-- 환경 선택: 항상 상단에 표시 (label 제거) -->
-    <div style="width:100%;display:flex;justify-content:flex-end;align-items:center;margin:8px 0 0 0;padding:0 24px 0 0;">
+    <div style="width:100%;display:flex;justify-content:flex-end;align-items:center;margin:8px 0 0 0;padding:0 24px 0 0;gap:8px;">
         <select id="env-select" style="margin-left:0;padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:1em;width:120px;">
             <option value="prod" selected>운영</option>
             <option value="test">테스트</option>
@@ -313,22 +313,25 @@
     <!-- 대출 결과 섹션 -->
     <div id="result-section" style="display:none;max-width:none;width:100%;margin:-200px 0 0 0;background:#f6f6f6;padding:8px 24px;border-radius:8px;box-sizing:border-box;">
         <div style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);overflow-x:auto;width:calc(100% - 100px);max-width:calc(100% - 100px);margin:0 auto;">
-            <div style="display:flex;justify-content:center;align-items:center;gap:20px;margin:8px 0;">
-                <h2 style="font-size:1.4rem;font-weight:800;color:#2d6cdf;margin:0;text-align:center;">대출 조회 결과</h2>
-                <div style="display:flex;gap:15px;align-items:center;">
-                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-                        <input type="radio" name="sortOption" value="rate" checked style="cursor:pointer;">
-                        <span>예상금리로 조회</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-                        <input type="radio" name="sortOption" value="limit" style="cursor:pointer;">
-                        <span>예상한도로 조회</span>
-                    </label>
-                    <div class="action-item">
-                        <select id="env-select" class="action-select">
-                            <option value="prod" selected>운영</option>
-                            <option value="test">테스트</option>
-                        </select>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;margin:8px 0;">
+                <div style="display:flex;justify-content:center;align-items:center;gap:20px;flex:1;">
+                    <h2 style="font-size:1.4rem;font-weight:800;color:#2d6cdf;margin:0;text-align:center;">대출 조회 결과</h2>
+                    <div style="display:flex;gap:15px;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+                            <input type="radio" name="sortOption" value="rate" checked style="cursor:pointer;">
+                            <span>예상금리로 조회</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+                            <input type="radio" name="sortOption" value="limit" style="cursor:pointer;">
+                            <span>예상한도로 조회</span>
+                        </label>
+                        <div class="action-item">
+                            <select id="env-select-result" class="action-select">
+                                <option value="prod" selected>운영</option>
+                                <option value="test">테스트</option>
+                                <option value="setting">설정</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -482,7 +485,7 @@
         async function loadBankInfo(mode) {
             try {
                 const modeParam = mode === 'test' ? 'test' : 'prod';
-                const response = await fetch(`/api/bank-info?mode=${modeParam}`);
+                const response = await fetch(`/server/api/bank-info?mode=${modeParam}`);
                 if (!response.ok) {
                     throw new Error('Failed to load bank info');
                 }
@@ -507,29 +510,25 @@
         // env-select 값 변경 시 testMode 설정 및 은행 정보 재로드
         // 모든 env-select 요소에 이벤트 리스너 추가
         function updateTestMode() {
-            // 모든 env-select 요소를 확인
-            const envSelects = document.querySelectorAll('#env-select');
-            if (envSelects.length > 0) {
-                // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
-                const lastEnvSelect = envSelects[envSelects.length - 1];
-                const envValue = lastEnvSelect.value;
-                testMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
-                // 모드 변경 시 해당 모드의 은행 정보가 없으면 로드
-                const currentBanks = testMode ? test_bank_info : bank_info;
-                if (currentBanks.length === 0) {
-                    loadBankInfo(testMode ? 'test' : 'prod');
-                }
+            let envValue = '';
+            // 결과 섹션이 표시되어 있으면 env-select-result를 우선 확인
+            const resultSection = document.getElementById('result-section');
+            const envSelectResult = document.getElementById('env-select-result');
+            
+            if (resultSection && resultSection.style.display !== 'none' && envSelectResult && envSelectResult.value !== 'setting') {
+                envValue = envSelectResult.value;
             } else {
-                // fallback
+                // 결과 섹션이 없거나 표시되지 않았으면 상단의 env-select 확인
                 const envSelect = document.getElementById('env-select');
-                if (envSelect) {
-                    const envValue = envSelect.value;
-                    testMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
-                    const currentBanks = testMode ? test_bank_info : bank_info;
-                    if (currentBanks.length === 0) {
-                        loadBankInfo(testMode ? 'test' : 'prod');
-                    }
-                }
+                envValue = envSelect ? envSelect.value : '';
+            }
+            
+            testMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+            
+            // 모드 변경 시 해당 모드의 은행 정보가 없으면 로드
+            const currentBanks = testMode ? test_bank_info : bank_info;
+            if (currentBanks.length === 0) {
+                loadBankInfo(testMode ? 'test' : 'prod');
             }
         }
         
@@ -539,6 +538,16 @@
         // env-select 변경 이벤트 리스너
         document.getElementById('env-select')?.addEventListener('change', function(e) {
             updateTestMode();
+        });
+
+        // 결과 섹션의 env-select 변경 이벤트 리스너 (설정 선택 시 loanTest.html로 이동)
+        document.getElementById('env-select-result')?.addEventListener('change', function(e) {
+            if (e.target.value === 'setting') {
+                window.location.href = 'loanTest.html';
+            } else {
+                // 운영/테스트 선택 시 testMode 업데이트
+                updateTestMode();
+            }
         });
 
         // 조건 체크 함수 (간단 예시)
@@ -1102,7 +1111,9 @@ async function loadTermsList(){
                 viewBtn.className = 'terms-view-btn';
                 viewBtn.textContent = '조회';
                 viewBtn.type = 'button';
-                viewBtn.addEventListener('click', async function(){
+                
+                // Store the click handler function for reuse
+                const queryClickHandler = async function(){
                     // Check all checkboxes
                     const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
                     const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
@@ -1162,22 +1173,30 @@ async function loadTermsList(){
                     }
                     
                     // env-select의 현재 값을 확인하여 testMode 설정
-                    // 모든 env-select 요소를 확인 (같은 id를 가진 요소가 여러 개일 수 있음)
-                    const envSelects = document.querySelectorAll('#env-select');
+                    // 결과 섹션이 표시되어 있으면 env-select-result를 우선 확인, 없으면 상단의 env-select 확인
                     let currentTestMode = false;
                     let envValue = '';
-                    if (envSelects.length > 0) {
-                        // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
-                        const lastEnvSelect = envSelects[envSelects.length - 1];
-                        envValue = lastEnvSelect.value;
+                    const resultSection = document.getElementById('result-section');
+                    const envSelectResult = document.getElementById('env-select-result');
+                    
+                    // 결과 섹션이 표시되어 있고 env-select-result가 존재하면 그것을 사용
+                    if (resultSection && resultSection.style.display !== 'none' && envSelectResult && envSelectResult.value !== 'setting') {
+                        envValue = envSelectResult.value;
                         currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
                     } else {
-                        // fallback: getElementById 사용
+                        // 결과 섹션이 없거나 표시되지 않았으면 상단의 env-select 확인
                         const envSelect = document.getElementById('env-select');
                         envValue = envSelect ? envSelect.value : '';
                         currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
                     }
                     testMode = currentTestMode; // 전역 변수도 업데이트
+                    
+                    console.log('=== testMode 설정 확인 ===');
+                    console.log('결과 섹션 표시 여부:', resultSection && resultSection.style.display !== 'none');
+                    console.log('env-select-result 존재:', !!envSelectResult);
+                    console.log('env-select-result 값:', envSelectResult ? envSelectResult.value : 'N/A');
+                    console.log('최종 envValue:', envValue);
+                    console.log('최종 currentTestMode:', currentTestMode);
                     
                     // Send to server
                     try{
@@ -1194,7 +1213,6 @@ async function loadTermsList(){
                         };
                         console.log('=== 서버로 전송할 데이터 ===');
                         console.log('healthInsurance 값:', healthInsurance);
-                        console.log('env-select 개수:', envSelects.length);
                         console.log('env-select 값:', envValue);
                         console.log('testMode 값:', currentTestMode);
                         console.log('전체 데이터:', requestData);
@@ -1245,142 +1263,15 @@ async function loadTermsList(){
                         console.error('대출 조회 오류:', err);
                         console.error('대출 조회 중 오류가 발생했습니다.');
                     }
-                });
+                };
+                
+                // Add click handler to the button (for backward compatibility)
+                viewBtn.addEventListener('click', queryClickHandler);
                 footer.appendChild(viewBtn);
                 container.appendChild(footer);
 
-                // 원복: 서버 fetch 방식으로만 동작 (운영/테스트 모드 구분 없이)
-                viewBtn.addEventListener('click', async function(){
-                    const allCheckboxes = document.querySelectorAll('#terms-list .term-checkbox');
-                    const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
-                    // Find required terms (select_option contains '필수')
-                    const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
-                        const selectOption = cb.getAttribute('data-select-option') || '';
-                        return selectOption.includes('필수') && !cb.checked;
-                    });
-                    if(requiredUnchecked.length > 0){
-                        console.warn('필수 약관의 동의가 필요합니다');
-                        return;
-                    }
-                    if(checked.length === 0){
-                        console.warn('필수 약관을 체크해주세요.');
-                        return;
-                    }
-                    // Collect form data
-                    const loginId = localStorage.getItem('login-id') || currentUserId || '';
-                    if (!loginId || loginId.trim() === '') {
-                        alert('로그인이 필요합니다. 로그인 화면으로 이동합니다.');
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    const nationality = document.getElementById('action-nationality')?.value || '';
-                    const remainMonths = document.getElementById('remain_months')?.value || '';
-                    const annualIncome = document.getElementById('annual_income')?.value || '';
-                    const age = document.getElementById('age')?.value || '';
-                    const workingMonths = document.getElementById('working_months')?.value || '';
-                    const visaType = document.getElementById('visa_type')?.value || '';
-                    const healthInsurance = document.getElementById('health_insurance')?.value || '';
-                    // Debug: Log all field values
-                    console.log('=== 입력 필드 확인 ===');
-                    console.log('로그인ID:', loginId);
-                    console.log('국가:', nationality, '(element:', document.getElementById('action-nationality'), ')');
-                    console.log('잔여체류기간:', remainMonths, '(element:', document.getElementById('remain_months'), ')');
-                    console.log('연소득:', annualIncome, '(element:', document.getElementById('annual_income'), ')');
-                    console.log('나이:', age, '(element:', document.getElementById('age'), ')');
-                    console.log('재직기간:', workingMonths, '(element:', document.getElementById('working_months'), ')');
-                    console.log('비자종류:', visaType, '(element:', document.getElementById('visa_type'), ')');
-                    console.log('의료보험:', healthInsurance, '(element:', document.getElementById('health_insurance'), ')');
-                    // Validate required fields
-                    const missingFields = [];
-                    if(!loginId) missingFields.push('로그인ID (로그인이 필요합니다)');
-                    if(!nationality) missingFields.push('국가');
-                    if(!remainMonths) missingFields.push('잔여체류기간');
-                    if(!annualIncome) missingFields.push('연소득');
-                    if(!age) missingFields.push('나이');
-                    if(!workingMonths) missingFields.push('재직기간');
-                    if(!visaType) missingFields.push('비자종류');
-                    if(missingFields.length > 0){
-                        console.error('누락된 필드:', missingFields);
-                        console.warn('모든 필드를 입력해주세요. 누락된 필드: ' + missingFields.join(', '));
-                        return;
-                    }
-                    
-                    // env-select의 현재 값을 확인하여 testMode 설정
-                    // 모든 env-select 요소를 확인 (같은 id를 가진 요소가 여러 개일 수 있음)
-                    const envSelects = document.querySelectorAll('#env-select');
-                    let currentTestMode = false;
-                    let envValue = '';
-                    if (envSelects.length > 0) {
-                        // 마지막 env-select의 값을 사용 (결과 섹션에 있는 것)
-                        const lastEnvSelect = envSelects[envSelects.length - 1];
-                        envValue = lastEnvSelect.value;
-                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
-                    } else {
-                        // fallback: getElementById 사용
-                        const envSelect = document.getElementById('env-select');
-                        envValue = envSelect ? envSelect.value : '';
-                        currentTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
-                    }
-                    testMode = currentTestMode; // 전역 변수도 업데이트
-                    
-                    // Send to server
-                    try{
-                        const requestData = {
-                            loginId,
-                            nationality,
-                            remainMonths: parseInt(remainMonths),
-                            annualIncome: parseFloat(annualIncome),
-                            age: parseInt(age),
-                            workingMonths: parseInt(workingMonths),
-                            visaType,
-                            healthInsurance,
-                            testMode: currentTestMode
-                        };
-                        console.log('=== 서버로 전송할 데이터 ===');
-                        console.log('healthInsurance 값:', healthInsurance);
-                        console.log('env-select 개수:', envSelects.length);
-                        console.log('env-select 값:', envValue);
-                        console.log('testMode 값:', currentTestMode);
-                        console.log('전체 데이터:', requestData);
-                        const res = await fetch('/server/api/server/loan-estimate', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify(requestData)
-                        });
-                        if(!res.ok) throw new Error('서버 오류');
-                        const result = await res.json();
-                        // Client-side safeguards and immediate Jeonbuk popups removed per request.
-                        // Remove any cached result then store fresh result in sessionStorage
-                        sessionStorage.removeItem('loanEstimateResult');
-                        sessionStorage.removeItem('loanEstimateInput');
-                        // Jeonbuk immediate popup logic removed.
-                        sessionStorage.setItem('loanEstimateResult', JSON.stringify(result));
-                        sessionStorage.setItem('loanEstimateInput', JSON.stringify({
-                            loginId,
-                            nationality,
-                            remainMonths,
-                            annualIncome,
-                            age,
-                            workingMonths,
-                            visaType
-                        }));
-                        // Display result in the same page
-                        displayLoanResult(result, {
-                            loginId,
-                            nationality,
-                            remainMonths,
-                            annualIncome,
-                            age,
-                            workingMonths,
-                            visaType,
-                            healthInsurance
-                        });
-                        // Jeonbuk quick visibility popup removed.
-                    }catch(err){
-                        console.error('대출 조회 오류:', err);
-                        console.error('대출 조회 중 오류가 발생했습니다.');
-                    }
-                });
+
+                // 중복 코드 제거됨 - queryClickHandler에 통합됨
 
                 // Position the terms list to align with the left edge of the 약관동의 button on desktop.
                 // If the function isn't available (older browsers), this will silently fail.
@@ -1394,6 +1285,12 @@ async function loadTermsList(){
         }
         // Display loan result in the same page
         function displayLoanResult(result, inputData){
+            // loanTest.html에서 돌아왔을 때 env-select-result를 'prod'로 초기화
+            const envSelectResultInit = document.getElementById('env-select-result');
+            if (envSelectResultInit && envSelectResultInit.value === 'setting') {
+                envSelectResultInit.value = 'prod';
+            }
+            
             // 결과 데이터 저장 (라디오 버튼 변경 시 재사용)
             lastLoanResult = result;
             lastInputData = inputData;
@@ -1434,13 +1331,19 @@ async function loadTermsList(){
             // Clear previous results
             resultTbody.innerHTML = '';
             
-            // testMode 확인 (env-select의 현재 값 확인)
-            const envSelects = document.querySelectorAll('#env-select');
+            // testMode 확인 (env-select-result를 우선 확인)
             let isTestMode = false;
-            if (envSelects.length > 0) {
-                const lastEnvSelect = envSelects[envSelects.length - 1];
-                const envValue = lastEnvSelect.value;
+            const envSelectResult = document.getElementById('env-select-result');
+            if (envSelectResult && envSelectResult.value !== 'setting') {
+                const envValue = envSelectResult.value;
                 isTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+            } else {
+                // fallback: 상단의 env-select 확인
+                const envSelect = document.getElementById('env-select');
+                if (envSelect) {
+                    const envValue = envSelect.value;
+                    isTestMode = (envValue === 'test' || envValue === 'Test' || envValue === 'TEST');
+                }
             }
             
             // 예가람저축은행 예상금리 강제 설정 (운영 모드일 때만)
@@ -2236,6 +2139,12 @@ async function loadTermsList(){
             // checkLoginStatus()는 requireLoginPromptOnLoad() 내부에서 처리되므로 중복 호출 제거
             requireLoginPromptOnLoad();
             if(!isRedirecting) {
+                // loanTest.html에서 돌아올 때 env-select-result를 'prod'로 초기화
+                const envSelectResult = document.getElementById('env-select-result');
+                if (envSelectResult && envSelectResult.value === 'setting') {
+                    envSelectResult.value = 'prod';
+                }
+                
                 setTimeout(function(){ positionTermsList(); positionActionItems(); }, 120);
                 loadTermsList();
                 // Add event listeners for sort option radio buttons (자동 목록조회 제거)
@@ -2257,6 +2166,12 @@ async function loadTermsList(){
                 // checkLoginStatus()는 requireLoginPromptOnLoad() 내부에서 처리되므로 중복 호출 제거
                 requireLoginPromptOnLoad();
                 if(!isRedirecting) {
+                    // loanTest.html에서 돌아올 때 env-select-result를 'prod'로 초기화
+                    const envSelectResult = document.getElementById('env-select-result');
+                    if (envSelectResult && envSelectResult.value === 'setting') {
+                        envSelectResult.value = 'prod';
+                    }
+                    
                     setTimeout(function(){ positionTermsList(); positionActionItems(); },120);
                     loadTermsList();
                     // Add event listeners for sort option radio buttons (자동 목록조회 제거)

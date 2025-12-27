@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - 테스트 세팅</title>
+    <style>
+        :root{--bg:#f6f6f6;--brand:#2d6cdf;--accent:#FFD400;--nav-pad:8px}
+        body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#222}
+        header{background:var(--brand);color:#fff;padding:28px 20px;text-align:center;position:relative}
+        main{max-width:none;width:100%;margin:24px 0 0 50px;background:var(--bg);padding:18px 24px;border-radius:8px;box-sizing:border-box}
+        .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        .title{font-size:1.4rem;font-weight:800;color:var(--brand)}
+        .note{color:#666;font-size:0.95em;margin-top:8px}
+        button{background:var(--brand);color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+        /* Nav centering and uniform button style */
+        nav{display:flex;justify-content:space-between;gap:10px;padding:12px 8px;background:var(--bg);align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+        .nav-button{background:var(--accent);color:#000;border:none;padding:8px 16px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+        /* Column based nav */
+        nav.nav-columns{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:10px;background:#f6f6f6;border-radius:10px;align-items:start}
+        nav.nav-columns .nav-column{display:flex;flex-direction:column;gap:12px}
+        nav.nav-columns .nav-button{background:#FFD400;color:#000;border:none;padding:10px 12px;height:auto;display:block;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;width:100%;box-sizing:border-box;text-align:center}
+        nav.nav-columns .nav-column:nth-child(1){padding-right:12px}
+        nav.nav-columns .nav-column:nth-child(2){padding:0 12px}
+        nav.nav-columns .nav-column:nth-child(3){padding-left:12px}
+        nav.nav-columns .nav-column:nth-child(4){padding-left:12px}
+        @media (max-width:600px){nav.nav-columns{grid-template-columns:repeat(2,1fr);gap:10px;padding:8px}nav.nav-columns .nav-button{font-size:13px;padding:8px}}
+        /* Test setting table */
+        .test-setting-container{max-width:1400px;margin:24px auto;padding:20px;background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        .table-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .table-header h2{margin:0;color:var(--brand)}
+        .btn-group{display:flex;gap:10px}
+        .btn-primary{background:var(--brand);color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
+        .btn-secondary{background:#6c757d;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
+        .btn-success{background:#28a745;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+        .btn-danger{background:#dc3545;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+        .btn-primary:hover{background:#1e5bb8}
+        .btn-secondary:hover{background:#5a6268}
+        .btn-success:hover{background:#218838}
+        .btn-danger:hover{background:#c82333}
+        /* Table styles */
+        .data-table{width:100%;border-collapse:collapse;margin-top:20px}
+        .data-table th{background:#e9f2ff;color:#123f90;font-weight:800;padding:12px 8px;text-align:center;border:1px solid #e6e9ef;cursor:pointer;user-select:none;position:relative}
+        .data-table th:hover{background:#d4e4ff}
+        .data-table th.sortable::after{content:' ↕';opacity:0.5;font-size:0.8em}
+        .data-table th.sort-asc::after{content:' ↑';opacity:1;color:var(--brand)}
+        .data-table th.sort-desc::after{content:' ↓';opacity:1;color:var(--brand)}
+        .data-table td{padding:8px;border:1px solid #e6e9ef;text-align:center}
+        .data-table tbody tr:nth-child(even){background:#fafafa}
+        .data-table tbody tr:nth-child(odd){background:#ffffff}
+        .data-table input, .data-table select{width:100%;padding:6px;border:1px solid #ddd;border-radius:4px;font-size:13px;box-sizing:border-box;text-align:center}
+        .data-table input:focus, .data-table select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(45,108,223,0.2)}
+        .data-table input.changed{border-color:#ffc107;background-color:#fff9e6}
+        .loading{text-align:center;padding:40px;color:#666}
+        .error{text-align:center;padding:40px;color:#dc3545}
+        .table-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:15px;padding-top:15px;border-top:2px solid #e6e9ef}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>테스트 세팅</h1>
+        <p>LOANDOC</p>
+    </header>
+
+    <nav class="nav-columns" aria-label="주요 네비게이션">
+        <div class="nav-column">
+            <a class="nav-button" href="home.html">LOANDOC</a>
+            <a class="nav-button" href="introCo.html">회사소개</a>
+            <a class="nav-button" href="intro.html">상품소개</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="login.html">로그인</a>
+            <div class="nav-actions">
+                <a class="nav-button" href="#" id="nav-logout">로그아웃</a>
+            </div>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="loanAppl.html">대출조회</a>
+            <a class="nav-button" href="loanDashboard.html">대출상담요청게시판</a>
+        </div>
+        <div class="nav-column">
+            <a class="nav-button" href="dashboard.html">게시판</a>
+            <a class="nav-button" href="customer.html">고객센터</a>
+        </div>
+    </nav>
+    <hr />
+
+    <main>
+        <div class="test-setting-container">
+            <div class="table-header">
+                <h2 class="title">test_bank_info 테이블 관리</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn-secondary" onclick="window.location.href='loanAppl.html'">뒤로가기</button>
+                    <button type="button" class="btn-primary" onclick="loadBankData()">새로고침</button>
+                </div>
+            </div>
+            
+            <div id="loading" class="loading" style="display:none;">데이터를 불러오는 중...</div>
+            <div id="error" class="error" style="display:none;"></div>
+            
+            <table id="bank-table" class="data-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">ID</th>
+                        <th class="sortable" data-sort="bank_name">은행명</th>
+                        <th class="sortable" data-sort="bank_code">은행코드</th>
+                        <th class="sortable" data-sort="current_rate">현재금리 (%)</th>
+                        <th class="sortable" data-sort="max_limit">최대한도 (만원)</th>
+                        <th class="sortable" data-sort="weight">가중치</th>
+                        <th class="sortable" data-sort="comm">통신상태</th>
+                        <th class="sortable" data-sort="use_it">사용여부</th>
+                    </tr>
+                </thead>
+                <tbody id="bank-tbody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+            
+            <div id="table-actions" class="table-actions" style="display:none;">
+                <button type="button" class="btn-secondary" id="btn-cancel">취소</button>
+                <button type="button" class="btn-primary" id="btn-save-all">저장</button>
+            </div>
+        </div>
+        
+        <!-- bank_info 테이블 관리 섹션 추가 -->
+        <div class="test-setting-container" style="margin-top:40px;">
+            <div class="table-header">
+                <h2 class="title">bank_info 테이블 관리</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn-primary" onclick="loadBankInfoData()">새로고침</button>
+                </div>
+            </div>
+            
+            <div id="loading-bank-info" class="loading" style="display:none;">데이터를 불러오는 중...</div>
+            <div id="error-bank-info" class="error" style="display:none;"></div>
+            
+            <table id="bank-info-table" class="data-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">ID</th>
+                        <th class="sortable" data-sort="bank_name">은행명</th>
+                        <th class="sortable" data-sort="bank_code">은행코드</th>
+                        <th class="sortable" data-sort="current_rate">현재금리 (%)</th>
+                        <th class="sortable" data-sort="max_limit">최대한도 (만원)</th>
+                        <th class="sortable" data-sort="weight">가중치</th>
+                        <th class="sortable" data-sort="comm">통신상태</th>
+                        <th class="sortable" data-sort="use_it">사용여부</th>
+                    </tr>
+                </thead>
+                <tbody id="bank-info-tbody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+            
+            <div id="table-actions-bank-info" class="table-actions" style="display:none;">
+                <button type="button" class="btn-secondary" id="btn-cancel-bank-info">취소</button>
+                <button type="button" class="btn-primary" id="btn-save-all-bank-info">저장</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let bankData = [];
+        let originalBankData = []; // 원본 데이터 저장
+        let currentSort = { field: null, direction: 'asc' }; // 정렬 상태
+
+        // 데이터 로드
+        async function loadBankData() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const table = document.getElementById('bank-table');
+            const tbody = document.getElementById('bank-tbody');
+            const tableActions = document.getElementById('table-actions');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            table.style.display = 'none';
+            tableActions.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            try {
+                const response = await fetch('/server/api/bank-info?mode=test&all=true');
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
+                
+                bankData = await response.json();
+                // 원본 데이터 복사 (깊은 복사)
+                originalBankData = JSON.parse(JSON.stringify(bankData));
+                
+                if (bankData.length === 0) {
+                    error.textContent = '데이터가 없습니다.';
+                    error.style.display = 'block';
+                } else {
+                    applySort();
+                    renderTable(bankData);
+                    table.style.display = 'table';
+                    tableActions.style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('데이터 로드 오류:', err);
+                error.textContent = '데이터를 불러오는 중 오류가 발생했습니다: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 정렬 적용
+        function applySort() {
+            if (!currentSort.field) return;
+            
+            bankData.sort((a, b) => {
+                let aVal = a[currentSort.field];
+                let bVal = b[currentSort.field];
+                
+                // null/undefined 처리
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                // 숫자 타입 처리
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                // 문자열 타입 처리
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                
+                if (currentSort.direction === 'asc') {
+                    return aStr.localeCompare(bStr);
+                } else {
+                    return bStr.localeCompare(aStr);
+                }
+            });
+        }
+
+        // 테이블 렌더링
+        function renderTable(data) {
+            const tbody = document.getElementById('bank-tbody');
+            tbody.innerHTML = '';
+            
+            // 정렬 헤더 업데이트
+            document.querySelectorAll('.data-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.getAttribute('data-sort') === currentSort.field) {
+                    th.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+            
+            data.forEach((bank, index) => {
+                const originalBank = originalBankData.find(b => b.id === bank.id);
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', bank.id);
+                
+                // ID (읽기 전용)
+                const tdId = document.createElement('td');
+                tdId.textContent = bank.id;
+                tr.appendChild(tdId);
+                
+                // 은행명
+                const tdBankName = document.createElement('td');
+                const inputBankName = document.createElement('input');
+                inputBankName.type = 'text';
+                inputBankName.value = bank.bank_name || '';
+                inputBankName.setAttribute('data-field', 'bank_name');
+                if (originalBank && originalBank.bank_name !== bank.bank_name) {
+                    inputBankName.classList.add('changed');
+                }
+                inputBankName.addEventListener('input', checkChanges);
+                tdBankName.appendChild(inputBankName);
+                tr.appendChild(tdBankName);
+                
+                // 은행코드
+                const tdBankCode = document.createElement('td');
+                const inputBankCode = document.createElement('input');
+                inputBankCode.type = 'text';
+                inputBankCode.value = bank.bank_code || '';
+                inputBankCode.setAttribute('data-field', 'bank_code');
+                if (originalBank && originalBank.bank_code !== bank.bank_code) {
+                    inputBankCode.classList.add('changed');
+                }
+                inputBankCode.addEventListener('input', checkChanges);
+                tdBankCode.appendChild(inputBankCode);
+                tr.appendChild(tdBankCode);
+                
+                // 현재금리
+                const tdCurrentRate = document.createElement('td');
+                const inputCurrentRate = document.createElement('input');
+                inputCurrentRate.type = 'number';
+                inputCurrentRate.step = '0.01';
+                inputCurrentRate.value = bank.current_rate || 0;
+                inputCurrentRate.setAttribute('data-field', 'current_rate');
+                if (originalBank && originalBank.current_rate !== bank.current_rate) {
+                    inputCurrentRate.classList.add('changed');
+                }
+                inputCurrentRate.addEventListener('input', checkChanges);
+                tdCurrentRate.appendChild(inputCurrentRate);
+                tr.appendChild(tdCurrentRate);
+                
+                // 최대한도
+                const tdMaxLimit = document.createElement('td');
+                const inputMaxLimit = document.createElement('input');
+                inputMaxLimit.type = 'number';
+                inputMaxLimit.value = bank.max_limit || 0;
+                inputMaxLimit.setAttribute('data-field', 'max_limit');
+                if (originalBank && originalBank.max_limit !== bank.max_limit) {
+                    inputMaxLimit.classList.add('changed');
+                }
+                inputMaxLimit.addEventListener('input', checkChanges);
+                tdMaxLimit.appendChild(inputMaxLimit);
+                tr.appendChild(tdMaxLimit);
+                
+                // 가중치
+                const tdWeight = document.createElement('td');
+                const inputWeight = document.createElement('input');
+                inputWeight.type = 'number';
+                inputWeight.step = '0.01';
+                inputWeight.value = bank.weight || 0;
+                inputWeight.setAttribute('data-field', 'weight');
+                if (originalBank && originalBank.weight !== bank.weight) {
+                    inputWeight.classList.add('changed');
+                }
+                inputWeight.addEventListener('input', checkChanges);
+                tdWeight.appendChild(inputWeight);
+                tr.appendChild(tdWeight);
+                
+                // 통신상태
+                const tdComm = document.createElement('td');
+                const inputComm = document.createElement('input');
+                inputComm.type = 'number';
+                inputComm.value = bank.comm !== null && bank.comm !== undefined ? bank.comm : 0;
+                inputComm.setAttribute('data-field', 'comm');
+                if (originalBank && originalBank.comm !== bank.comm) {
+                    inputComm.classList.add('changed');
+                }
+                inputComm.addEventListener('input', checkChanges);
+                tdComm.appendChild(inputComm);
+                tr.appendChild(tdComm);
+                
+                // 사용여부
+                const tdUseIt = document.createElement('td');
+                const selectUseIt = document.createElement('select');
+                selectUseIt.setAttribute('data-field', 'use_it');
+                const option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = '사용';
+                const option0 = document.createElement('option');
+                option0.value = '0';
+                option0.textContent = '미사용';
+                selectUseIt.appendChild(option1);
+                selectUseIt.appendChild(option0);
+                selectUseIt.value = (bank.use_it || 0).toString();
+                if (originalBank && originalBank.use_it !== bank.use_it) {
+                    selectUseIt.classList.add('changed');
+                }
+                selectUseIt.addEventListener('change', checkChanges);
+                tdUseIt.appendChild(selectUseIt);
+                tr.appendChild(tdUseIt);
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // 변경사항 체크
+        function checkChanges() {
+            const rows = document.querySelectorAll('#bank-tbody tr');
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const currentBank = bankData.find(b => b.id === id);
+                const originalBank = originalBankData.find(b => b.id === id);
+                
+                if (!currentBank || !originalBank) return;
+                
+                const inputs = row.querySelectorAll('input[data-field], select[data-field]');
+                inputs.forEach(input => {
+                    const field = input.getAttribute('data-field');
+                    let currentValue, originalValue;
+                    
+                    if (input.type === 'number') {
+                        currentValue = parseFloat(input.value) || 0;
+                        originalValue = originalBank[field] || 0;
+                    } else if (input.tagName === 'SELECT') {
+                        currentValue = parseInt(input.value) || 0;
+                        originalValue = originalBank[field] || 0;
+                    } else {
+                        currentValue = input.value;
+                        originalValue = originalBank[field] || '';
+                    }
+                    
+                    if (currentValue !== originalValue) {
+                        input.classList.add('changed');
+                        // bankData도 업데이트
+                        currentBank[field] = currentValue;
+                    } else {
+                        input.classList.remove('changed');
+                    }
+                });
+            });
+        }
+
+        // 정렬 헤더 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.data-table th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortField = this.getAttribute('data-sort');
+                    if (currentSort.field === sortField) {
+                        // 같은 필드면 방향 전환
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        // 다른 필드면 오름차순으로 시작
+                        currentSort.field = sortField;
+                        currentSort.direction = 'asc';
+                    }
+                    applySort();
+                    renderTable(bankData);
+                });
+            });
+        });
+
+        // 전체 저장
+        async function saveAll() {
+            const rows = document.querySelectorAll('#bank-tbody tr');
+            const changedRows = [];
+            
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const hasChanged = row.querySelectorAll('input[data-field].changed, select[data-field].changed').length > 0;
+                
+                if (hasChanged) {
+                    // 변경된 행의 모든 필드를 수집 (서버에서 모든 필드가 필요함)
+                    const data = { id: id };
+                    const allInputs = row.querySelectorAll('input[data-field], select[data-field]');
+                    
+                    allInputs.forEach(input => {
+                        const field = input.getAttribute('data-field');
+                        if (input.type === 'number') {
+                            data[field] = parseFloat(input.value) || 0;
+                        } else if (input.tagName === 'SELECT') {
+                            data[field] = parseInt(input.value) || 0;
+                        } else {
+                            data[field] = input.value;
+                        }
+                    });
+                    changedRows.push(data);
+                }
+            });
+            
+            if (changedRows.length === 0) {
+                alert('변경된 내용이 없습니다.');
+                return;
+            }
+            
+            if (!confirm(`${changedRows.length}개의 행을 저장하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const data of changedRows) {
+                    try {
+                        const response = await fetch('/server/api/bank-info?mode=test', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error('저장 실패:', data.id, result.error);
+                        }
+                    } catch (err) {
+                        failCount++;
+                        console.error('저장 오류:', data.id, err);
+                    }
+                }
+                
+                if (failCount === 0) {
+                    alert(`모든 변경사항이 저장되었습니다. (${successCount}개)`);
+                    loadBankData();
+                } else {
+                    alert(`일부 저장에 실패했습니다. 성공: ${successCount}개, 실패: ${failCount}개`);
+                    loadBankData();
+                }
+            } catch (err) {
+                console.error('저장 오류:', err);
+                alert('저장 중 오류가 발생했습니다: ' + err.message);
+            }
+        }
+
+        // 취소 (원본 데이터로 복원)
+        function cancelChanges() {
+            if (!confirm('모든 변경사항을 취소하시겠습니까?')) {
+                return;
+            }
+            
+            // 원본 데이터로 복원
+            bankData = JSON.parse(JSON.stringify(originalBankData));
+            applySort();
+            renderTable(bankData);
+            alert('변경사항이 취소되었습니다.');
+        }
+
+        // 네비게이션 로그아웃 버튼 이벤트
+        document.getElementById('nav-logout')?.addEventListener('click', async function(e) {
+            e.preventDefault();
+            try {
+                const response = await fetch('/server/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 'login-id': null })
+                });
+                const result = await response.json();
+                if (result.ok) {
+                    localStorage.removeItem('login-id');
+                    localStorage.removeItem('login-access-time');
+                    alert('로그아웃이 정상적으로 되었습니다');
+                    window.location.href = 'login.html';
+                }
+            } catch (err) {
+                console.error('Logout error', err);
+            }
+        });
+
+        // 저장/취소 버튼 이벤트
+        document.getElementById('btn-save-all')?.addEventListener('click', saveAll);
+        document.getElementById('btn-cancel')?.addEventListener('click', cancelChanges);
+
+        // bank_info 데이터 로드
+        let bankInfoData = [];
+        let originalBankInfoData = [];
+        let currentSortBankInfo = { field: null, direction: 'asc' };
+
+        async function loadBankInfoData() {
+            const loading = document.getElementById('loading-bank-info');
+            const error = document.getElementById('error-bank-info');
+            const table = document.getElementById('bank-info-table');
+            const tbody = document.getElementById('bank-info-tbody');
+            const tableActions = document.getElementById('table-actions-bank-info');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            table.style.display = 'none';
+            tableActions.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            try {
+                const response = await fetch('/server/api/bank-info?mode=prod&all=true');
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
+                
+                bankInfoData = await response.json();
+                
+                // 중복된 ID 제거 (같은 ID가 여러 개 있으면 첫 번째 것만 유지)
+                const uniqueBankInfoData = [];
+                const seenIds = new Set();
+                for (const bank of bankInfoData) {
+                    if (bank.id && !seenIds.has(bank.id)) {
+                        seenIds.add(bank.id);
+                        uniqueBankInfoData.push(bank);
+                    }
+                }
+                bankInfoData = uniqueBankInfoData;
+                originalBankInfoData = JSON.parse(JSON.stringify(bankInfoData));
+                
+                if (bankInfoData.length === 0) {
+                    error.textContent = '데이터가 없습니다.';
+                    error.style.display = 'block';
+                } else {
+                    applySortBankInfo();
+                    renderBankInfoTable(bankInfoData);
+                    table.style.display = 'table';
+                    tableActions.style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('데이터 로드 오류:', err);
+                error.textContent = '데이터를 불러오는 중 오류가 발생했습니다: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function applySortBankInfo() {
+            if (!currentSortBankInfo.field) return;
+            
+            bankInfoData.sort((a, b) => {
+                let aVal = a[currentSortBankInfo.field];
+                let bVal = b[currentSortBankInfo.field];
+                
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortBankInfo.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                
+                if (currentSortBankInfo.direction === 'asc') {
+                    return aStr.localeCompare(bStr);
+                } else {
+                    return bStr.localeCompare(aStr);
+                }
+            });
+        }
+
+        function renderBankInfoTable(data) {
+            const tbody = document.getElementById('bank-info-tbody');
+            tbody.innerHTML = '';
+            
+            document.querySelectorAll('#bank-info-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.getAttribute('data-sort') === currentSortBankInfo.field) {
+                    th.classList.add(currentSortBankInfo.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+            
+            data.forEach((bank, index) => {
+                const originalBank = originalBankInfoData.find(b => b.id === bank.id);
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', bank.id);
+                
+                const tdId = document.createElement('td');
+                tdId.textContent = bank.id;
+                tr.appendChild(tdId);
+                
+                const tdBankName = document.createElement('td');
+                const inputBankName = document.createElement('input');
+                inputBankName.type = 'text';
+                inputBankName.value = bank.bank_name || '';
+                inputBankName.setAttribute('data-field', 'bank_name');
+                if (originalBank && originalBank.bank_name !== bank.bank_name) {
+                    inputBankName.classList.add('changed');
+                }
+                inputBankName.addEventListener('input', checkChangesBankInfo);
+                tdBankName.appendChild(inputBankName);
+                tr.appendChild(tdBankName);
+                
+                const tdBankCode = document.createElement('td');
+                const inputBankCode = document.createElement('input');
+                inputBankCode.type = 'text';
+                inputBankCode.value = bank.bank_code || '';
+                inputBankCode.setAttribute('data-field', 'bank_code');
+                if (originalBank && originalBank.bank_code !== bank.bank_code) {
+                    inputBankCode.classList.add('changed');
+                }
+                inputBankCode.addEventListener('input', checkChangesBankInfo);
+                tdBankCode.appendChild(inputBankCode);
+                tr.appendChild(tdBankCode);
+                
+                const tdCurrentRate = document.createElement('td');
+                const inputCurrentRate = document.createElement('input');
+                inputCurrentRate.type = 'number';
+                inputCurrentRate.step = '0.01';
+                inputCurrentRate.value = bank.current_rate || 0;
+                inputCurrentRate.setAttribute('data-field', 'current_rate');
+                if (originalBank && originalBank.current_rate !== bank.current_rate) {
+                    inputCurrentRate.classList.add('changed');
+                }
+                inputCurrentRate.addEventListener('input', checkChangesBankInfo);
+                tdCurrentRate.appendChild(inputCurrentRate);
+                tr.appendChild(tdCurrentRate);
+                
+                const tdMaxLimit = document.createElement('td');
+                const inputMaxLimit = document.createElement('input');
+                inputMaxLimit.type = 'number';
+                inputMaxLimit.value = bank.max_limit || 0;
+                inputMaxLimit.setAttribute('data-field', 'max_limit');
+                if (originalBank && originalBank.max_limit !== bank.max_limit) {
+                    inputMaxLimit.classList.add('changed');
+                }
+                inputMaxLimit.addEventListener('input', checkChangesBankInfo);
+                tdMaxLimit.appendChild(inputMaxLimit);
+                tr.appendChild(tdMaxLimit);
+                
+                const tdWeight = document.createElement('td');
+                const inputWeight = document.createElement('input');
+                inputWeight.type = 'number';
+                inputWeight.step = '0.01';
+                inputWeight.value = bank.weight || 0;
+                inputWeight.setAttribute('data-field', 'weight');
+                if (originalBank && originalBank.weight !== bank.weight) {
+                    inputWeight.classList.add('changed');
+                }
+                inputWeight.addEventListener('input', checkChangesBankInfo);
+                tdWeight.appendChild(inputWeight);
+                tr.appendChild(tdWeight);
+                
+                const tdComm = document.createElement('td');
+                const inputComm = document.createElement('input');
+                inputComm.type = 'number';
+                inputComm.value = bank.comm !== null && bank.comm !== undefined ? bank.comm : 0;
+                inputComm.setAttribute('data-field', 'comm');
+                if (originalBank && originalBank.comm !== bank.comm) {
+                    inputComm.classList.add('changed');
+                }
+                inputComm.addEventListener('input', checkChangesBankInfo);
+                tdComm.appendChild(inputComm);
+                tr.appendChild(tdComm);
+                
+                const tdUseIt = document.createElement('td');
+                const selectUseIt = document.createElement('select');
+                selectUseIt.setAttribute('data-field', 'use_it');
+                const option1 = document.createElement('option');
+                option1.value = '1';
+                option1.textContent = '사용';
+                const option0 = document.createElement('option');
+                option0.value = '0';
+                option0.textContent = '미사용';
+                selectUseIt.appendChild(option1);
+                selectUseIt.appendChild(option0);
+                selectUseIt.value = (bank.use_it || 0).toString();
+                if (originalBank && originalBank.use_it !== bank.use_it) {
+                    selectUseIt.classList.add('changed');
+                }
+                selectUseIt.addEventListener('change', checkChangesBankInfo);
+                tdUseIt.appendChild(selectUseIt);
+                tr.appendChild(tdUseIt);
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function checkChangesBankInfo() {
+            const rows = document.querySelectorAll('#bank-info-tbody tr');
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const currentBank = bankInfoData.find(b => b.id === id);
+                const originalBank = originalBankInfoData.find(b => b.id === id);
+                
+                if (!currentBank || !originalBank) return;
+                
+                const inputs = row.querySelectorAll('input[data-field], select[data-field]');
+                inputs.forEach(input => {
+                    const field = input.getAttribute('data-field');
+                    let currentValue, originalValue;
+                    
+                    if (input.type === 'number') {
+                        currentValue = parseFloat(input.value) || 0;
+                        originalValue = originalBank[field] || 0;
+                    } else if (input.tagName === 'SELECT') {
+                        currentValue = parseInt(input.value) || 0;
+                        originalValue = originalBank[field] || 0;
+                    } else {
+                        currentValue = input.value;
+                        originalValue = originalBank[field] || '';
+                    }
+                    
+                    if (currentValue !== originalValue) {
+                        input.classList.add('changed');
+                        currentBank[field] = currentValue;
+                    } else {
+                        input.classList.remove('changed');
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#bank-info-table th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortField = this.getAttribute('data-sort');
+                    if (currentSortBankInfo.field === sortField) {
+                        currentSortBankInfo.direction = currentSortBankInfo.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortBankInfo.field = sortField;
+                        currentSortBankInfo.direction = 'asc';
+                    }
+                    applySortBankInfo();
+                    renderBankInfoTable(bankInfoData);
+                });
+            });
+        });
+
+        async function saveAllBankInfo() {
+            const rows = document.querySelectorAll('#bank-info-tbody tr');
+            const changedRows = [];
+            
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const hasChanged = row.querySelectorAll('input[data-field].changed, select[data-field].changed').length > 0;
+                
+                if (hasChanged) {
+                    const data = { id: id };
+                    const allInputs = row.querySelectorAll('input[data-field], select[data-field]');
+                    
+                    allInputs.forEach(input => {
+                        const field = input.getAttribute('data-field');
+                        if (input.type === 'number') {
+                            data[field] = parseFloat(input.value) || 0;
+                        } else if (input.tagName === 'SELECT') {
+                            data[field] = parseInt(input.value) || 0;
+                        } else {
+                            data[field] = input.value;
+                        }
+                    });
+                    changedRows.push(data);
+                }
+            });
+            
+            if (changedRows.length === 0) {
+                alert('변경된 내용이 없습니다.');
+                return;
+            }
+            
+            if (!confirm(`${changedRows.length}개의 행을 저장하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const data of changedRows) {
+                    try {
+                        const response = await fetch('/server/api/bank-info?mode=prod', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error('저장 실패:', data.id, result.error);
+                        }
+                    } catch (err) {
+                        failCount++;
+                        console.error('저장 오류:', data.id, err);
+                    }
+                }
+                
+                if (failCount === 0) {
+                    alert(`모든 변경사항이 저장되었습니다. (${successCount}개)`);
+                    loadBankInfoData();
+                } else {
+                    alert(`일부 저장에 실패했습니다. 성공: ${successCount}개, 실패: ${failCount}개`);
+                    loadBankInfoData();
+                }
+            } catch (err) {
+                console.error('저장 오류:', err);
+                alert('저장 중 오류가 발생했습니다: ' + err.message);
+            }
+        }
+
+        function cancelChangesBankInfo() {
+            if (!confirm('모든 변경사항을 취소하시겠습니까?')) {
+                return;
+            }
+            
+            bankInfoData = JSON.parse(JSON.stringify(originalBankInfoData));
+            applySortBankInfo();
+            renderBankInfoTable(bankInfoData);
+            alert('변경사항이 취소되었습니다.');
+        }
+
+        document.getElementById('btn-save-all-bank-info')?.addEventListener('click', saveAllBankInfo);
+        document.getElementById('btn-cancel-bank-info')?.addEventListener('click', cancelChangesBankInfo);
+
+        // 페이지 로드 시 데이터 자동 로드
+        window.addEventListener('DOMContentLoaded', function() {
+            loadBankData();
+            loadBankInfoData();
+        });
+    </script>
+</body>
+</html>

@@ -240,6 +240,8 @@ public class LoanEstimateServlet extends HttpServlet {
         List<BankConfig> banks = new ArrayList<>();
         String tableName = testMode ? "test_bank_info" : "bank_info";
         
+        logger.log(Level.INFO, "Loading bank configurations from DB - testMode: " + testMode + ", tableName: " + tableName);
+        
         // Read DB connection settings
         String dbUrl = System.getenv("DB_URL");
         String dbUser = System.getenv("DB_USER");
@@ -300,23 +302,31 @@ public class LoanEstimateServlet extends HttpServlet {
                     }
                 }
 
-                // use_it=1인 데이터만 조회
+                // use_it=1인 데이터만 조회 (testMode일 때는 use_it 필터링 제외)
                 String sql;
-                if (hasUseItColumn) {
+                if (hasUseItColumn && !testMode) {
+                    // 운영 모드: use_it=1인 데이터만 조회
                     sql = "SELECT bank_name, bank_code, current_rate, max_limit, weight, comm FROM " + tableName + " WHERE use_it = 1 ORDER BY id";
                 } else {
+                    // testMode일 때는 모든 데이터 조회 (use_it 필터링 없음)
                     sql = "SELECT bank_name, bank_code, current_rate, max_limit, weight, comm FROM " + tableName + " ORDER BY id";
                 }
+                logger.log(Level.INFO, "SQL query: " + sql + " (hasUseItColumn: " + hasUseItColumn + ", testMode: " + testMode + ")");
                 
+                logger.log(Level.INFO, "Executing SQL: " + sql);
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     try (ResultSet rs = ps.executeQuery()) {
                         int rank = 1;
+                        int rowCount = 0;
                         while (rs.next()) {
+                            rowCount++;
                             String bankName = rs.getString("bank_name");
                             Double currentRate = rs.getBigDecimal("current_rate") != null ? rs.getBigDecimal("current_rate").doubleValue() : null;
                             Long maxLimit = rs.getLong("max_limit");
                             Double weight = rs.getBigDecimal("weight") != null ? rs.getBigDecimal("weight").doubleValue() : 0.0;
                             Integer comm = rs.getObject("comm") != null ? rs.getInt("comm") : null;
+                            
+                            logger.log(Level.FINE, "Loaded bank: " + bankName + ", rate: " + currentRate + ", limit: " + maxLimit + ", weight: " + weight + ", comm: " + comm);
                             
                             // testMode일 때는 간단한 BankConfig 생성 (기본값 사용)
                             // 실제 검증 로직은 운영 모드에서만 사용
@@ -329,9 +339,9 @@ public class LoanEstimateServlet extends HttpServlet {
                                 // test_bank_info의 max_limit은 만원 단위이므로 그대로 사용
                                 maxLimitValue = maxLimit.doubleValue();
                             } else {
-                                // 운영 모드: 기존 로직 유지
+                                // 운영 모드: bank_info의 max_limit도 만원 단위이므로 그대로 사용
                                 weightFactor = weight / 100.0; // weight를 100으로 나눔
-                                maxLimitValue = maxLimit / 10000.0; // 원 단위를 만원 단위로 변환
+                                maxLimitValue = maxLimit.doubleValue(); // bank_info의 max_limit도 만원 단위
                             }
                             
                             banks.add(new BankConfig(
@@ -352,16 +362,26 @@ public class LoanEstimateServlet extends HttpServlet {
                                 comm // comm
                             ));
                         }
+                        logger.log(Level.INFO, "Loaded " + rowCount + " banks from " + tableName);
                     }
                 }
             }
         } catch (SQLException ex) {
-            logger.log(Level.WARNING, "Database query failed for bank configurations: " + ex.getMessage(), ex);
+            logger.log(Level.SEVERE, "Database query failed for bank configurations (testMode: " + testMode + ", table: " + tableName + "): " + ex.getMessage(), ex);
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.log(Level.SEVERE, "Stack trace: " + sw.toString());
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Unexpected error while fetching bank configurations from DB", ex);
+            logger.log(Level.SEVERE, "Unexpected error while fetching bank configurations from DB (testMode: " + testMode + ", table: " + tableName + ")", ex);
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            logger.log(Level.SEVERE, "Stack trace: " + sw.toString());
         }
 
         // 데이터베이스에서 가져온 데이터가 없으면 빈 리스트 반환
+        logger.log(Level.INFO, "Returning " + banks.size() + " banks from getBankConfigurationsFromDB (testMode: " + testMode + ")");
         return banks;
     }
 
