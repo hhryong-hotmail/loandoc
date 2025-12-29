@@ -410,6 +410,8 @@
                     <td colspan="14" style="text-align:left;padding:10px;line-height:1.6;">
                         <strong>참고:</strong><br>
                         1. O는 조건 충족, X는 조건 미충족을 의미합니다.<br>
+                        2. 본 대출조회 결과는 조회 당일 24시까지 유효하며, 유효시간 경과 후에는 다시 조회하시기 바랍니다. <br>
+                        3. 은행의 통신 장애가 발생된 경우는 해당 은행 신청이 불가하니 다시 조회하시기 바랍니다. <br>
                     </td>
                 </tr>
             </table>
@@ -1351,6 +1353,47 @@ async function loadTermsList(){
                 result.banks.forEach(function(bank) {
                     if (bank && bank.bankName && String(bank.bankName).trim() === '예가람저축은행') {
                         bank.estimatedRate = 16.5;
+                    }
+                });
+            }
+            
+            // 테스트 모드일 때 예상한도 재계산
+            if (isTestMode && result && Array.isArray(result.banks) && inputData) {
+                const annualIncome = parseFloat(inputData.annualIncome) || 0;
+                const remainMonths = parseInt(inputData.remainMonths) || 0;
+                
+                result.banks.forEach(function(bank) {
+                    if (!bank || !bank.bankName) return;
+                    
+                    // test_bank_info에서 해당 은행 정보 찾기
+                    const bankInfo = test_bank_info.find(b => 
+                        b && b.bank_name && String(b.bank_name).trim() === String(bank.bankName).trim()
+                    );
+                    
+                    if (bankInfo && bankInfo.weight && bankInfo.max_limit) {
+                        // 예상한도 = 연소득 * 잔여체류개월수 * 가중치 / 10
+                        // test_bank_info의 weight는 35.00, 36.00 등이므로 100으로 나눠서 0.35, 0.36로 변환
+                        const weightFactor = bankInfo.weight / 100.0;
+                        let calculatedLimit = (annualIncome * remainMonths * weightFactor) / 10;
+                        
+                        // max_limit보다 크면 max_limit으로 대치
+                        if (calculatedLimit > bankInfo.max_limit) {
+                            calculatedLimit = bankInfo.max_limit;
+                        }
+                        
+                        // 소수점 이하 반올림
+                        bank.estimatedLimit = Math.round(calculatedLimit);
+                        
+                        console.log('[Test Mode] 재계산된 예상한도:', {
+                            bankName: bank.bankName,
+                            annualIncome: annualIncome,
+                            remainMonths: remainMonths,
+                            weight: bankInfo.weight,
+                            weightFactor: weightFactor,
+                            calculatedLimit: calculatedLimit,
+                            maxLimit: bankInfo.max_limit,
+                            finalLimit: bank.estimatedLimit
+                        });
                     }
                 });
             }

@@ -152,10 +152,92 @@
                 </tbody>
             </table>
             
-            <div id="table-actions-bank-info" class="table-actions" style="display:none;">
-                <button type="button" class="btn-secondary" id="btn-cancel-bank-info">취소</button>
-                <button type="button" class="btn-primary" id="btn-save-all-bank-info">저장</button>
+        </div>
+        
+        <!-- test_nationality_loan 테이블 관리 섹션 추가 -->
+        <div class="test-setting-container" style="margin-top:40px;">
+            <div class="table-header">
+                <h2 class="title">test_nationality_loan 테이블 관리</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn-primary" onclick="loadTestNationalityLoanData()">새로고침</button>
+                </div>
             </div>
+            
+            <div id="loading-test-nationality-loan" class="loading" style="display:none;">데이터를 불러오는 중...</div>
+            <div id="error-test-nationality-loan" class="error" style="display:none;"></div>
+            
+            <table id="test-nationality-loan-table" class="data-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">ID</th>
+                        <th class="sortable" data-sort="bank_name">은행명</th>
+                        <th class="sortable" data-sort="product_name">상품명</th>
+                        <th class="sortable" data-sort="eligible_visa">대상비자</th>
+                        <th class="sortable" data-sort="eligible_country">대상국가</th>
+                        <th class="sortable" data-sort="loan_limit_min">대출한도 최소 (만원)</th>
+                        <th class="sortable" data-sort="loan_limit_max">대출한도 최대 (만원)</th>
+                        <th class="sortable" data-sort="loan_period_min">대출기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="loan_period_max">대출기간 최대 (개월)</th>
+                        <th class="sortable" data-sort="interest_rate_min">금리 최소 (%)</th>
+                        <th class="sortable" data-sort="interest_rate_max">금리 최대 (%)</th>
+                        <th class="sortable" data-sort="repayment_method">상환방식</th>
+                        <th class="sortable" data-sort="credit_rating">신용등급</th>
+                        <th class="sortable" data-sort="age_min">나이 최소</th>
+                        <th class="sortable" data-sort="age_max">나이 최대</th>
+                        <th class="sortable" data-sort="remaining_stay_period_min">체류잔여기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="employment_period_min">재직기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="annual_income_min">연소득 최소 (만원)</th>
+                        <th class="sortable" data-sort="health_insurance">의료보험</th>
+                        <th class="sortable" data-sort="required_documents">준비서류</th>
+                    </tr>
+                </thead>
+                <tbody id="test-nationality-loan-tbody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- nationality_loan 테이블 관리 섹션 추가 -->
+        <div class="test-setting-container" style="margin-top:40px;">
+            <div class="table-header">
+                <h2 class="title">nationality_loan 테이블 관리</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn-primary" onclick="loadNationalityLoanData()">새로고침</button>
+                </div>
+            </div>
+            
+            <div id="loading-nationality-loan" class="loading" style="display:none;">데이터를 불러오는 중...</div>
+            <div id="error-nationality-loan" class="error" style="display:none;"></div>
+            
+            <table id="nationality-loan-table" class="data-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">ID</th>
+                        <th class="sortable" data-sort="bank_name">은행명</th>
+                        <th class="sortable" data-sort="product_name">상품명</th>
+                        <th class="sortable" data-sort="eligible_visa">대상비자</th>
+                        <th class="sortable" data-sort="eligible_country">대상국가</th>
+                        <th class="sortable" data-sort="loan_limit_min">대출한도 최소 (만원)</th>
+                        <th class="sortable" data-sort="loan_limit_max">대출한도 최대 (만원)</th>
+                        <th class="sortable" data-sort="loan_period_min">대출기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="loan_period_max">대출기간 최대 (개월)</th>
+                        <th class="sortable" data-sort="interest_rate_min">금리 최소 (%)</th>
+                        <th class="sortable" data-sort="interest_rate_max">금리 최대 (%)</th>
+                        <th class="sortable" data-sort="repayment_method">상환방식</th>
+                        <th class="sortable" data-sort="credit_rating">신용등급</th>
+                        <th class="sortable" data-sort="age_min">나이 최소</th>
+                        <th class="sortable" data-sort="age_max">나이 최대</th>
+                        <th class="sortable" data-sort="remaining_stay_period_min">체류잔여기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="employment_period_min">재직기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="annual_income_min">연소득 최소 (만원)</th>
+                        <th class="sortable" data-sort="health_insurance">의료보험</th>
+                        <th class="sortable" data-sort="required_documents">준비서류</th>
+                    </tr>
+                </thead>
+                <tbody id="nationality-loan-tbody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
         </div>
     </main>
 
@@ -545,12 +627,10 @@
             const error = document.getElementById('error-bank-info');
             const table = document.getElementById('bank-info-table');
             const tbody = document.getElementById('bank-info-tbody');
-            const tableActions = document.getElementById('table-actions-bank-info');
             
             loading.style.display = 'block';
             error.style.display = 'none';
             table.style.display = 'none';
-            tableActions.style.display = 'none';
             tbody.innerHTML = '';
             
             try {
@@ -580,7 +660,6 @@
                     applySortBankInfo();
                     renderBankInfoTable(bankInfoData);
                     table.style.display = 'table';
-                    tableActions.style.display = 'flex';
                 }
             } catch (err) {
                 console.error('데이터 로드 오류:', err);
@@ -628,145 +707,53 @@
             });
             
             data.forEach((bank, index) => {
-                const originalBank = originalBankInfoData.find(b => b.id === bank.id);
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-id', bank.id);
                 
+                // ID
                 const tdId = document.createElement('td');
                 tdId.textContent = bank.id;
                 tr.appendChild(tdId);
                 
+                // 은행명 (읽기 전용)
                 const tdBankName = document.createElement('td');
-                const inputBankName = document.createElement('input');
-                inputBankName.type = 'text';
-                inputBankName.value = bank.bank_name || '';
-                inputBankName.setAttribute('data-field', 'bank_name');
-                if (originalBank && originalBank.bank_name !== bank.bank_name) {
-                    inputBankName.classList.add('changed');
-                }
-                inputBankName.addEventListener('input', checkChangesBankInfo);
-                tdBankName.appendChild(inputBankName);
+                tdBankName.textContent = bank.bank_name || '';
                 tr.appendChild(tdBankName);
                 
+                // 은행코드 (읽기 전용)
                 const tdBankCode = document.createElement('td');
-                const inputBankCode = document.createElement('input');
-                inputBankCode.type = 'text';
-                inputBankCode.value = bank.bank_code || '';
-                inputBankCode.setAttribute('data-field', 'bank_code');
-                if (originalBank && originalBank.bank_code !== bank.bank_code) {
-                    inputBankCode.classList.add('changed');
-                }
-                inputBankCode.addEventListener('input', checkChangesBankInfo);
-                tdBankCode.appendChild(inputBankCode);
+                tdBankCode.textContent = bank.bank_code || '';
                 tr.appendChild(tdBankCode);
                 
+                // 현재금리 (읽기 전용)
                 const tdCurrentRate = document.createElement('td');
-                const inputCurrentRate = document.createElement('input');
-                inputCurrentRate.type = 'number';
-                inputCurrentRate.step = '0.01';
-                inputCurrentRate.value = bank.current_rate || 0;
-                inputCurrentRate.setAttribute('data-field', 'current_rate');
-                if (originalBank && originalBank.current_rate !== bank.current_rate) {
-                    inputCurrentRate.classList.add('changed');
-                }
-                inputCurrentRate.addEventListener('input', checkChangesBankInfo);
-                tdCurrentRate.appendChild(inputCurrentRate);
+                tdCurrentRate.textContent = bank.current_rate || 0;
                 tr.appendChild(tdCurrentRate);
                 
+                // 최대한도 (읽기 전용)
                 const tdMaxLimit = document.createElement('td');
-                const inputMaxLimit = document.createElement('input');
-                inputMaxLimit.type = 'number';
-                inputMaxLimit.value = bank.max_limit || 0;
-                inputMaxLimit.setAttribute('data-field', 'max_limit');
-                if (originalBank && originalBank.max_limit !== bank.max_limit) {
-                    inputMaxLimit.classList.add('changed');
-                }
-                inputMaxLimit.addEventListener('input', checkChangesBankInfo);
-                tdMaxLimit.appendChild(inputMaxLimit);
+                tdMaxLimit.textContent = bank.max_limit || 0;
                 tr.appendChild(tdMaxLimit);
                 
+                // 가중치 (읽기 전용)
                 const tdWeight = document.createElement('td');
-                const inputWeight = document.createElement('input');
-                inputWeight.type = 'number';
-                inputWeight.step = '0.01';
-                inputWeight.value = bank.weight || 0;
-                inputWeight.setAttribute('data-field', 'weight');
-                if (originalBank && originalBank.weight !== bank.weight) {
-                    inputWeight.classList.add('changed');
-                }
-                inputWeight.addEventListener('input', checkChangesBankInfo);
-                tdWeight.appendChild(inputWeight);
+                tdWeight.textContent = bank.weight || 0;
                 tr.appendChild(tdWeight);
                 
+                // 통신상태 (읽기 전용)
                 const tdComm = document.createElement('td');
-                const inputComm = document.createElement('input');
-                inputComm.type = 'number';
-                inputComm.value = bank.comm !== null && bank.comm !== undefined ? bank.comm : 0;
-                inputComm.setAttribute('data-field', 'comm');
-                if (originalBank && originalBank.comm !== bank.comm) {
-                    inputComm.classList.add('changed');
-                }
-                inputComm.addEventListener('input', checkChangesBankInfo);
-                tdComm.appendChild(inputComm);
+                tdComm.textContent = bank.comm !== null && bank.comm !== undefined ? bank.comm : 0;
                 tr.appendChild(tdComm);
                 
+                // 사용여부 (읽기 전용)
                 const tdUseIt = document.createElement('td');
-                const selectUseIt = document.createElement('select');
-                selectUseIt.setAttribute('data-field', 'use_it');
-                const option1 = document.createElement('option');
-                option1.value = '1';
-                option1.textContent = '사용';
-                const option0 = document.createElement('option');
-                option0.value = '0';
-                option0.textContent = '미사용';
-                selectUseIt.appendChild(option1);
-                selectUseIt.appendChild(option0);
-                selectUseIt.value = (bank.use_it || 0).toString();
-                if (originalBank && originalBank.use_it !== bank.use_it) {
-                    selectUseIt.classList.add('changed');
-                }
-                selectUseIt.addEventListener('change', checkChangesBankInfo);
-                tdUseIt.appendChild(selectUseIt);
+                tdUseIt.textContent = bank.use_it === 1 ? '사용' : '미사용';
                 tr.appendChild(tdUseIt);
                 
                 tbody.appendChild(tr);
             });
         }
         
-        function checkChangesBankInfo() {
-            const rows = document.querySelectorAll('#bank-info-tbody tr');
-            rows.forEach(row => {
-                const id = parseInt(row.getAttribute('data-id'));
-                const currentBank = bankInfoData.find(b => b.id === id);
-                const originalBank = originalBankInfoData.find(b => b.id === id);
-                
-                if (!currentBank || !originalBank) return;
-                
-                const inputs = row.querySelectorAll('input[data-field], select[data-field]');
-                inputs.forEach(input => {
-                    const field = input.getAttribute('data-field');
-                    let currentValue, originalValue;
-                    
-                    if (input.type === 'number') {
-                        currentValue = parseFloat(input.value) || 0;
-                        originalValue = originalBank[field] || 0;
-                    } else if (input.tagName === 'SELECT') {
-                        currentValue = parseInt(input.value) || 0;
-                        originalValue = originalBank[field] || 0;
-                    } else {
-                        currentValue = input.value;
-                        originalValue = originalBank[field] || '';
-                    }
-                    
-                    if (currentValue !== originalValue) {
-                        input.classList.add('changed');
-                        currentBank[field] = currentValue;
-                    } else {
-                        input.classList.remove('changed');
-                    }
-                });
-            });
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('#bank-info-table th.sortable').forEach(th => {
@@ -784,100 +771,249 @@
             });
         });
 
-        async function saveAllBankInfo() {
-            const rows = document.querySelectorAll('#bank-info-tbody tr');
-            const changedRows = [];
+
+        // test_nationality_loan 데이터 로드
+        let testNationalityLoanData = [];
+        let currentSortTestNationalityLoan = { field: null, direction: 'asc' };
+
+        async function loadTestNationalityLoanData() {
+            const loading = document.getElementById('loading-test-nationality-loan');
+            const error = document.getElementById('error-test-nationality-loan');
+            const table = document.getElementById('test-nationality-loan-table');
+            const tbody = document.getElementById('test-nationality-loan-tbody');
             
-            rows.forEach(row => {
-                const id = parseInt(row.getAttribute('data-id'));
-                const hasChanged = row.querySelectorAll('input[data-field].changed, select[data-field].changed').length > 0;
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            table.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            try {
+                const response = await fetch('/server/api/nationality-loan?mode=test');
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
                 
-                if (hasChanged) {
-                    const data = { id: id };
-                    const allInputs = row.querySelectorAll('input[data-field], select[data-field]');
-                    
-                    allInputs.forEach(input => {
-                        const field = input.getAttribute('data-field');
-                        if (input.type === 'number') {
-                            data[field] = parseFloat(input.value) || 0;
-                        } else if (input.tagName === 'SELECT') {
-                            data[field] = parseInt(input.value) || 0;
-                        } else {
-                            data[field] = input.value;
-                        }
-                    });
-                    changedRows.push(data);
+                testNationalityLoanData = await response.json();
+                
+                if (testNationalityLoanData.length === 0) {
+                    error.textContent = '데이터가 없습니다.';
+                    error.style.display = 'block';
+                } else {
+                    applySortTestNationalityLoan();
+                    renderTestNationalityLoanTable(testNationalityLoanData);
+                    table.style.display = 'table';
+                }
+            } catch (err) {
+                console.error('데이터 로드 오류:', err);
+                error.textContent = '데이터를 불러오는 중 오류가 발생했습니다: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function applySortTestNationalityLoan() {
+            if (!currentSortTestNationalityLoan.field) return;
+            
+            testNationalityLoanData.sort((a, b) => {
+                let aVal = a[currentSortTestNationalityLoan.field];
+                let bVal = b[currentSortTestNationalityLoan.field];
+                
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortTestNationalityLoan.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                
+                if (currentSortTestNationalityLoan.direction === 'asc') {
+                    return aStr.localeCompare(bStr);
+                } else {
+                    return bStr.localeCompare(aStr);
+                }
+            });
+        }
+
+        function renderTestNationalityLoanTable(data) {
+            const tbody = document.getElementById('test-nationality-loan-tbody');
+            tbody.innerHTML = '';
+            
+            document.querySelectorAll('#test-nationality-loan-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.getAttribute('data-sort') === currentSortTestNationalityLoan.field) {
+                    th.classList.add(currentSortTestNationalityLoan.direction === 'asc' ? 'sort-asc' : 'sort-desc');
                 }
             });
             
-            if (changedRows.length === 0) {
-                alert('변경된 내용이 없습니다.');
-                return;
-            }
+            data.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', item.id);
+                
+                // 모든 필드를 읽기 전용으로 표시
+                const fields = ['id', 'bank_name', 'product_name', 'eligible_visa', 'eligible_country', 
+                               'loan_limit_min', 'loan_limit_max', 'loan_period_min', 'loan_period_max',
+                               'interest_rate_min', 'interest_rate_max', 'repayment_method', 'credit_rating',
+                               'age_min', 'age_max', 'remaining_stay_period_min', 'employment_period_min',
+                               'annual_income_min', 'health_insurance', 'required_documents'];
+                
+                fields.forEach(field => {
+                    const td = document.createElement('td');
+                    const value = item[field];
+                    if (value === null || value === undefined) {
+                        td.textContent = '-';
+                    } else {
+                        td.textContent = value;
+                    }
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#test-nationality-loan-table th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortField = this.getAttribute('data-sort');
+                    if (currentSortTestNationalityLoan.field === sortField) {
+                        currentSortTestNationalityLoan.direction = currentSortTestNationalityLoan.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortTestNationalityLoan.field = sortField;
+                        currentSortTestNationalityLoan.direction = 'asc';
+                    }
+                    applySortTestNationalityLoan();
+                    renderTestNationalityLoanTable(testNationalityLoanData);
+                });
+            });
+        });
+
+        // nationality_loan 데이터 로드
+        let nationalityLoanData = [];
+        let currentSortNationalityLoan = { field: null, direction: 'asc' };
+
+        async function loadNationalityLoanData() {
+            const loading = document.getElementById('loading-nationality-loan');
+            const error = document.getElementById('error-nationality-loan');
+            const table = document.getElementById('nationality-loan-table');
+            const tbody = document.getElementById('nationality-loan-tbody');
             
-            if (!confirm(`${changedRows.length}개의 행을 저장하시겠습니까?`)) {
-                return;
-            }
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            table.style.display = 'none';
+            tbody.innerHTML = '';
             
             try {
-                let successCount = 0;
-                let failCount = 0;
-                
-                for (const data of changedRows) {
-                    try {
-                        const response = await fetch('/server/api/bank-info?mode=prod', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(data)
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.ok) {
-                            successCount++;
-                        } else {
-                            failCount++;
-                            console.error('저장 실패:', data.id, result.error);
-                        }
-                    } catch (err) {
-                        failCount++;
-                        console.error('저장 오류:', data.id, err);
-                    }
+                const response = await fetch('/server/api/nationality-loan?mode=prod');
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
                 }
                 
-                if (failCount === 0) {
-                    alert(`모든 변경사항이 저장되었습니다. (${successCount}개)`);
-                    loadBankInfoData();
+                nationalityLoanData = await response.json();
+                
+                if (nationalityLoanData.length === 0) {
+                    error.textContent = '데이터가 없습니다.';
+                    error.style.display = 'block';
                 } else {
-                    alert(`일부 저장에 실패했습니다. 성공: ${successCount}개, 실패: ${failCount}개`);
-                    loadBankInfoData();
+                    applySortNationalityLoan();
+                    renderNationalityLoanTable(nationalityLoanData);
+                    table.style.display = 'table';
                 }
             } catch (err) {
-                console.error('저장 오류:', err);
-                alert('저장 중 오류가 발생했습니다: ' + err.message);
+                console.error('데이터 로드 오류:', err);
+                error.textContent = '데이터를 불러오는 중 오류가 발생했습니다: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
-        function cancelChangesBankInfo() {
-            if (!confirm('모든 변경사항을 취소하시겠습니까?')) {
-                return;
-            }
+        function applySortNationalityLoan() {
+            if (!currentSortNationalityLoan.field) return;
             
-            bankInfoData = JSON.parse(JSON.stringify(originalBankInfoData));
-            applySortBankInfo();
-            renderBankInfoTable(bankInfoData);
-            alert('변경사항이 취소되었습니다.');
+            nationalityLoanData.sort((a, b) => {
+                let aVal = a[currentSortNationalityLoan.field];
+                let bVal = b[currentSortNationalityLoan.field];
+                
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortNationalityLoan.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                
+                if (currentSortNationalityLoan.direction === 'asc') {
+                    return aStr.localeCompare(bStr);
+                } else {
+                    return bStr.localeCompare(aStr);
+                }
+            });
         }
 
-        document.getElementById('btn-save-all-bank-info')?.addEventListener('click', saveAllBankInfo);
-        document.getElementById('btn-cancel-bank-info')?.addEventListener('click', cancelChangesBankInfo);
+        function renderNationalityLoanTable(data) {
+            const tbody = document.getElementById('nationality-loan-tbody');
+            tbody.innerHTML = '';
+            
+            document.querySelectorAll('#nationality-loan-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.getAttribute('data-sort') === currentSortNationalityLoan.field) {
+                    th.classList.add(currentSortNationalityLoan.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+            
+            data.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', item.id);
+                
+                // 모든 필드를 읽기 전용으로 표시
+                const fields = ['id', 'bank_name', 'product_name', 'eligible_visa', 'eligible_country', 
+                               'loan_limit_min', 'loan_limit_max', 'loan_period_min', 'loan_period_max',
+                               'interest_rate_min', 'interest_rate_max', 'repayment_method', 'credit_rating',
+                               'age_min', 'age_max', 'remaining_stay_period_min', 'employment_period_min',
+                               'annual_income_min', 'health_insurance', 'required_documents'];
+                
+                fields.forEach(field => {
+                    const td = document.createElement('td');
+                    const value = item[field];
+                    if (value === null || value === undefined) {
+                        td.textContent = '-';
+                    } else {
+                        td.textContent = value;
+                    }
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#nationality-loan-table th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortField = this.getAttribute('data-sort');
+                    if (currentSortNationalityLoan.field === sortField) {
+                        currentSortNationalityLoan.direction = currentSortNationalityLoan.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortNationalityLoan.field = sortField;
+                        currentSortNationalityLoan.direction = 'asc';
+                    }
+                    applySortNationalityLoan();
+                    renderNationalityLoanTable(nationalityLoanData);
+                });
+            });
+        });
 
         // 페이지 로드 시 데이터 자동 로드
         window.addEventListener('DOMContentLoaded', function() {
             loadBankData();
             loadBankInfoData();
+            loadTestNationalityLoanData();
+            loadNationalityLoanData();
         });
     </script>
 </body>

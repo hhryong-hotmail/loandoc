@@ -334,8 +334,8 @@ public class LoanEstimateServlet extends HttpServlet {
                             double maxLimitValue;
                             
                             if (testMode) {
-                                // testMode일 때: weight를 그대로 사용 (test_bank_info의 weight는 35.00, 37.00 등)
-                                weightFactor = weight;
+                                // testMode일 때: weight를 100으로 나눔 (test_bank_info의 weight는 35.00, 37.00 등이므로 0.35, 0.37로 변환)
+                                weightFactor = weight / 100.0;
                                 // test_bank_info의 max_limit은 만원 단위이므로 그대로 사용
                                 maxLimitValue = maxLimit.doubleValue();
                             } else {
@@ -390,36 +390,59 @@ public class LoanEstimateServlet extends HttpServlet {
         ObjectNode result = mapper.createObjectNode();
         result.put("bankName", bank.name);
 
-        // Visa type validation
+        // Country validation - 먼저 국적 변수들을 정의해야 함
+        ObjectNode countryNode = mapper.createObjectNode();
+        // normalize nationality for server-side checks (영문으로만 비교)
+        String natLower = nationality == null ? "" : nationality.trim().toLowerCase();
+        boolean isChina = natLower.contains("china");
+        boolean isIndia = natLower.contains("india");
+        boolean isUzbek = natLower.contains("uzbek");
+        boolean isKazakh = natLower.contains("kazakh");
+        boolean isVietnam = natLower.contains("vietnam");
+        boolean isPhilippines = natLower.contains("philippine");
+        boolean isCambodia = natLower.contains("cambodia");
+        boolean isNepal = natLower.contains("nepal");
+        boolean isIndonesia = natLower.contains("indonesia");
+        
+        // Visa type validation with bank-specific rules
         ObjectNode visaTypeNode = mapper.createObjectNode();
-        boolean visaTypeValid = containsString(bank.allowedVisaTypes, normalizedVisaType);
+        boolean visaTypeValid = false;
+        
+        // 은행별 비자 종류 및 국적 제한 적용
+        if (bank.name.equals("예가람저축은행")) {
+            // 예가람저축은행: E-7, E-9, F-2, F-6, F-5 만 대출승인
+            visaTypeValid = normalizedVisaType.equals("E7") || normalizedVisaType.equals("E9") 
+                    || normalizedVisaType.equals("F2") || normalizedVisaType.equals("F6") 
+                    || normalizedVisaType.equals("F5");
+        } else if (bank.name.equals("웰컴저축은행")) {
+            // 웰컴저축은행: E-7, E-9 만 대출승인
+            visaTypeValid = normalizedVisaType.equals("E7") || normalizedVisaType.equals("E9");
+        } else if (bank.name.equals("OK저축은행")) {
+            // OK저축은행: E-9 만 대출승인
+            visaTypeValid = normalizedVisaType.equals("E9");
+        } else if (bank.name.equals("KB저축은행")) {
+            // KB저축은행: E-7, E-9, F-2, F-6, F-5 만 허용 (비자 종류만 확인, 국적은 country 노드에서 확인)
+            visaTypeValid = normalizedVisaType.equals("E7") || normalizedVisaType.equals("E9") 
+                    || normalizedVisaType.equals("F2") || normalizedVisaType.equals("F6") 
+                    || normalizedVisaType.equals("F5");
+        } else {
+            // 다른 은행들은 기존 로직 사용
+            visaTypeValid = containsString(bank.allowedVisaTypes, normalizedVisaType);
+        }
+        
         visaTypeNode.put("valid", visaTypeValid);
         visaTypeNode.put("error", visaTypeValid ? "" : "E비자종류");
         result.set("visaType", visaTypeNode);
-
-        // Country validation
-        ObjectNode countryNode = mapper.createObjectNode();
-        // normalize nationality for server-side checks
-        String natLower = nationality == null ? "" : nationality.trim().toLowerCase();
-        boolean isChina = natLower.contains("china") || natLower.contains("중국");
-        boolean isIndia = natLower.contains("india") || natLower.contains("인도");
-        boolean isUzbek = natLower.contains("uzbek") || natLower.contains("우즈베크");
-        boolean isKazakh = natLower.contains("kazakh") || natLower.contains("카자흐");
-        boolean isVietnam = natLower.contains("vietnam") || natLower.contains("베트남");
-        boolean isPhilippines = natLower.contains("philippine") || natLower.contains("필리핀");
-        boolean isCambodia = natLower.contains("cambodia") || natLower.contains("캄보디아");
-        boolean isNepal = natLower.contains("nepal") || natLower.contains("네팔");
-        boolean isIndonesia = natLower.contains("indonesia") || natLower.contains("인도네시아");
-        // Additional countries (F4 blacklist additions)
-        boolean isMyanmar = natLower.contains("myanmar") || natLower.contains("미얀마") || natLower.contains("burma");
-        boolean isBangladesh = natLower.contains("bangladesh") || natLower.contains("방글라데시");
-        boolean isThailand = natLower.contains("thailand") || natLower.contains("태국");
-        boolean isSriLanka = natLower.contains("sri lanka") || natLower.contains("srilanka") || natLower.contains("스리랑카");
-        // E4 blacklist countries (Pakistan, Kyrgyzstan, Laos, East Timor)
-        boolean isPakistan = natLower.contains("pakistan") || natLower.contains("파키스탄");
-        boolean isKyrgyz = natLower.contains("kyrgyz") || natLower.contains("키르기스") || natLower.contains("kyrgyzstan") || natLower.contains("키르기스스탄");
-        boolean isLaos = natLower.contains("laos") || natLower.contains("라오스");
-        boolean isTimor = natLower.contains("timor") || natLower.contains("east timor") || natLower.contains("동티모르") || natLower.contains("티모르");
+        // Additional countries (F4 blacklist additions) - 영문으로만 비교
+        boolean isMyanmar = natLower.contains("myanmar") || natLower.contains("burma");
+        boolean isBangladesh = natLower.contains("bangladesh");
+        boolean isThailand = natLower.contains("thailand");
+        boolean isSriLanka = natLower.contains("sri lanka") || natLower.contains("srilanka");
+        // E4 blacklist countries (Pakistan, Kyrgyzstan, Laos, East Timor) - 영문으로만 비교
+        boolean isPakistan = natLower.contains("pakistan");
+        boolean isKyrgyz = natLower.contains("kyrgyz") || natLower.contains("kyrgyzstan");
+        boolean isLaos = natLower.contains("laos");
+        boolean isTimor = natLower.contains("timor") || natLower.contains("east timor");
         // F4 special checks
         boolean isF4 = "F4".equals(normalizedVisaType);
         // F2/F5/F6 checks (for India rule)
@@ -439,6 +462,18 @@ public class LoanEstimateServlet extends HttpServlet {
         // Apply bank-specific override rules
         boolean countryValid = countryValidComputed;
         String countryError = countryValid ? "" : "E국가";
+        
+        // KB저축은행: 국적이 nepal 또는 cambodia일 때만 허용
+        if (bank.name != null && bank.name.equals("KB저축은행")) {
+            countryValid = isNepal || isCambodia;
+            countryError = countryValid ? "" : "E국가";
+            try {
+                writeDebugLog("KB_BANK_NATIONALITY_CHECK: bank=" + bank.name + " nat=" + natLower + " isNepal=" + isNepal + " isCambodia=" + isCambodia + " countryValid=" + countryValid, null);
+            } catch (Throwable _t) {
+                // ignore
+            }
+        }
+        
         if (bank.name != null && bank.name.equals("전북은행")) {
             // 전북은행: E-9 + China/India -> 불가
             if ("E9".equals(normalizedVisaType) && (isChina || isIndia)) {
@@ -620,11 +655,15 @@ public class LoanEstimateServlet extends HttpServlet {
         double maxLimitValue;
         
         if (testMode) {
-            // testMode일 때: 연소득 × 잔여체류개월수 × 가중치 (test_bank_info의 weight) / 10
-            // weightFactor는 이미 weight 그대로 저장되어 있음 (testMode일 때는 weight / 100.0 하지 않음)
+            // testMode일 때: 연소득 × 잔여체류개월수 × 가중치 (test_bank_info의 weight를 100으로 나눈 값) / 10
+            // weightFactor는 이미 weight / 100.0으로 저장되어 있음
             calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
             // test_bank_info의 max_limit은 만원 단위이므로 그대로 사용
             maxLimitValue = bank.maxLimit;
+            
+            // 디버그 로그 추가
+            logger.log(Level.INFO, String.format("[TEST MODE] 예상한도 계산 - 은행: %s, 연소득: %.0f, 잔여체류: %d, weightFactor: %.4f, calculatedLimit: %.2f, maxLimit: %.0f", 
+                bank.name, annualIncome, remainMonths, bank.weightFactor, calculatedLimit, maxLimitValue));
         } else {
             // 운영 모드: 기존 로직 유지
             calculatedLimit = (annualIncome * remainMonths * bank.weightFactor) / 10.0;
@@ -633,6 +672,12 @@ public class LoanEstimateServlet extends HttpServlet {
         
         // 단, 최고한도를 초과할 수 없음
         double finalLimit = Math.min(calculatedLimit, maxLimitValue);
+        
+        // 디버그 로그 추가
+        if (testMode) {
+            logger.log(Level.INFO, String.format("[TEST MODE] 최종 예상한도 - 은행: %s, calculatedLimit: %.2f, maxLimit: %.0f, finalLimit: %.0f", 
+                bank.name, calculatedLimit, maxLimitValue, finalLimit));
+        }
         
         // 소수점 이하 반올림
         finalLimit = Math.round(finalLimit);
