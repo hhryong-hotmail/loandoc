@@ -54,4 +54,15 @@
         <servlet-name>LoginServlet</servlet-name>
         <url-pattern>/api/auth/login</url-pattern>
     </servlet-mapping>
+
+    <!-- ConfigurationManagementServlet 매핑 -->
+    <servlet>
+        <servlet-name>ConfigurationManagementServlet</servlet-name>
+        <servlet-class>com.loandoc.ConfigurationManagementServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ConfigurationManagementServlet</servlet-name>
+        <url-pattern>/api/config_management</url-pattern>
+        <url-pattern>/api/config_management/*</url-pattern>
+    </servlet-mapping>
 </web-app>
