@@ -1,0 +1,29 @@
+# Git 인코딩 설정 - 모든 텍스트 파일을 UTF-8로 처리
+* text=auto eol=lf
+
+# 텍스트 파일 명시적 UTF-8 설정
+*.html text eol=lf charset=utf-8
+*.js text eol=lf charset=utf-8
+*.css text eol=lf charset=utf-8
+*.json text eol=lf charset=utf-8
+*.md text eol=lf charset=utf-8
+*.txt text eol=lf charset=utf-8
+*.java text eol=lf charset=utf-8
+*.xml text eol=lf charset=utf-8
+*.properties text eol=lf charset=utf-8
+*.sql text eol=lf charset=utf-8
+*.ps1 text eol=lf charset=utf-8
+*.bat text eol=crlf charset=utf-8
+
+# 바이너리 파일
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.jar binary
+*.class binary
+*.xlsx binary
+*.xls binary

@@ -155,6 +155,54 @@
             
         </div>
         
+        <!-- test_nationality_load 테이블 관리 섹션 추가 -->
+        <div class="test-setting-container" style="margin-top:40px;">
+            <div class="table-header">
+                <h2 class="title">test_nationality_load 테이블 관리</h2>
+                <div class="btn-group">
+                    <button type="button" class="btn-primary" onclick="loadTestNationalityLoadData()">새로고침</button>
+                </div>
+            </div>
+            
+            <div id="loading-test-nationality-load" class="loading" style="display:none;">데이터를 불러오는 중...</div>
+            <div id="error-test-nationality-load" class="error" style="display:none;"></div>
+            
+            <table id="test-nationality-load-table" class="data-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">ID</th>
+                        <th class="sortable" data-sort="bank_name">은행명</th>
+                        <th class="sortable" data-sort="product_name">상품명</th>
+                        <th class="sortable" data-sort="eligible_visa">대상비자</th>
+                        <th class="sortable" data-sort="eligible_country">대상국가</th>
+                        <th class="sortable" data-sort="loan_limit_min">대출한도 최소 (만원)</th>
+                        <th class="sortable" data-sort="loan_limit_max">대출한도 최대 (만원)</th>
+                        <th class="sortable" data-sort="loan_period_min">대출기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="loan_period_max">대출기간 최대 (개월)</th>
+                        <th class="sortable" data-sort="interest_rate_min">금리 최소 (%)</th>
+                        <th class="sortable" data-sort="interest_rate_max">금리 최대 (%)</th>
+                        <th class="sortable" data-sort="repayment_method">상환방식</th>
+                        <th class="sortable" data-sort="credit_rating">신용등급</th>
+                        <th class="sortable" data-sort="age_min">나이 최소</th>
+                        <th class="sortable" data-sort="age_max">나이 최대</th>
+                        <th class="sortable" data-sort="remaining_stay_period_min">체류잔여기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="employment_period_min">재직기간 최소 (개월)</th>
+                        <th class="sortable" data-sort="annual_income_min">연소득 최소 (만원)</th>
+                        <th class="sortable" data-sort="health_insurance">의료보험</th>
+                        <th class="sortable" data-sort="required_documents">준비서류</th>
+                    </tr>
+                </thead>
+                <tbody id="test-nationality-load-tbody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+            
+            <div id="table-actions-test-nationality-load" class="table-actions" style="display:none;">
+                <button type="button" class="btn-secondary" id="btn-cancel-test-nationality-load">취소</button>
+                <button type="button" class="btn-primary" id="btn-save-all-test-nationality-load">저장</button>
+            </div>
+        </div>
+        
         <!-- test_nationality_loan 테이블 관리 섹션 추가 -->
         <div class="test-setting-container" style="margin-top:40px;">
             <div class="table-header">
@@ -1009,10 +1057,498 @@
             });
         });
 
+        // test_nationality_load 데이터 로드
+        let testNationalityLoadData = [];
+        let originalTestNationalityLoadData = [];
+        let currentSortTestNationalityLoad = { field: null, direction: 'asc' };
+
+        async function loadTestNationalityLoadData() {
+            const loading = document.getElementById('loading-test-nationality-load');
+            const error = document.getElementById('error-test-nationality-load');
+            const table = document.getElementById('test-nationality-load-table');
+            const tbody = document.getElementById('test-nationality-load-tbody');
+            const tableActions = document.getElementById('table-actions-test-nationality-load');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            table.style.display = 'none';
+            tableActions.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            try {
+                const response = await fetch('/server/api/nationality-loan?mode=test');
+                if (!response.ok) {
+                    throw new Error('데이터를 불러오는데 실패했습니다.');
+                }
+                
+                testNationalityLoadData = await response.json();
+                // 원본 데이터 복사 (깊은 복사)
+                originalTestNationalityLoadData = JSON.parse(JSON.stringify(testNationalityLoadData));
+                
+                if (testNationalityLoadData.length === 0) {
+                    error.textContent = '데이터가 없습니다.';
+                    error.style.display = 'block';
+                } else {
+                    applySortTestNationalityLoad();
+                    renderTestNationalityLoadTable(testNationalityLoadData);
+                    table.style.display = 'table';
+                    tableActions.style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('데이터 로드 오류:', err);
+                error.textContent = '데이터를 불러오는 중 오류가 발생했습니다: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function applySortTestNationalityLoad() {
+            if (!currentSortTestNationalityLoad.field) return;
+            
+            testNationalityLoadData.sort((a, b) => {
+                let aVal = a[currentSortTestNationalityLoad.field];
+                let bVal = b[currentSortTestNationalityLoad.field];
+                
+                if (aVal === null || aVal === undefined) aVal = '';
+                if (bVal === null || bVal === undefined) bVal = '';
+                
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortTestNationalityLoad.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                
+                const aStr = String(aVal).toLowerCase();
+                const bStr = String(bVal).toLowerCase();
+                
+                if (currentSortTestNationalityLoad.direction === 'asc') {
+                    return aStr.localeCompare(bStr);
+                } else {
+                    return bStr.localeCompare(aStr);
+                }
+            });
+        }
+
+        function renderTestNationalityLoadTable(data) {
+            const tbody = document.getElementById('test-nationality-load-tbody');
+            tbody.innerHTML = '';
+            
+            document.querySelectorAll('#test-nationality-load-table th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.getAttribute('data-sort') === currentSortTestNationalityLoad.field) {
+                    th.classList.add(currentSortTestNationalityLoad.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+            
+            data.forEach((item) => {
+                const originalItem = originalTestNationalityLoadData.find(i => i.id === item.id);
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', item.id);
+                
+                // ID (읽기 전용)
+                const tdId = document.createElement('td');
+                tdId.textContent = item.id;
+                tr.appendChild(tdId);
+                
+                // 은행명
+                const tdBankName = document.createElement('td');
+                const inputBankName = document.createElement('input');
+                inputBankName.type = 'text';
+                inputBankName.value = item.bank_name || '';
+                inputBankName.setAttribute('data-field', 'bank_name');
+                if (originalItem && originalItem.bank_name !== item.bank_name) {
+                    inputBankName.classList.add('changed');
+                }
+                inputBankName.addEventListener('input', checkChangesTestNationalityLoad);
+                tdBankName.appendChild(inputBankName);
+                tr.appendChild(tdBankName);
+                
+                // 상품명
+                const tdProductName = document.createElement('td');
+                const inputProductName = document.createElement('input');
+                inputProductName.type = 'text';
+                inputProductName.value = item.product_name || '';
+                inputProductName.setAttribute('data-field', 'product_name');
+                if (originalItem && originalItem.product_name !== item.product_name) {
+                    inputProductName.classList.add('changed');
+                }
+                inputProductName.addEventListener('input', checkChangesTestNationalityLoad);
+                tdProductName.appendChild(inputProductName);
+                tr.appendChild(tdProductName);
+                
+                // 대상비자
+                const tdEligibleVisa = document.createElement('td');
+                const inputEligibleVisa = document.createElement('input');
+                inputEligibleVisa.type = 'text';
+                inputEligibleVisa.value = item.eligible_visa || '';
+                inputEligibleVisa.setAttribute('data-field', 'eligible_visa');
+                if (originalItem && originalItem.eligible_visa !== item.eligible_visa) {
+                    inputEligibleVisa.classList.add('changed');
+                }
+                inputEligibleVisa.addEventListener('input', checkChangesTestNationalityLoad);
+                tdEligibleVisa.appendChild(inputEligibleVisa);
+                tr.appendChild(tdEligibleVisa);
+                
+                // 대상국가
+                const tdEligibleCountry = document.createElement('td');
+                const inputEligibleCountry = document.createElement('input');
+                inputEligibleCountry.type = 'text';
+                inputEligibleCountry.value = item.eligible_country || '';
+                inputEligibleCountry.setAttribute('data-field', 'eligible_country');
+                if (originalItem && originalItem.eligible_country !== item.eligible_country) {
+                    inputEligibleCountry.classList.add('changed');
+                }
+                inputEligibleCountry.addEventListener('input', checkChangesTestNationalityLoad);
+                tdEligibleCountry.appendChild(inputEligibleCountry);
+                tr.appendChild(tdEligibleCountry);
+                
+                // 대출한도 최소
+                const tdLoanLimitMin = document.createElement('td');
+                const inputLoanLimitMin = document.createElement('input');
+                inputLoanLimitMin.type = 'number';
+                inputLoanLimitMin.value = item.loan_limit_min || '';
+                inputLoanLimitMin.setAttribute('data-field', 'loan_limit_min');
+                if (originalItem && originalItem.loan_limit_min !== item.loan_limit_min) {
+                    inputLoanLimitMin.classList.add('changed');
+                }
+                inputLoanLimitMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdLoanLimitMin.appendChild(inputLoanLimitMin);
+                tr.appendChild(tdLoanLimitMin);
+                
+                // 대출한도 최대
+                const tdLoanLimitMax = document.createElement('td');
+                const inputLoanLimitMax = document.createElement('input');
+                inputLoanLimitMax.type = 'number';
+                inputLoanLimitMax.value = item.loan_limit_max || '';
+                inputLoanLimitMax.setAttribute('data-field', 'loan_limit_max');
+                if (originalItem && originalItem.loan_limit_max !== item.loan_limit_max) {
+                    inputLoanLimitMax.classList.add('changed');
+                }
+                inputLoanLimitMax.addEventListener('input', checkChangesTestNationalityLoad);
+                tdLoanLimitMax.appendChild(inputLoanLimitMax);
+                tr.appendChild(tdLoanLimitMax);
+                
+                // 대출기간 최소
+                const tdLoanPeriodMin = document.createElement('td');
+                const inputLoanPeriodMin = document.createElement('input');
+                inputLoanPeriodMin.type = 'number';
+                inputLoanPeriodMin.value = item.loan_period_min || '';
+                inputLoanPeriodMin.setAttribute('data-field', 'loan_period_min');
+                if (originalItem && originalItem.loan_period_min !== item.loan_period_min) {
+                    inputLoanPeriodMin.classList.add('changed');
+                }
+                inputLoanPeriodMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdLoanPeriodMin.appendChild(inputLoanPeriodMin);
+                tr.appendChild(tdLoanPeriodMin);
+                
+                // 대출기간 최대
+                const tdLoanPeriodMax = document.createElement('td');
+                const inputLoanPeriodMax = document.createElement('input');
+                inputLoanPeriodMax.type = 'number';
+                inputLoanPeriodMax.value = item.loan_period_max || '';
+                inputLoanPeriodMax.setAttribute('data-field', 'loan_period_max');
+                if (originalItem && originalItem.loan_period_max !== item.loan_period_max) {
+                    inputLoanPeriodMax.classList.add('changed');
+                }
+                inputLoanPeriodMax.addEventListener('input', checkChangesTestNationalityLoad);
+                tdLoanPeriodMax.appendChild(inputLoanPeriodMax);
+                tr.appendChild(tdLoanPeriodMax);
+                
+                // 금리 최소
+                const tdInterestRateMin = document.createElement('td');
+                const inputInterestRateMin = document.createElement('input');
+                inputInterestRateMin.type = 'number';
+                inputInterestRateMin.step = '0.01';
+                inputInterestRateMin.value = item.interest_rate_min || '';
+                inputInterestRateMin.setAttribute('data-field', 'interest_rate_min');
+                if (originalItem && originalItem.interest_rate_min !== item.interest_rate_min) {
+                    inputInterestRateMin.classList.add('changed');
+                }
+                inputInterestRateMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdInterestRateMin.appendChild(inputInterestRateMin);
+                tr.appendChild(tdInterestRateMin);
+                
+                // 금리 최대
+                const tdInterestRateMax = document.createElement('td');
+                const inputInterestRateMax = document.createElement('input');
+                inputInterestRateMax.type = 'number';
+                inputInterestRateMax.step = '0.01';
+                inputInterestRateMax.value = item.interest_rate_max || '';
+                inputInterestRateMax.setAttribute('data-field', 'interest_rate_max');
+                if (originalItem && originalItem.interest_rate_max !== item.interest_rate_max) {
+                    inputInterestRateMax.classList.add('changed');
+                }
+                inputInterestRateMax.addEventListener('input', checkChangesTestNationalityLoad);
+                tdInterestRateMax.appendChild(inputInterestRateMax);
+                tr.appendChild(tdInterestRateMax);
+                
+                // 상환방식
+                const tdRepaymentMethod = document.createElement('td');
+                const inputRepaymentMethod = document.createElement('input');
+                inputRepaymentMethod.type = 'text';
+                inputRepaymentMethod.value = item.repayment_method || '';
+                inputRepaymentMethod.setAttribute('data-field', 'repayment_method');
+                if (originalItem && originalItem.repayment_method !== item.repayment_method) {
+                    inputRepaymentMethod.classList.add('changed');
+                }
+                inputRepaymentMethod.addEventListener('input', checkChangesTestNationalityLoad);
+                tdRepaymentMethod.appendChild(inputRepaymentMethod);
+                tr.appendChild(tdRepaymentMethod);
+                
+                // 신용등급
+                const tdCreditRating = document.createElement('td');
+                const inputCreditRating = document.createElement('input');
+                inputCreditRating.type = 'text';
+                inputCreditRating.value = item.credit_rating || '';
+                inputCreditRating.setAttribute('data-field', 'credit_rating');
+                if (originalItem && originalItem.credit_rating !== item.credit_rating) {
+                    inputCreditRating.classList.add('changed');
+                }
+                inputCreditRating.addEventListener('input', checkChangesTestNationalityLoad);
+                tdCreditRating.appendChild(inputCreditRating);
+                tr.appendChild(tdCreditRating);
+                
+                // 나이 최소
+                const tdAgeMin = document.createElement('td');
+                const inputAgeMin = document.createElement('input');
+                inputAgeMin.type = 'number';
+                inputAgeMin.value = item.age_min || '';
+                inputAgeMin.setAttribute('data-field', 'age_min');
+                if (originalItem && originalItem.age_min !== item.age_min) {
+                    inputAgeMin.classList.add('changed');
+                }
+                inputAgeMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdAgeMin.appendChild(inputAgeMin);
+                tr.appendChild(tdAgeMin);
+                
+                // 나이 최대
+                const tdAgeMax = document.createElement('td');
+                const inputAgeMax = document.createElement('input');
+                inputAgeMax.type = 'number';
+                inputAgeMax.value = item.age_max || '';
+                inputAgeMax.setAttribute('data-field', 'age_max');
+                if (originalItem && originalItem.age_max !== item.age_max) {
+                    inputAgeMax.classList.add('changed');
+                }
+                inputAgeMax.addEventListener('input', checkChangesTestNationalityLoad);
+                tdAgeMax.appendChild(inputAgeMax);
+                tr.appendChild(tdAgeMax);
+                
+                // 체류잔여기간 최소
+                const tdRemainingStayPeriodMin = document.createElement('td');
+                const inputRemainingStayPeriodMin = document.createElement('input');
+                inputRemainingStayPeriodMin.type = 'number';
+                inputRemainingStayPeriodMin.value = item.remaining_stay_period_min || '';
+                inputRemainingStayPeriodMin.setAttribute('data-field', 'remaining_stay_period_min');
+                if (originalItem && originalItem.remaining_stay_period_min !== item.remaining_stay_period_min) {
+                    inputRemainingStayPeriodMin.classList.add('changed');
+                }
+                inputRemainingStayPeriodMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdRemainingStayPeriodMin.appendChild(inputRemainingStayPeriodMin);
+                tr.appendChild(tdRemainingStayPeriodMin);
+                
+                // 재직기간 최소
+                const tdEmploymentPeriodMin = document.createElement('td');
+                const inputEmploymentPeriodMin = document.createElement('input');
+                inputEmploymentPeriodMin.type = 'number';
+                inputEmploymentPeriodMin.value = item.employment_period_min || '';
+                inputEmploymentPeriodMin.setAttribute('data-field', 'employment_period_min');
+                if (originalItem && originalItem.employment_period_min !== item.employment_period_min) {
+                    inputEmploymentPeriodMin.classList.add('changed');
+                }
+                inputEmploymentPeriodMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdEmploymentPeriodMin.appendChild(inputEmploymentPeriodMin);
+                tr.appendChild(tdEmploymentPeriodMin);
+                
+                // 연소득 최소
+                const tdAnnualIncomeMin = document.createElement('td');
+                const inputAnnualIncomeMin = document.createElement('input');
+                inputAnnualIncomeMin.type = 'number';
+                inputAnnualIncomeMin.value = item.annual_income_min || '';
+                inputAnnualIncomeMin.setAttribute('data-field', 'annual_income_min');
+                if (originalItem && originalItem.annual_income_min !== item.annual_income_min) {
+                    inputAnnualIncomeMin.classList.add('changed');
+                }
+                inputAnnualIncomeMin.addEventListener('input', checkChangesTestNationalityLoad);
+                tdAnnualIncomeMin.appendChild(inputAnnualIncomeMin);
+                tr.appendChild(tdAnnualIncomeMin);
+                
+                // 의료보험
+                const tdHealthInsurance = document.createElement('td');
+                const inputHealthInsurance = document.createElement('input');
+                inputHealthInsurance.type = 'text';
+                inputHealthInsurance.value = item.health_insurance || '';
+                inputHealthInsurance.setAttribute('data-field', 'health_insurance');
+                if (originalItem && originalItem.health_insurance !== item.health_insurance) {
+                    inputHealthInsurance.classList.add('changed');
+                }
+                inputHealthInsurance.addEventListener('input', checkChangesTestNationalityLoad);
+                tdHealthInsurance.appendChild(inputHealthInsurance);
+                tr.appendChild(tdHealthInsurance);
+                
+                // 준비서류
+                const tdRequiredDocuments = document.createElement('td');
+                const inputRequiredDocuments = document.createElement('input');
+                inputRequiredDocuments.type = 'text';
+                inputRequiredDocuments.value = item.required_documents || '';
+                inputRequiredDocuments.setAttribute('data-field', 'required_documents');
+                if (originalItem && originalItem.required_documents !== item.required_documents) {
+                    inputRequiredDocuments.classList.add('changed');
+                }
+                inputRequiredDocuments.addEventListener('input', checkChangesTestNationalityLoad);
+                tdRequiredDocuments.appendChild(inputRequiredDocuments);
+                tr.appendChild(tdRequiredDocuments);
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // 변경사항 체크
+        function checkChangesTestNationalityLoad() {
+            const rows = document.querySelectorAll('#test-nationality-load-tbody tr');
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const currentItem = testNationalityLoadData.find(i => i.id === id);
+                const originalItem = originalTestNationalityLoadData.find(i => i.id === id);
+                
+                if (!currentItem || !originalItem) return;
+                
+                const inputs = row.querySelectorAll('input[data-field]');
+                inputs.forEach(input => {
+                    const field = input.getAttribute('data-field');
+                    let currentValue, originalValue;
+                    
+                    if (input.type === 'number') {
+                        currentValue = input.value === '' ? null : (input.step === '0.01' ? parseFloat(input.value) : parseInt(input.value));
+                        originalValue = originalItem[field];
+                    } else {
+                        currentValue = input.value;
+                        originalValue = originalItem[field] || '';
+                    }
+                    
+                    if (currentValue !== originalValue) {
+                        input.classList.add('changed');
+                        currentItem[field] = currentValue;
+                    } else {
+                        input.classList.remove('changed');
+                    }
+                });
+            });
+        }
+
+        // 전체 저장
+        async function saveAllTestNationalityLoad() {
+            const rows = document.querySelectorAll('#test-nationality-load-tbody tr');
+            const changedRows = [];
+            
+            rows.forEach(row => {
+                const id = parseInt(row.getAttribute('data-id'));
+                const hasChanged = row.querySelectorAll('input[data-field].changed').length > 0;
+                
+                if (hasChanged) {
+                    const data = { id: id };
+                    const allInputs = row.querySelectorAll('input[data-field]');
+                    
+                    allInputs.forEach(input => {
+                        const field = input.getAttribute('data-field');
+                        if (input.type === 'number') {
+                            const value = input.value === '' ? null : (input.step === '0.01' ? parseFloat(input.value) : parseInt(input.value));
+                            data[field] = value;
+                        } else {
+                            data[field] = input.value;
+                        }
+                    });
+                    changedRows.push(data);
+                }
+            });
+            
+            if (changedRows.length === 0) {
+                alert('변경된 내용이 없습니다.');
+                return;
+            }
+            
+            if (!confirm(`${changedRows.length}개의 행을 저장하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const data of changedRows) {
+                    try {
+                        const response = await fetch('/server/api/nationality-loan?mode=test', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                            console.error('저장 실패:', data.id, result.error);
+                        }
+                    } catch (err) {
+                        failCount++;
+                        console.error('저장 오류:', data.id, err);
+                    }
+                }
+                
+                if (failCount === 0) {
+                    alert(`모든 변경사항이 저장되었습니다. (${successCount}개)`);
+                    loadTestNationalityLoadData();
+                } else {
+                    alert(`일부 저장에 실패했습니다. 성공: ${successCount}개, 실패: ${failCount}개`);
+                    loadTestNationalityLoadData();
+                }
+            } catch (err) {
+                console.error('저장 오류:', err);
+                alert('저장 중 오류가 발생했습니다: ' + err.message);
+            }
+        }
+
+        // 취소 (원본 데이터로 복원)
+        function cancelChangesTestNationalityLoad() {
+            if (!confirm('모든 변경사항을 취소하시겠습니까?')) {
+                return;
+            }
+            
+            testNationalityLoadData = JSON.parse(JSON.stringify(originalTestNationalityLoadData));
+            applySortTestNationalityLoad();
+            renderTestNationalityLoadTable(testNationalityLoadData);
+            alert('변경사항이 취소되었습니다.');
+        }
+
+        // 정렬 헤더 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#test-nationality-load-table th.sortable').forEach(th => {
+                th.addEventListener('click', function() {
+                    const sortField = this.getAttribute('data-sort');
+                    if (currentSortTestNationalityLoad.field === sortField) {
+                        currentSortTestNationalityLoad.direction = currentSortTestNationalityLoad.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortTestNationalityLoad.field = sortField;
+                        currentSortTestNationalityLoad.direction = 'asc';
+                    }
+                    applySortTestNationalityLoad();
+                    renderTestNationalityLoadTable(testNationalityLoadData);
+                });
+            });
+            
+            // 저장/취소 버튼 이벤트
+            document.getElementById('btn-save-all-test-nationality-load')?.addEventListener('click', saveAllTestNationalityLoad);
+            document.getElementById('btn-cancel-test-nationality-load')?.addEventListener('click', cancelChangesTestNationalityLoad);
+        });
+
         // 페이지 로드 시 데이터 자동 로드
         window.addEventListener('DOMContentLoaded', function() {
             loadBankData();
             loadBankInfoData();
+            loadTestNationalityLoadData();
             loadTestNationalityLoanData();
             loadNationalityLoanData();
         });

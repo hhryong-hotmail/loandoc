@@ -115,7 +115,10 @@
                             <th style="width:100px">환경</th>
                             <th style="width:100px">단계</th>
                             <th style="width:150px">결재번호</th>
-                            <th style="width:200px">작업</th>
+                            <th style="width:100px">승인자</th>
+                            <th style="width:200px">작업내용</th>
+                            <th style="width:200px">승인/반려 내용</th>
+                            <th style="width:200px">검토 및 결과</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody"></tbody>
@@ -133,8 +136,9 @@
                 <form id="submitForm">
                     <input type="hidden" id="submitId" />
                     <div class="form-group">
-                        <label>결재번호</label>
-                        <input type="text" id="submitApprovalNumber" required />
+                        <label>결재번호 (자동 생성)</label>
+                        <input type="text" id="submitApprovalNumber" readonly style="background:#f5f5f5;color:#666" />
+                        <small style="color:#666;font-size:12px">YYYYMMDD-001 형식으로 자동 생성됩니다</small>
                     </div>
                     <div class="form-group">
                         <label>적용서버</label>
@@ -160,6 +164,10 @@
                     <div class="form-group">
                         <label>운영서버 적용일자(예정)</label>
                         <input type="datetime-local" id="submitProdScheduledDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>작업내용</label>
+                        <textarea id="submitWorkContent" placeholder="작업내용을 입력하세요 (미입력 시 변경사유가 사용됩니다)"></textarea>
                     </div>
                     <div style="text-align:right;margin-top:20px">
                         <button type="button" class="btn btn-primary" id="submitBtn">제출</button>
@@ -219,10 +227,17 @@
         <div id="detailModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>변경이력 상세</h3>
+                    <h3>작업 상세 내용</h3>
                     <span class="modal-close" id="detailModalClose">&times;</span>
                 </div>
                 <div id="detailContent"></div>
+                <hr style="border:0;border-top:1px solid #eee;margin:20px 0" />
+                <div id="detailFooter" style="display:flex;gap:10px;justify-content:flex-end;padding-top:10px">
+                    <button type="button" class="btn btn-success" id="detailApproveBtn">승인</button>
+                    <button type="button" class="btn btn-danger" id="detailRejectBtn">반려</button>
+                    <button type="button" class="btn" id="detailCancelBtn">취소</button>
+                </div>
+                <input type="hidden" id="detailId" />
             </div>
         </div>
     </main>
@@ -280,6 +295,9 @@
         document.getElementById('rejectCancelBtn').addEventListener('click', () => {
             document.getElementById('rejectModal').style.display = 'none';
         });
+        document.getElementById('detailCancelBtn').addEventListener('click', () => {
+            document.getElementById('detailModal').style.display = 'none';
+        });
 
         // 모달 외부 클릭 시 닫기
         window.addEventListener('click', (e) => {
@@ -326,6 +344,55 @@
             return badges[status] || status;
         }
 
+        function getReviewResult(row) {
+            // approved_date가 있으면 승인
+            if (row.approved_date) {
+                return '<span class="status-badge status-approved">승인</span>';
+            }
+            // rejected_date가 있으면 반려
+            if (row.rejected_date) {
+                return '<span class="status-badge status-rejected">반려</span>';
+            }
+            // 둘 다 없으면 대기 (클릭 가능한 버튼)
+            return '<button class="btn btn-warning" onclick="viewDetail(' + row.id + ')" style="font-size:12px;padding:4px 8px;cursor:pointer">대기</button>';
+        }
+
+        function generateGitHubUrls(repoName, programName) {
+            if (!repoName || !programName) {
+                return '<span style="color:#999">URL 없음</span>';
+            }
+            
+            // repo_name 형식: 'hhryong-hotmail/loandoc'
+            const baseUrl = `https://github.com/${repoName}/blob/main`;
+            const files = programName.split(',').map(f => f.trim()).filter(f => f && f !== 'N/A');
+            
+            if (files.length === 0) {
+                return '<span style="color:#999">URL 없음</span>';
+            }
+            
+            // 첫 번째 파일의 URL 생성
+            let firstFile = files[0];
+            
+            // 절대 경로로 시작하는 경우 앞의 '/' 제거
+            if (firstFile.startsWith('/')) {
+                firstFile = firstFile.substring(1);
+            }
+            
+            // 파일 경로를 URL 인코딩 (각 세그먼트를 개별적으로 인코딩하여 경로 구조 유지)
+            const pathSegments = firstFile.split('/').map(segment => encodeURIComponent(segment));
+            const encodedPath = pathSegments.join('/');
+            const fileUrl = `${baseUrl}/${encodedPath}`;
+            
+            let urlHtml = `<a href="${fileUrl}" target="_blank" style="color:#2d6cdf;text-decoration:underline">${escapeHtml(firstFile)}</a>`;
+            
+            // 여러 파일이 있는 경우 추가 표시
+            if (files.length > 1) {
+                urlHtml += ` <span style="color:#666;font-size:0.9em">외 ${files.length - 1}개 파일</span>`;
+            }
+            
+            return urlHtml;
+        }
+
         function escapeHtml(s) {
             return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
@@ -353,11 +420,28 @@
         function renderHistory(rows) {
             historyBody.innerHTML = '';
             if (!rows || rows.length === 0) {
-                historyBody.innerHTML = `<tr><td colspan="10" style="padding:12px;text-align:center;color:#666">등록된 변경이력이 없습니다.</td></tr>`;
+                historyBody.innerHTML = `<tr><td colspan="13" style="padding:12px;text-align:center;color:#666">등록된 변경이력이 없습니다.</td></tr>`;
                 return;
             }
             for (const r of rows) {
                 const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.addEventListener('click', (e) => {
+                    // 버튼 클릭이 아닌 경우에만 팝업 열기
+                    if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        viewDetail(r.id);
+                    }
+                });
+                // 승인/반려 내용 결정
+                let approvalRejectContent = '';
+                if (r.approved_date && r.approved_date.trim() !== '') {
+                    // 승인된 경우
+                    approvalRejectContent = r.approval_reason || '';
+                } else if (r.rejected_date && r.rejected_date.trim() !== '') {
+                    // 반려된 경우
+                    approvalRejectContent = r.rejection_reason || '';
+                }
+                
                 tr.innerHTML = `
                     <td>${r.id}</td>
                     <td>${formatDateTime(r.change_datetime)}</td>
@@ -368,14 +452,10 @@
                     <td>${escapeHtml(r.env_type || '')}</td>
                     <td>${escapeHtml(r.stage_type || '')}</td>
                     <td>${escapeHtml(r.approval_number || '')}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="viewDetail(${r.id})" style="font-size:12px;padding:4px 8px">상세</button>
-                        ${r.status === '대기중' ? `<button class="btn btn-warning" onclick="openSubmitModal(${r.id})" style="font-size:12px;padding:4px 8px">제출</button>` : ''}
-                        ${r.status === '제출됨' ? `
-                            <button class="btn btn-success" onclick="openApproveModal(${r.id})" style="font-size:12px;padding:4px 8px">승인</button>
-                            <button class="btn btn-danger" onclick="openRejectModal(${r.id})" style="font-size:12px;padding:4px 8px">반려</button>
-                        ` : ''}
-                    </td>
+                    <td>${escapeHtml(r.approver || '')}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.work_content || '')}">${escapeHtml(r.work_content || '')}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(approvalRejectContent)}">${escapeHtml(approvalRejectContent)}</td>
+                    <td>${getReviewResult(r)}</td>
                 `;
                 historyBody.appendChild(tr);
             }
@@ -390,6 +470,9 @@
 
                 const detailHtml = `
                     <div style="line-height:1.8">
+                        <p style="font-size:1.2em;font-weight:bold;color:#2d6cdf;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #eee">
+                            <strong>담당자:</strong> ${escapeHtml(row.approver || '미지정')}
+                        </p>
                         <p><strong>ID:</strong> ${row.id}</p>
                         <p><strong>데이터베이스:</strong> ${escapeHtml(row.database_name || '')}</p>
                         <p><strong>저장소:</strong> ${escapeHtml(row.repo_name || '')}</p>
@@ -398,8 +481,10 @@
                         <p><strong>프로그램명:</strong> ${escapeHtml(row.program_name || '')}</p>
                         <p><strong>변경사유:</strong> ${escapeHtml(row.change_reason || '')}</p>
                         <p><strong>중요 코드 내용:</strong> ${escapeHtml(row.important_code_content || '')}</p>
+                        <p><strong>관련 URL:</strong> ${generateGitHubUrls(row.repo_name, row.program_name)}</p>
                         <p><strong>상태:</strong> ${getStatusBadge(row.status)}</p>
                         <p><strong>결재번호:</strong> ${escapeHtml(row.approval_number || '')}</p>
+                        <p><strong>작업내용:</strong> ${escapeHtml(row.work_content || '')}</p>
                         <p><strong>적용서버:</strong> ${escapeHtml(row.target_server || '')}</p>
                         <p><strong>환경구분:</strong> ${escapeHtml(row.env_type || '')}</p>
                         <p><strong>단계구분:</strong> ${escapeHtml(row.stage_type || '')}</p>
@@ -407,12 +492,31 @@
                         <p><strong>운영 적용일자:</strong> ${formatDateTime(row.prod_apply_date)}</p>
                         <p><strong>제출일자:</strong> ${formatDateTime(row.submitted_date)}</p>
                         <p><strong>승인일자:</strong> ${formatDateTime(row.approved_date)}</p>
+                        <p><strong>승인사유 및 조건:</strong> ${escapeHtml(row.approval_reason || '')}</p>
                         <p><strong>반려일자:</strong> ${formatDateTime(row.rejected_date)}</p>
                         <p><strong>반려이유:</strong> ${escapeHtml(row.rejection_reason || '')}</p>
                         <p><strong>운영서버 적용일자(예정):</strong> ${formatDateTime(row.prod_scheduled_date)}</p>
                     </div>
                 `;
                 document.getElementById('detailContent').innerHTML = detailHtml;
+                document.getElementById('detailId').value = id;
+                
+                // 승인 또는 반려된 경우 버튼 숨기기
+                const approveBtn = document.getElementById('detailApproveBtn');
+                const rejectBtn = document.getElementById('detailRejectBtn');
+                const isApproved = row.approved_date && row.approved_date.trim() !== '';
+                const isRejected = row.rejected_date && row.rejected_date.trim() !== '';
+                
+                if (isApproved || isRejected) {
+                    // 이미 승인되거나 반려된 경우 버튼 숨기기
+                    approveBtn.style.display = 'none';
+                    rejectBtn.style.display = 'none';
+                } else {
+                    // 대기 상태인 경우 버튼 표시
+                    approveBtn.style.display = 'inline-block';
+                    rejectBtn.style.display = 'inline-block';
+                }
+                
                 document.getElementById('detailModal').style.display = 'block';
             } catch (e) {
                 alert('상세 정보 불러오기 실패: ' + e.message);
@@ -421,36 +525,37 @@
 
         function openSubmitModal(id) {
             document.getElementById('submitId').value = id;
-            document.getElementById('submitApprovalNumber').value = '';
+            // 결재번호는 서버에서 자동 생성되므로 미리보기만 표시
+            const today = new Date();
+            const dateStr = today.getFullYear() + 
+                String(today.getMonth() + 1).padStart(2, '0') + 
+                String(today.getDate()).padStart(2, '0');
+            document.getElementById('submitApprovalNumber').value = dateStr + '-001 (자동 생성)';
             document.getElementById('submitTargetServer').value = '';
             document.getElementById('submitEnvType').value = '';
             document.getElementById('submitStageType').value = '';
             document.getElementById('submitProdScheduledDate').value = '';
+            document.getElementById('submitWorkContent').value = '';
             document.getElementById('submitModal').style.display = 'block';
         }
 
         document.getElementById('submitBtn').addEventListener('click', async () => {
             const id = document.getElementById('submitId').value;
-            const approvalNumber = document.getElementById('submitApprovalNumber').value;
             const targetServer = document.getElementById('submitTargetServer').value;
             const envType = document.getElementById('submitEnvType').value;
             const stageType = document.getElementById('submitStageType').value;
             const prodScheduledDate = document.getElementById('submitProdScheduledDate').value;
-
-            if (!approvalNumber) {
-                alert('결재번호를 입력하세요.');
-                return;
-            }
+            const workContent = document.getElementById('submitWorkContent').value;
 
             try {
                 const data = {
                     action: 'submit',
                     id: parseInt(id),
-                    approval_number: approvalNumber,
                     target_server: targetServer,
                     env_type: envType,
                     stage_type: stageType,
-                    prod_scheduled_date: prodScheduledDate ? new Date(prodScheduledDate).toISOString() : null
+                    prod_scheduled_date: prodScheduledDate ? new Date(prodScheduledDate).toISOString() : null,
+                    work_content: workContent
                 };
                 const r = await fetch(`${EFFECTIVE_BASE}/api/config_management`, {
                     method: 'POST',
@@ -459,7 +564,8 @@
                 });
                 const j = await r.json();
                 if (!j.ok) throw new Error(j.error || 'submit failed');
-                alert(j.message || '제출되었습니다.');
+                const approvalNumber = j.approval_number || '';
+                alert((j.message || '제출되었습니다.') + (approvalNumber ? '\n결재번호: ' + approvalNumber : ''));
                 document.getElementById('submitModal').style.display = 'none';
                 loadHistory();
             } catch (e) {
@@ -479,10 +585,16 @@
             const testApplyDate = document.getElementById('approveTestApplyDate').value;
             const prodApplyDate = document.getElementById('approveProdApplyDate').value;
 
+            // 현재 날짜와 시간을 YYYY-MM-DD HH:MM 형식으로 생성
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const approvedDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
             try {
                 const data = {
                     action: 'approve',
                     id: parseInt(id),
+                    approved_date: approvedDateTime,
                     test_apply_date: testApplyDate ? new Date(testApplyDate).toISOString() : null,
                     prod_apply_date: prodApplyDate ? new Date(prodApplyDate).toISOString() : null
                 };
@@ -516,10 +628,16 @@
                 return;
             }
 
+            // 현재 날짜와 시간을 YYYY-MM-DD HH:MM 형식으로 생성
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const rejectedDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
             try {
                 const data = {
                     action: 'reject',
                     id: parseInt(id),
+                    rejected_date: rejectedDateTime,
                     rejection_reason: rejectionReason
                 };
                 const r = await fetch(`${EFFECTIVE_BASE}/api/config_management`, {
@@ -531,6 +649,90 @@
                 if (!j.ok) throw new Error(j.error || 'reject failed');
                 alert(j.message || '반려되었습니다.');
                 document.getElementById('rejectModal').style.display = 'none';
+                loadHistory();
+            } catch (e) {
+                alert('반려 실패: ' + e.message);
+            }
+        });
+
+        // 상세보기 모달의 승인 버튼
+        document.getElementById('detailApproveBtn').addEventListener('click', async () => {
+            const id = document.getElementById('detailId').value;
+            if (!confirm('승인하시겠습니까?')) {
+                return;
+            }
+
+            // 승인사유 및 조건 입력받기
+            const approvalReason = prompt('승인사유 및 조건을 입력하세요:');
+            if (approvalReason === null) {
+                // 취소 버튼을 누른 경우
+                return;
+            }
+
+            // 현재 날짜와 시간을 YYYY-MM-DD HH:MM 형식으로 생성
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const approvedDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            try {
+                const data = {
+                    action: 'approve',
+                    id: parseInt(id),
+                    approved_date: approvedDateTime,
+                    approval_reason: approvalReason || '',
+                    test_apply_date: null,
+                    prod_apply_date: null
+                };
+                const r = await fetch(`${EFFECTIVE_BASE}/api/config_management`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'approve failed');
+                alert(j.message || '승인되었습니다.');
+                document.getElementById('detailModal').style.display = 'none';
+                loadHistory();
+            } catch (e) {
+                alert('승인 실패: ' + e.message);
+            }
+        });
+
+        // 상세보기 모달의 반려 버튼
+        document.getElementById('detailRejectBtn').addEventListener('click', async () => {
+            const id = document.getElementById('detailId').value;
+            const rejectionReason = prompt('반려사항을 입력하세요:');
+            
+            if (!rejectionReason || rejectionReason.trim() === '') {
+                alert('반려사항을 입력해야 합니다.');
+                return;
+            }
+
+            if (!confirm('반려사항: ' + rejectionReason + '\n\n반려하시겠습니까?')) {
+                return;
+            }
+
+            // 현재 날짜와 시간을 YYYY-MM-DD HH:MM 형식으로 생성
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const rejectedDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            try {
+                const data = {
+                    action: 'reject',
+                    id: parseInt(id),
+                    rejected_date: rejectedDateTime,
+                    rejection_reason: rejectionReason
+                };
+                const r = await fetch(`${EFFECTIVE_BASE}/api/config_management`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'reject failed');
+                alert(j.message || '반려되었습니다.');
+                document.getElementById('detailModal').style.display = 'none';
                 loadHistory();
             } catch (e) {
                 alert('반려 실패: ' + e.message);
