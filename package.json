@@ -1,0 +1,22 @@
+{
+  "name": "loandoc-github-history-api",
+  "version": "1.0.0",
+  "description": "GitHub History API Server for LOANDOC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5"
+  },
+  "keywords": [
+    "loandoc",
+    "github-history",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC"
+}

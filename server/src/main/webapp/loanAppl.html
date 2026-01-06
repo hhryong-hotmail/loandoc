@@ -193,7 +193,6 @@
         <div class="nav-column">
             <a class="nav-button" href="dashboard.html">게시판</a>
             <a class="nav-button" href="customer.html">고객센터</a>
-            <a class="nav-button" href="configManagement.html">형상관리시스템</a>
         </div>
     </nav>
     <hr />
@@ -1542,8 +1541,12 @@ async function loadTermsList(){
                                 return limitB - limitA;
                             }
                             // 금리와 한도가 모두 같으면 comm 값이 작은 순서대로
-                            const commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
-                            const commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            // 단, 음수(-) 값은 장애를 의미하므로 가장 뒤로 배치
+                            let commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
+                            let commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            // 음수는 장애로 처리하여 뒤로 배치
+                            if (commA < 0) commA = 999999;
+                            if (commB < 0) commB = 999999;
                             if (commA !== commB) {
                                 return commA - commB;
                             }
@@ -1563,8 +1566,12 @@ async function loadTermsList(){
                                 return rateA - rateB;
                             }
                             // 금리와 한도가 모두 같으면 comm 값이 작은 순서대로
-                            const commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
-                            const commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            // 단, 음수(-) 값은 장애를 의미하므로 가장 뒤로 배치
+                            let commA = (a.comm !== null && a.comm !== undefined) ? a.comm : 999999;
+                            let commB = (b.comm !== null && b.comm !== undefined) ? b.comm : 999999;
+                            // 음수는 장애로 처리하여 뒤로 배치
+                            if (commA < 0) commA = 999999;
+                            if (commB < 0) commB = 999999;
                             if (commA !== commB) {
                                 return commA - commB;
                             }

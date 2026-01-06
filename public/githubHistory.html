@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LOANDOC - GitHub History 관리</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;background:#f6f6f6;margin:0}
+        header{background:#2d6cdf;color:#fff;padding:28px 20px;text-align:center}
+        main{max-width:none;width:100%;margin:24px 0;background:#f6f6f6;padding:18px 24px;border-radius:8px;box-sizing:border-box}
+        nav{display:flex;justify-content:center;gap:10px;padding:12px 8px;background:#f6f6f6;align-items:center;flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}
+        .nav-button{background:#FFD400;color:#000;border:none;padding:8px 12px;min-width:100px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;flex:0 0 auto;box-sizing:border-box}
+        .hero{background:#fff;padding:28px;border-radius:8px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+        table{width:100%;border-collapse:collapse;background:#fff}
+        th{background:#2d6cdf;color:#fff;padding:12px;text-align:left;font-weight:700}
+        td{padding:10px;border-bottom:1px solid #eee}
+        tr:hover{background:#f9f9f9}
+        .status-badge{padding:4px 8px;border-radius:4px;font-size:12px;font-weight:700;display:inline-block}
+        .status-waiting{background:#ffc107;color:#000}
+        .status-submitted{background:#17a2b8;color:#fff}
+        .status-approved{background:#28a745;color:#fff}
+        .status-rejected{background:#dc3545;color:#fff}
+        .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px;margin:2px}
+        .btn-primary{background:#2d6cdf;color:#fff}
+        .btn-success{background:#28a745;color:#fff}
+        .btn-danger{background:#dc3545;color:#fff}
+        .btn-warning{background:#ffc107;color:#000}
+        .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5)}
+        .modal-content{background:#fff;margin:5% auto;padding:20px;border-radius:8px;width:80%;max-width:800px;max-height:80vh;overflow-y:auto}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #eee;padding-bottom:10px}
+        .modal-close{cursor:pointer;font-size:24px;font-weight:700;color:#999}
+        .modal-close:hover{color:#000}
+        .form-group{margin-bottom:15px}
+        .form-group label{display:block;margin-bottom:5px;font-weight:700}
+        .form-group input,.form-group select,.form-group textarea{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box}
+        .form-group textarea{min-height:100px;resize:vertical}
+        .editable{background:#fff3cd;cursor:pointer}
+        .editable:hover{background:#ffe69c}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>외국인 근로자 신용 대출</h1>
+        <p>LOANDOC - GitHub History 관리</p>
+    </header>
+    <hr />
+    <main>
+        <div class="hero">
+            <h2>GitHub History 관리</h2>
+            <p class="note">GitHub 변경이력 조회 및 수정</p>
+            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <input id="searchInput" placeholder="검색어 (프로그램명/변경사유/개발자)" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd" />
+                <select id="filterStatus" style="padding:8px;border-radius:6px;border:1px solid #ddd">
+                    <option value="전체">전체</option>
+                    <option value="대기중">대기중</option>
+                    <option value="제출됨">제출됨</option>
+                    <option value="승인됨">승인됨</option>
+                    <option value="반려됨">반려됨</option>
+                </select>
+                <select id="filterEnvType" style="padding:8px;border-radius:6px;border:1px solid #ddd">
+                    <option value="전체">전체</option>
+                    <option value="테스트">테스트</option>
+                    <option value="운영">운영</option>
+                </select>
+                <select id="filterStageType" style="padding:8px;border-radius:6px;border:1px solid #ddd">
+                    <option value="전체">전체</option>
+                    <option value="개발">개발</option>
+                    <option value="테스트">테스트</option>
+                    <option value="배포">배포</option>
+                </select>
+                <button class="nav-button" id="searchBtn">검색</button>
+                <button class="nav-button" id="refreshBtn">새로고침</button>
+            </div>
+        </div>
+
+        <section style="margin-top:18px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.04)">
+            <div style="overflow-x:auto">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th style="width:60px">ID</th>
+                            <th style="width:150px">변경일시</th>
+                            <th style="width:120px">개발자</th>
+                            <th style="width:200px">프로그램명</th>
+                            <th style="width:250px">변경사유</th>
+                            <th style="width:100px">상태</th>
+                            <th style="width:100px">환경</th>
+                            <th style="width:100px">단계</th>
+                            <th style="width:150px">결재번호</th>
+                            <th style="width:100px">승인자</th>
+                            <th style="width:200px">작업내용</th>
+                            <th style="width:200px">승인/반려 내용</th>
+                            <th style="width:150px">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 수정 모달 -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>항목 수정</h3>
+                    <span class="modal-close" id="editModalClose">&times;</span>
+                </div>
+                <form id="editForm">
+                    <input type="hidden" id="editId" />
+                    <div class="form-group">
+                        <label>결재번호</label>
+                        <input type="text" id="editApprovalNumber" />
+                    </div>
+                    <div class="form-group">
+                        <label>적용서버</label>
+                        <input type="text" id="editTargetServer" />
+                    </div>
+                    <div class="form-group">
+                        <label>환경구분</label>
+                        <select id="editEnvType">
+                            <option value="">선택</option>
+                            <option value="테스트">테스트</option>
+                            <option value="운영">운영</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>단계구분</label>
+                        <select id="editStageType">
+                            <option value="">선택</option>
+                            <option value="개발">개발</option>
+                            <option value="테스트">테스트</option>
+                            <option value="배포">배포</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>승인자</label>
+                        <input type="text" id="editApprover" />
+                    </div>
+                    <div class="form-group">
+                        <label>작업내용</label>
+                        <textarea id="editWorkContent"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>테스트 적용일자</label>
+                        <input type="datetime-local" id="editTestApplyDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>운영 적용일자</label>
+                        <input type="datetime-local" id="editProdApplyDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>운영서버 적용일자(예정)</label>
+                        <input type="datetime-local" id="editProdScheduledDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>제출일자</label>
+                        <input type="datetime-local" id="editSubmittedDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>승인일자</label>
+                        <input type="datetime-local" id="editApprovedDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>승인사유 및 조건</label>
+                        <textarea id="editApprovalReason"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>반려일자</label>
+                        <input type="datetime-local" id="editRejectedDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>반려이유</label>
+                        <textarea id="editRejectionReason"></textarea>
+                    </div>
+                    <div style="text-align:right;margin-top:20px">
+                        <button type="button" class="btn btn-primary" id="editSaveBtn">저장</button>
+                        <button type="button" class="btn" id="editCancelBtn">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 상세보기 모달 -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>작업 상세 내용</h3>
+                    <span class="modal-close" id="detailModalClose">&times;</span>
+                </div>
+                <div id="detailContent"></div>
+                <hr style="border:0;border-top:1px solid #eee;margin:20px 0" />
+                <div style="text-align:right;padding-top:10px">
+                    <button type="button" class="btn btn-primary" id="detailEditBtn">수정</button>
+                    <button type="button" class="btn" id="detailCancelBtn">닫기</button>
+                </div>
+                <input type="hidden" id="detailId" />
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:3333/api/github-history';
+
+        const searchInput = document.getElementById('searchInput');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterEnvType = document.getElementById('filterEnvType');
+        const filterStageType = document.getElementById('filterStageType');
+        const searchBtn = document.getElementById('searchBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const historyBody = document.getElementById('historyBody');
+
+        // 검색
+        searchBtn.addEventListener('click', loadHistory);
+        refreshBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filterStatus.value = '전체';
+            filterEnvType.value = '전체';
+            filterStageType.value = '전체';
+            loadHistory();
+        });
+
+        // 모달 닫기
+        document.getElementById('editModalClose').addEventListener('click', () => {
+            document.getElementById('editModal').style.display = 'none';
+        });
+        document.getElementById('detailModalClose').addEventListener('click', () => {
+            document.getElementById('detailModal').style.display = 'none';
+        });
+        document.getElementById('editCancelBtn').addEventListener('click', () => {
+            document.getElementById('editModal').style.display = 'none';
+        });
+        document.getElementById('detailCancelBtn').addEventListener('click', () => {
+            document.getElementById('detailModal').style.display = 'none';
+        });
+
+        // 모달 외부 클릭 시 닫기
+        window.addEventListener('click', (e) => {
+            const modals = ['editModal', 'detailModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        function formatDateTime(val) {
+            if (!val) return '';
+            try {
+                const d = new Date(val);
+                if (isNaN(d)) return String(val);
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            } catch (e) {
+                return String(val);
+            }
+        }
+
+        function formatDateForInput(val) {
+            if (!val) return '';
+            try {
+                const d = new Date(val);
+                if (isNaN(d)) return '';
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                '대기중': '<span class="status-badge status-waiting">대기중</span>',
+                '제출됨': '<span class="status-badge status-submitted">제출됨</span>',
+                '승인됨': '<span class="status-badge status-approved">승인됨</span>',
+                '반려됨': '<span class="status-badge status-rejected">반려됨</span>'
+            };
+            return badges[status] || status;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        async function loadHistory() {
+            const q = encodeURIComponent(searchInput.value || '');
+            const status = filterStatus.value || '전체';
+            const envType = filterEnvType.value || '전체';
+            const stageType = filterStageType.value || '전체';
+            let url = `${API_BASE}?q=${q}`;
+            if (status !== '전체') url += `&status=${encodeURIComponent(status)}`;
+            if (envType !== '전체') url += `&env_type=${encodeURIComponent(envType)}`;
+            if (stageType !== '전체') url += `&stage_type=${encodeURIComponent(stageType)}`;
+
+            try {
+                const r = await fetch(url);
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'load failed');
+                renderHistory(j.rows || []);
+            } catch (e) {
+                alert('목록 불러오기 실패: ' + e.message);
+            }
+        }
+
+        function renderHistory(rows) {
+            historyBody.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="13" style="padding:12px;text-align:center;color:#666">등록된 변경이력이 없습니다.</td></tr>`;
+                return;
+            }
+            for (const r of rows) {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        viewDetail(r.id);
+                    }
+                });
+                
+                let approvalRejectContent = '';
+                if (r.approved_date && r.approved_date.trim() !== '') {
+                    approvalRejectContent = r.approval_reason || '';
+                } else if (r.rejected_date && r.rejected_date.trim() !== '') {
+                    approvalRejectContent = r.rejection_reason || '';
+                }
+                
+                tr.innerHTML = `
+                    <td>${r.id}</td>
+                    <td>${formatDateTime(r.change_datetime)}</td>
+                    <td>${escapeHtml(r.developer_name || '')}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.program_name || '')}">${escapeHtml(r.program_name || '')}</td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.change_reason || '')}">${escapeHtml(r.change_reason || '')}</td>
+                    <td>${getStatusBadge(r.status)}</td>
+                    <td>${escapeHtml(r.env_type || '')}</td>
+                    <td>${escapeHtml(r.stage_type || '')}</td>
+                    <td>${escapeHtml(r.approval_number || '')}</td>
+                    <td>${escapeHtml(r.approver || '')}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.work_content || '')}">${escapeHtml(r.work_content || '')}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(approvalRejectContent)}">${escapeHtml(approvalRejectContent)}</td>
+                    <td><button class="btn btn-primary" onclick="event.stopPropagation(); editItem(${r.id})">수정</button></td>
+                `;
+                historyBody.appendChild(tr);
+            }
+        }
+
+        async function viewDetail(id) {
+            try {
+                const r = await fetch(`${API_BASE}/${id}`);
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'failed');
+                const row = j.row;
+
+                const detailHtml = `
+                    <div style="line-height:1.8">
+                        <p style="font-size:1.2em;font-weight:bold;color:#2d6cdf;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #eee">
+                            <strong>ID:</strong> ${row.id}
+                        </p>
+                        <p><strong>데이터베이스:</strong> ${escapeHtml(row.database_name || '')}</p>
+                        <p><strong>저장소:</strong> ${escapeHtml(row.repo_name || '')}</p>
+                        <p><strong>변경일시:</strong> ${formatDateTime(row.change_datetime)}</p>
+                        <p><strong>개발자:</strong> ${escapeHtml(row.developer_name || '')}</p>
+                        <p><strong>프로그램명:</strong> ${escapeHtml(row.program_name || '')}</p>
+                        <p><strong>변경사유:</strong> ${escapeHtml(row.change_reason || '')}</p>
+                        <p><strong>중요 코드 내용:</strong> ${escapeHtml(row.important_code_content || '')}</p>
+                        <p><strong>상태:</strong> ${getStatusBadge(row.status)}</p>
+                        <p><strong>결재번호:</strong> ${escapeHtml(row.approval_number || '')}</p>
+                        <p><strong>작업내용:</strong> ${escapeHtml(row.work_content || '')}</p>
+                        <p><strong>적용서버:</strong> ${escapeHtml(row.target_server || '')}</p>
+                        <p><strong>환경구분:</strong> ${escapeHtml(row.env_type || '')}</p>
+                        <p><strong>단계구분:</strong> ${escapeHtml(row.stage_type || '')}</p>
+                        <p><strong>승인자:</strong> ${escapeHtml(row.approver || '')}</p>
+                        <p><strong>테스트 적용일자:</strong> ${formatDateTime(row.test_apply_date)}</p>
+                        <p><strong>운영 적용일자:</strong> ${formatDateTime(row.prod_apply_date)}</p>
+                        <p><strong>제출일자:</strong> ${formatDateTime(row.submitted_date)}</p>
+                        <p><strong>승인일자:</strong> ${formatDateTime(row.approved_date)}</p>
+                        <p><strong>승인사유 및 조건:</strong> ${escapeHtml(row.approval_reason || '')}</p>
+                        <p><strong>반려일자:</strong> ${formatDateTime(row.rejected_date)}</p>
+                        <p><strong>반려이유:</strong> ${escapeHtml(row.rejection_reason || '')}</p>
+                        <p><strong>운영서버 적용일자(예정):</strong> ${formatDateTime(row.prod_scheduled_date)}</p>
+                    </div>
+                `;
+                document.getElementById('detailContent').innerHTML = detailHtml;
+                document.getElementById('detailId').value = id;
+                document.getElementById('detailModal').style.display = 'block';
+            } catch (e) {
+                alert('상세 정보 불러오기 실패: ' + e.message);
+            }
+        }
+
+        document.getElementById('detailEditBtn').addEventListener('click', () => {
+            const id = document.getElementById('detailId').value;
+            document.getElementById('detailModal').style.display = 'none';
+            editItem(id);
+        });
+
+        async function editItem(id) {
+            try {
+                const r = await fetch(`${API_BASE}/${id}`);
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'failed');
+                const row = j.row;
+
+                document.getElementById('editId').value = id;
+                document.getElementById('editApprovalNumber').value = row.approval_number || '';
+                document.getElementById('editTargetServer').value = row.target_server || '';
+                document.getElementById('editEnvType').value = row.env_type || '';
+                document.getElementById('editStageType').value = row.stage_type || '';
+                document.getElementById('editApprover').value = row.approver || '';
+                document.getElementById('editWorkContent').value = row.work_content || '';
+                document.getElementById('editTestApplyDate').value = formatDateForInput(row.test_apply_date);
+                document.getElementById('editProdApplyDate').value = formatDateForInput(row.prod_apply_date);
+                document.getElementById('editProdScheduledDate').value = formatDateForInput(row.prod_scheduled_date);
+                document.getElementById('editSubmittedDate').value = formatDateForInput(row.submitted_date);
+                document.getElementById('editApprovedDate').value = formatDateForInput(row.approved_date);
+                document.getElementById('editApprovalReason').value = row.approval_reason || '';
+                document.getElementById('editRejectedDate').value = formatDateForInput(row.rejected_date);
+                document.getElementById('editRejectionReason').value = row.rejection_reason || '';
+                
+                document.getElementById('editModal').style.display = 'block';
+            } catch (e) {
+                alert('항목 불러오기 실패: ' + e.message);
+            }
+        }
+
+        document.getElementById('editSaveBtn').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            const updateData = {
+                approval_number: document.getElementById('editApprovalNumber').value || null,
+                target_server: document.getElementById('editTargetServer').value || null,
+                env_type: document.getElementById('editEnvType').value || null,
+                stage_type: document.getElementById('editStageType').value || null,
+                approver: document.getElementById('editApprover').value || null,
+                work_content: document.getElementById('editWorkContent').value || null,
+                test_apply_date: document.getElementById('editTestApplyDate').value ? new Date(document.getElementById('editTestApplyDate').value).toISOString() : null,
+                prod_apply_date: document.getElementById('editProdApplyDate').value ? new Date(document.getElementById('editProdApplyDate').value).toISOString() : null,
+                prod_scheduled_date: document.getElementById('editProdScheduledDate').value ? new Date(document.getElementById('editProdScheduledDate').value).toISOString() : null,
+                submitted_date: document.getElementById('editSubmittedDate').value ? new Date(document.getElementById('editSubmittedDate').value).toISOString() : null,
+                approved_date: document.getElementById('editApprovedDate').value ? new Date(document.getElementById('editApprovedDate').value).toISOString() : null,
+                approval_reason: document.getElementById('editApprovalReason').value || null,
+                rejected_date: document.getElementById('editRejectedDate').value ? new Date(document.getElementById('editRejectedDate').value).toISOString() : null,
+                rejection_reason: document.getElementById('editRejectionReason').value || null
+            };
+
+            try {
+                const r = await fetch(`${API_BASE}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                const j = await r.json();
+                if (!j.ok) throw new Error(j.error || 'update failed');
+                alert(j.message || '업데이트되었습니다.');
+                document.getElementById('editModal').style.display = 'none';
+                loadHistory();
+            } catch (e) {
+                alert('업데이트 실패: ' + e.message);
+            }
+        });
+
+        // 페이지 로드 시 목록 불러오기
+        loadHistory();
+    </script>
+</body>
+</html>

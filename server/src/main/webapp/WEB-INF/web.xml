@@ -65,4 +65,15 @@
         <url-pattern>/api/config_management</url-pattern>
         <url-pattern>/api/config_management/*</url-pattern>
     </servlet-mapping>
+
+    <!-- LoanConsultantServlet 매핑 -->
+    <servlet>
+        <servlet-name>LoanConsultantServlet</servlet-name>
+        <servlet-class>com.loandoc.LoanConsultantServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>LoanConsultantServlet</servlet-name>
+        <url-pattern>/api/loan_consultant</url-pattern>
+        <url-pattern>/api/loan_consultant/*</url-pattern>
+    </servlet-mapping>
 </web-app>

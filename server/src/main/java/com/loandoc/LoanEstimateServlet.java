@@ -96,13 +96,46 @@ public class LoanEstimateServlet extends HttpServlet {
                 results.add(result);
             }
 
-            // Sort by rank
+            // Sort by rank, then by comm (communication speed)
+            // 금리와 대출금액의 순서대로 체크 후, 통신속도가 작은 것부터 1순위에 가깝게 정렬
+            // 단, 음수(-) 값은 장애를 의미하므로 가장 뒤로 배치
             List<ObjectNode> sortedResults = new ArrayList<>();
             results.forEach(node -> sortedResults.add((ObjectNode) node));
             sortedResults.sort((a, b) -> {
+                // 1순위: rank 비교 (금리와 대출금액이 반영된 순위)
                 int rankA = a.has("rank") && !a.get("rank").isNull() ? a.get("rank").asInt() : 999;
                 int rankB = b.has("rank") && !b.get("rank").isNull() ? b.get("rank").asInt() : 999;
-                return Integer.compare(rankA, rankB);
+                int rankCompare = Integer.compare(rankA, rankB);
+                if (rankCompare != 0) {
+                    return rankCompare;
+                }
+                
+                // 2순위: comm 값 비교 (통신속도가 작은 것부터 1순위에 가깝게)
+                // 음수(-) 값은 장애를 의미하므로 가장 큰 값으로 처리하여 뒤로 배치
+                int commA = 999999; // 기본값 (장애 또는 null)
+                int commB = 999999; // 기본값 (장애 또는 null)
+                
+                if (a.has("comm") && !a.get("comm").isNull()) {
+                    commA = a.get("comm").asInt();
+                    if (commA < 0) {
+                        commA = 999999; // 음수는 장애로 처리하여 뒤로 배치
+                    }
+                }
+                
+                if (b.has("comm") && !b.get("comm").isNull()) {
+                    commB = b.get("comm").asInt();
+                    if (commB < 0) {
+                        commB = 999999; // 음수는 장애로 처리하여 뒤로 배치
+                    }
+                }
+                
+                int commCompare = Integer.compare(commA, commB);
+                if (commCompare != 0) {
+                    return commCompare; // 작은 값이 앞으로 (빠른 통신이 우선)
+                }
+                
+                // 3순위: 모든 값이 같으면 원래 순서 유지
+                return 0;
             });
 
             ArrayNode finalResults = mapper.createArrayNode();

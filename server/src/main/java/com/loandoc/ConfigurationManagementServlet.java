@@ -113,7 +113,8 @@ public class ConfigurationManagementServlet extends HttpServlet {
                     "SELECT id, database_name, repo_name, change_datetime, program_name, change_reason, "
                             + "developer_name, important_code_content, approval_number, target_server, env_type, "
                             + "stage_type, test_apply_date, prod_apply_date, submitted_date, approved_date, "
-                            + "rejected_date, rejection_reason, prod_scheduled_date "
+                            + "rejected_date, rejection_reason, prod_scheduled_date, approver, work_content, "
+                            + "approval_reason "
                             + "FROM github_history WHERE 1=1");
             List<Object> params = new ArrayList<>();
 
@@ -191,6 +192,9 @@ public class ConfigurationManagementServlet extends HttpServlet {
                 row.put("rejection_reason", rs.getString("rejection_reason"));
                 Timestamp prodScheduledDate = rs.getTimestamp("prod_scheduled_date");
                 row.put("prod_scheduled_date", prodScheduledDate != null ? prodScheduledDate.toString() : null);
+                row.put("approver", rs.getString("approver"));
+                row.put("work_content", rs.getString("work_content"));
+                row.put("approval_reason", rs.getString("approval_reason"));
 
                 // 상태 계산
                 String currentStatus = "대기중";
@@ -232,7 +236,8 @@ public class ConfigurationManagementServlet extends HttpServlet {
             String sql = "SELECT id, database_name, repo_name, change_datetime, program_name, change_reason, "
                     + "developer_name, important_code_content, approval_number, target_server, env_type, "
                     + "stage_type, test_apply_date, prod_apply_date, submitted_date, approved_date, "
-                    + "rejected_date, rejection_reason, prod_scheduled_date "
+                    + "rejected_date, rejection_reason, prod_scheduled_date, approver, work_content, "
+                    + "approval_reason "
                     + "FROM github_history WHERE id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, id);
@@ -266,6 +271,9 @@ public class ConfigurationManagementServlet extends HttpServlet {
                 row.put("rejection_reason", rs.getString("rejection_reason"));
                 Timestamp prodScheduledDate = rs.getTimestamp("prod_scheduled_date");
                 row.put("prod_scheduled_date", prodScheduledDate != null ? prodScheduledDate.toString() : null);
+                row.put("approver", rs.getString("approver"));
+                row.put("work_content", rs.getString("work_content"));
+                row.put("approval_reason", rs.getString("approval_reason"));
 
                 // 상태 계산
                 String currentStatus = "대기중";
@@ -302,10 +310,10 @@ public class ConfigurationManagementServlet extends HttpServlet {
             throws IOException {
         Connection conn = null;
         PreparedStatement stmt = null;
+        ResultSet rs = null;
 
         try {
             int id = requestBody.has("id") ? requestBody.get("id").asInt() : 0;
-            String approvalNumber = requestBody.has("approval_number") ? requestBody.get("approval_number").asText() : null;
             String targetServer = requestBody.has("target_server") ? requestBody.get("target_server").asText() : null;
             String envType = requestBody.has("env_type") ? requestBody.get("env_type").asText() : null;
             String stageType = requestBody.has("stage_type") ? requestBody.get("stage_type").asText() : null;
@@ -319,21 +327,68 @@ public class ConfigurationManagementServlet extends HttpServlet {
             }
 
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            
+            // 결재번호 자동 생성: YYYYMMDD-001 형식
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            String datePrefix = String.format("%04d%02d%02d", 
+                cal.get(java.util.Calendar.YEAR),
+                cal.get(java.util.Calendar.MONTH) + 1,
+                cal.get(java.util.Calendar.DAY_OF_MONTH));
+            
+            // 같은 날짜에 제출된 결재 개수 조회 (submitted_date가 오늘인 것들)
+            String countSql = "SELECT COUNT(*) FROM github_history WHERE submitted_date IS NOT NULL AND submitted_date::date = CURRENT_DATE";
+            stmt = conn.prepareStatement(countSql);
+            rs = stmt.executeQuery();
+            int count = 0;
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+            rs.close();
+            stmt.close();
+            
+            // 다음 번호 생성 (001, 002, ...)
+            int nextNumber = count + 1;
+            String approvalNumber = String.format("%s-%03d", datePrefix, nextNumber);
+
+            // 승인자 랜덤 할당 (김종호, 하현용, 문규식)
+            String[] approvers = {"김종호", "하현용", "문규식"};
+            java.util.Random random = new java.util.Random();
+            String approver = approvers[random.nextInt(approvers.length)];
+
+            // 작업내용 생성 (변경사유를 기반으로)
+            String workContent = requestBody.has("work_content") ? requestBody.get("work_content").asText() : null;
+            if (workContent == null || workContent.trim().isEmpty()) {
+                // 변경사유를 가져와서 작업내용으로 사용
+                String getReasonSql = "SELECT change_reason FROM github_history WHERE id = ?";
+                PreparedStatement getReasonStmt = conn.prepareStatement(getReasonSql);
+                getReasonStmt.setInt(1, id);
+                ResultSet reasonRs = getReasonStmt.executeQuery();
+                if (reasonRs.next()) {
+                    workContent = reasonRs.getString("change_reason");
+                }
+                reasonRs.close();
+                getReasonStmt.close();
+            }
+
             String sql = "UPDATE github_history SET approval_number = ?, target_server = ?, env_type = ?, "
-                    + "stage_type = ?, submitted_date = CURRENT_TIMESTAMP, prod_scheduled_date = ? WHERE id = ?";
+                    + "stage_type = ?, submitted_date = CURRENT_TIMESTAMP, prod_scheduled_date = ?, "
+                    + "approver = ?, work_content = ? WHERE id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, approvalNumber);
             stmt.setString(2, targetServer);
             stmt.setString(3, envType);
             stmt.setString(4, stageType);
             stmt.setTimestamp(5, prodScheduledDate);
-            stmt.setInt(6, id);
+            stmt.setString(6, approver);
+            stmt.setString(7, workContent);
+            stmt.setInt(8, id);
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
                 ObjectNode response = mapper.createObjectNode();
                 response.put("ok", true);
                 response.put("message", "결재 요청이 제출되었습니다");
+                response.put("approval_number", approvalNumber);
 
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(mapper.writeValueAsString(response));
@@ -347,7 +402,7 @@ public class ConfigurationManagementServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().write("{\"ok\":false,\"error\":\"Database error: " + e.getMessage() + "\"}");
         } finally {
-            closeResources(null, stmt, conn);
+            closeResources(rs, stmt, conn);
         }
     }
 
@@ -357,6 +412,20 @@ public class ConfigurationManagementServlet extends HttpServlet {
 
         try {
             int id = requestBody.has("id") ? requestBody.get("id").asInt() : 0;
+            Timestamp approvedDate = null;
+            if (requestBody.has("approved_date") && !requestBody.get("approved_date").isNull()) {
+                try {
+                    // YYYY-MM-DD HH:MM 형식을 파싱
+                    String dateStr = requestBody.get("approved_date").asText();
+                    approvedDate = Timestamp.valueOf(dateStr + ":00"); // 초를 추가하여 Timestamp 형식으로 변환
+                } catch (Exception e) {
+                    // 날짜 파싱 실패 시 현재 시간 사용
+                    approvedDate = new Timestamp(System.currentTimeMillis());
+                }
+            } else {
+                approvedDate = new Timestamp(System.currentTimeMillis());
+            }
+            
             Timestamp testApplyDate = null;
             if (requestBody.has("test_apply_date") && !requestBody.get("test_apply_date").isNull()) {
                 try {
@@ -374,13 +443,20 @@ public class ConfigurationManagementServlet extends HttpServlet {
                 }
             }
 
+            String approvalReason = null;
+            if (requestBody.has("approval_reason") && !requestBody.get("approval_reason").isNull()) {
+                approvalReason = requestBody.get("approval_reason").asText();
+            }
+
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "UPDATE github_history SET approved_date = CURRENT_TIMESTAMP, "
-                    + "test_apply_date = ?, prod_apply_date = ?, rejected_date = NULL, rejection_reason = NULL WHERE id = ?";
+            String sql = "UPDATE github_history SET approved_date = ?, "
+                    + "test_apply_date = ?, prod_apply_date = ?, approval_reason = ?, rejected_date = NULL, rejection_reason = NULL WHERE id = ?";
             stmt = conn.prepareStatement(sql);
-            stmt.setTimestamp(1, testApplyDate);
-            stmt.setTimestamp(2, prodApplyDate);
-            stmt.setInt(3, id);
+            stmt.setTimestamp(1, approvedDate);
+            stmt.setTimestamp(2, testApplyDate);
+            stmt.setTimestamp(3, prodApplyDate);
+            stmt.setString(4, approvalReason);
+            stmt.setInt(5, id);
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
@@ -411,13 +487,28 @@ public class ConfigurationManagementServlet extends HttpServlet {
         try {
             int id = requestBody.has("id") ? requestBody.get("id").asInt() : 0;
             String rejectionReason = requestBody.has("rejection_reason") ? requestBody.get("rejection_reason").asText() : null;
+            
+            Timestamp rejectedDate = null;
+            if (requestBody.has("rejected_date") && !requestBody.get("rejected_date").isNull()) {
+                try {
+                    // YYYY-MM-DD HH:MM 형식을 파싱
+                    String dateStr = requestBody.get("rejected_date").asText();
+                    rejectedDate = Timestamp.valueOf(dateStr + ":00"); // 초를 추가하여 Timestamp 형식으로 변환
+                } catch (Exception e) {
+                    // 날짜 파싱 실패 시 현재 시간 사용
+                    rejectedDate = new Timestamp(System.currentTimeMillis());
+                }
+            } else {
+                rejectedDate = new Timestamp(System.currentTimeMillis());
+            }
 
             conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            String sql = "UPDATE github_history SET rejected_date = CURRENT_TIMESTAMP, rejection_reason = ?, "
+            String sql = "UPDATE github_history SET rejected_date = ?, rejection_reason = ?, "
                     + "approved_date = NULL WHERE id = ?";
             stmt = conn.prepareStatement(sql);
-            stmt.setString(1, rejectionReason);
-            stmt.setInt(2, id);
+            stmt.setTimestamp(1, rejectedDate);
+            stmt.setString(2, rejectionReason);
+            stmt.setInt(3, id);
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
