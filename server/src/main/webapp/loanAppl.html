@@ -1082,14 +1082,18 @@ async function loadTermsList(){
                     const label = document.createElement('label');
                     label.htmlFor = chk.id;
                     // [필수] prefix 붙이기 (select_option에 '필수'가 포함된 경우)
+                    // 단, "론닥 마케팅 정보 수신 동의"는 항상 [선택]으로 표시
                     let displayText = '';
-                    if(it.select_option && it.select_option.includes('필수')) {
-                        displayText = '[필수] ' + (it.group_name || '');
+                    const groupName = it.group_name || '';
+                    if(groupName.includes('론닥 마케팅 정보 수신 동의')) {
+                        displayText = '[선택] ' + groupName;
+                    } else if(it.select_option && it.select_option.includes('필수')) {
+                        displayText = '[필수] ' + groupName;
                     } else if(it.select_option && it.select_option.includes('선택')) {
-                        displayText = '[선택] ' + (it.group_name || '');
+                        displayText = '[선택] ' + groupName;
                     } else {
                         // select_option이 없거나 명시되지 않은 경우 기본적으로 [필수]로 표시
-                        displayText = '[필수] ' + (it.group_name || '');
+                        displayText = '[필수] ' + groupName;
                     }
                     label.textContent = displayText;
 
@@ -1121,8 +1125,14 @@ async function loadTermsList(){
                     const checked = Array.from(allCheckboxes).filter(cb => cb.checked);
                     
                     // Find required terms (select_option contains '필수')
+                    // 단, "론닥 마케팅 정보 수신 동의"는 필수 체크에서 제외
                     const requiredUnchecked = Array.from(allCheckboxes).filter(cb => {
                         const selectOption = cb.getAttribute('data-select-option') || '';
+                        const groupName = cb.getAttribute('data-group-name') || '';
+                        // "론닥 마케팅 정보 수신 동의"는 필수 체크에서 제외
+                        if(groupName.includes('론닥 마케팅 정보 수신 동의')) {
+                            return false;
+                        }
                         return selectOption.includes('필수') && !cb.checked;
                     });
                     
